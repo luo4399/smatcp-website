@@ -1,0 +1,3093 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMaTCP — Cross-tissue Somatic Mutation Atlas</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #3e5973;
+      --primary-dark: #2c4156;
+      --primary-darker: #1e2f3d;
+      --primary-light: #5a7a96;
+      --primary-lighter: #8ba8c2;
+      --primary-pale: #d6e3ef;
+      --primary-ghost: #eef3f8;
+      --accent: #4a9ece;
+      --accent-light: #7dbde0;
+      --accent-warm: #e8935a;
+      --success: #4caf7d;
+      --warning: #f0ad4e;
+      --danger: #e74c3c;
+      --surface: #ffffff;
+      --bg: #f5f7fa;
+      --bg-alt: #edf1f5;
+      --text: #1a2a3a;
+      --text-secondary: #5a6a7a;
+      --text-muted: #8a9aaa;
+      --border: #dce4ec;
+      --border-light: #e8eef4;
+      --shadow-sm: 0 1px 3px rgba(30, 47, 61, 0.06), 0 1px 2px rgba(30, 47, 61, 0.04);
+      --shadow-md: 0 4px 12px rgba(30, 47, 61, 0.08), 0 2px 4px rgba(30, 47, 61, 0.04);
+      --shadow-lg: 0 12px 36px rgba(30, 47, 61, 0.1), 0 4px 12px rgba(30, 47, 61, 0.06);
+      --shadow-xl: 0 20px 60px rgba(30, 47, 61, 0.12), 0 8px 20px rgba(30, 47, 61, 0.06);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-lighter);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-light);
+    }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border-light);
+      transition: var(--transition);
+    }
+
+    .navbar.scrolled {
+      box-shadow: var(--shadow-md);
+    }
+
+    .nav-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .nav-logo:hover {
+      opacity: 0.85;
+    }
+
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 180deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+      animation: logoShine 6s linear infinite;
+    }
+
+    @keyframes logoShine {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .logo-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #fff;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-links a {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+      background: var(--primary-ghost);
+    }
+
+    .nav-links a.active {
+      color: var(--primary);
+      background: var(--primary-pale);
+      font-weight: 600;
+    }
+
+    .nav-mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      padding: 140px 40px 80px;
+      background: linear-gradient(165deg, var(--primary-darker) 0%, var(--primary) 40%, var(--primary-light) 100%);
+      position: relative;
+      overflow: hidden;
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(74, 158, 206, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(139, 168, 194, 0.1) 0%, transparent 50%);
+    }
+
+    .hero-particles {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .hero-particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      animation: particleFloat linear infinite;
+    }
+
+    @keyframes particleFloat {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 1;
+      }
+
+      90% {
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(-800px) scale(0.5);
+        opacity: 0;
+      }
+    }
+
+    .hero-content {
+      max-width: 1320px;
+      margin: 0 auto;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-badge i {
+      color: var(--accent-light);
+    }
+
+    .hero-title {
+      font-size: 3.2rem;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+
+    .hero-title .highlight {
+      background: linear-gradient(135deg, var(--accent-light) 0%, #a8d8ea 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 28px;
+      line-height: 1.7;
+      max-width: 540px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-outline-dark {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+
+    .btn-outline-dark:hover {
+      background: var(--primary-pale);
+      border-color: var(--primary-dark);
+      color: var(--primary-dark);
+    }
+
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .hero-stat-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .hero-stat-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      border-radius: var(--radius-md);
+      padding: 22px 24px;
+      flex: 1;
+      transition: var(--transition);
+    }
+
+    .hero-stat-card:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .hero-stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.1;
+    }
+
+    .hero-stat-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .hero-stat-card.accent {
+      border-color: rgba(74, 158, 206, 0.3);
+    }
+
+    .hero-stat-card.accent .hero-stat-number {
+      color: var(--accent-light);
+    }
+
+    /* ===== SECTIONS ===== */
+    .section {
+      padding: 80px 40px;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 56px;
+    }
+
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    .section-tag i {
+      font-size: 0.7rem;
+    }
+
+    .section-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+
+    .section-desc {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ===== OVERVIEW ===== */
+    .overview-section {
+      background: var(--surface);
+    }
+
+    .overview-grid {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .overview-about h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+
+    .overview-about p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .highlight-box {
+      background: var(--primary-ghost);
+      border-left: 4px solid var(--primary);
+      padding: 18px 22px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-top: 20px;
+    }
+
+    .highlight-box p {
+      font-size: 0.88rem;
+      margin: 0;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .study-design-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .study-design-card h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .study-design-card h4 i {
+      color: var(--accent);
+    }
+
+    .pipeline-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pipeline-stage {
+      display: flex;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .pipeline-stage-label {
+      width: 130px;
+      min-width: 130px;
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.3;
+    }
+
+    .pipeline-stage-label i {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .pipeline-stage-items {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pipeline-chip {
+      background: var(--primary-ghost);
+      border: 1px solid var(--primary-pale);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+      line-height: 1.3;
+    }
+
+    .pipeline-chip:hover {
+      background: var(--primary-pale);
+    }
+
+    .pipeline-chip i {
+      color: var(--accent);
+      font-size: 0.7rem;
+    }
+
+    .pipeline-chip.highlight-chip {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .pipeline-chip.highlight-chip i {
+      color: var(--accent-light);
+    }
+
+    .pipeline-connector {
+      display: flex;
+      justify-content: center;
+      padding: 2px 0;
+    }
+
+    .pipeline-connector i {
+      color: var(--primary-lighter);
+      font-size: 0.9rem;
+    }
+
+    /* ===== TISSUE SECTION ===== */
+    .tissue-section {
+      background: var(--bg);
+    }
+
+    .tissue-grid {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .tissue-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 22px 20px;
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tissue-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .tissue-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary-pale);
+    }
+
+    .tissue-card:hover::before {
+      opacity: 1;
+    }
+
+    .tissue-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--primary-ghost);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      font-size: 1.2rem;
+      color: var(--primary);
+      transition: var(--transition);
+    }
+
+    .tissue-card:hover .tissue-icon {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .tissue-name {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .tissue-germ {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===== FEATURE CARDS ===== */
+    .features-section {
+      background: var(--surface);
+    }
+
+    .features-grid {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transform: scaleX(0);
+      transition: var(--transition);
+      transform-origin: left;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-xl);
+      border-color: var(--primary-pale);
+    }
+
+    .feature-card:hover::after {
+      transform: scaleX(1);
+    }
+
+    .feature-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, var(--primary-ghost), var(--primary-pale));
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      color: var(--primary);
+      transition: var(--transition);
+    }
+
+    .feature-card:hover .feature-icon {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    .feature-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .feature-desc {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .feature-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      transition: var(--transition);
+    }
+
+    .feature-link:hover {
+      gap: 10px;
+      color: var(--primary);
+    }
+
+    /* ===== ENHANCED SEARCH SECTION ===== */
+    .search-section {
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+      padding: 80px 40px 100px;
+    }
+
+    .search-container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* Search Box */
+    .search-main-box {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-input-wrapper {
+      display: flex;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: var(--transition);
+      box-shadow: var(--shadow-md);
+    }
+
+    .search-input-wrapper:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(74, 158, 206, 0.12), var(--shadow-lg);
+    }
+
+    .search-input-wrapper .search-icon-left {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0 0 20px;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .search-input-wrapper input {
+      flex: 1;
+      padding: 18px 16px;
+      border: none;
+      outline: none;
+      font-size: 1.05rem;
+      font-family: inherit;
+      color: var(--text);
+      background: transparent;
+    }
+
+    .search-input-wrapper input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-type-select {
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 0;
+    }
+
+    .search-type-select select {
+      padding: 10px 14px;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: inherit;
+      color: var(--text-secondary);
+      background: var(--primary-ghost);
+      cursor: pointer;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .search-type-select select:focus {
+      border-color: var(--accent);
+    }
+
+    .search-btn {
+      padding: 18px 32px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Autocomplete Dropdown */
+    .autocomplete-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-xl);
+      z-index: 100;
+      max-height: 420px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .autocomplete-dropdown.open {
+      display: block;
+    }
+
+    .autocomplete-group-label {
+      padding: 10px 20px 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky;
+      top: 0;
+    }
+
+    .autocomplete-item {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-item:hover {
+      background: var(--primary-ghost);
+    }
+
+    .autocomplete-item.selected {
+      background: var(--primary-ghost);
+    }
+
+    .autocomplete-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .autocomplete-item-icon.gene {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .autocomplete-item-icon.tissue {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .autocomplete-item-icon.region {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    .autocomplete-item-icon.variant {
+      background: #fce4ec;
+      color: #c62828;
+    }
+
+    .autocomplete-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .autocomplete-item-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .autocomplete-item-name .match {
+      background: #fff3cd;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+
+    .autocomplete-item-meta {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .autocomplete-item-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .autocomplete-item-tag.gene-tag {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .autocomplete-item-tag.tissue-tag {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .autocomplete-item-tag.region-tag {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    /* Quick Filter Tags */
+    .search-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .search-filters-label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .filter-tag {
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .filter-tag:hover {
+      border-color: var(--primary-lighter);
+      background: var(--primary-ghost);
+    }
+
+    .filter-tag.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .filter-tag i {
+      font-size: 0.7rem;
+    }
+
+    /* Quick Example Links */
+    .search-examples {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 16px;
+    }
+
+    .search-examples a {
+      color: var(--accent);
+      font-weight: 500;
+      margin: 0 3px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      transition: var(--transition);
+      background: rgba(74, 158, 206, 0.06);
+    }
+
+    .search-examples a:hover {
+      background: rgba(74, 158, 206, 0.15);
+    }
+
+    /* ===== SEARCH RESULTS ===== */
+    .search-results {
+      margin-top: 40px;
+      display: none;
+    }
+
+    .search-results.visible {
+      display: block;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .results-count {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+    }
+
+    .results-count strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .results-view-toggle {
+      display: flex;
+      gap: 4px;
+    }
+
+    .results-view-toggle button {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .results-view-toggle button.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Results - Table View */
+    .results-table-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .results-table thead {
+      background: var(--primary);
+    }
+
+    .results-table th {
+      padding: 14px 18px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #fff;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    .results-table th:hover {
+      background: var(--primary-dark);
+    }
+
+    .results-table th .sort-icon {
+      margin-left: 4px;
+      font-size: 0.65rem;
+      opacity: 0.6;
+    }
+
+    .results-table td {
+      padding: 13px 18px;
+      font-size: 0.86rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .results-table tbody tr {
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .results-table tbody tr:hover {
+      background: var(--primary-ghost);
+    }
+
+    .results-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .gene-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gene-name-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .tissue-badge {
+      display: inline-flex;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tissue-badge.endo {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .tissue-badge.meso {
+      background: #fce4ec;
+      color: #c62828;
+    }
+
+    .tissue-badge.ecto {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .tissue-badge.blood {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    .mut-type-badge {
+      display: inline-flex;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .mut-type-badge.snv {
+      background: #e8eaf6;
+      color: #283593;
+    }
+
+    .mut-type-badge.indel {
+      background: #fce4ec;
+      color: #880e4f;
+    }
+
+    .mut-type-badge.sv {
+      background: #fff8e1;
+      color: #f57f17;
+    }
+
+    .vaf-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vaf-bar-track {
+      width: 60px;
+      height: 6px;
+      background: var(--border-light);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .vaf-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      transition: var(--transition);
+    }
+
+    .vaf-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    /* Results - Card View */
+    .results-cards {
+      display: none;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .results-cards.active {
+      display: grid;
+    }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .result-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary-pale);
+      transform: translateY(-2px);
+    }
+
+    .result-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .result-card-gene {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .result-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+    }
+
+    .result-card-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .result-card-value {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .result-card-value.mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+    }
+
+    /* Detail Panel */
+    .detail-panel {
+      position: fixed;
+      top: 0;
+      right: -520px;
+      bottom: 0;
+      width: 520px;
+      background: var(--surface);
+      box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12);
+      z-index: 2000;
+      transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+    }
+
+    .detail-panel.open {
+      right: 0;
+    }
+
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 1999;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+
+    .detail-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .detail-header {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+
+    .detail-header h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .detail-close {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .detail-close:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    .detail-body {
+      padding: 28px;
+    }
+
+    .detail-section {
+      margin-bottom: 28px;
+    }
+
+    .detail-section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .detail-section-title i {
+      color: var(--accent);
+    }
+
+    .detail-field {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .detail-field:last-child {
+      border-bottom: none;
+    }
+
+    .detail-field-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .detail-field-value {
+      font-size: 0.85rem;
+      color: var(--text);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .detail-field-value.mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .detail-tissue-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .detail-tissue-chip {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: var(--primary-ghost);
+      border: 1px solid var(--primary-pale);
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .detail-tissue-chip .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .detail-tissue-chip .chip-dot.endo {
+      background: #4caf50;
+    }
+
+    .detail-tissue-chip .chip-dot.meso {
+      background: #e91e63;
+    }
+
+    .detail-tissue-chip .chip-dot.ecto {
+      background: #2196f3;
+    }
+
+    /* VAF mini chart in detail */
+    .detail-vaf-chart {
+      margin-top: 12px;
+    }
+
+    .detail-vaf-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+
+    .detail-vaf-label {
+      width: 140px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .detail-vaf-track {
+      flex: 1;
+      height: 8px;
+      background: var(--border-light);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .detail-vaf-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .detail-vaf-fill.low {
+      background: var(--accent);
+    }
+
+    .detail-vaf-fill.mid {
+      background: var(--warning);
+    }
+
+    .detail-vaf-fill.high {
+      background: var(--danger);
+    }
+
+    .detail-vaf-val {
+      width: 50px;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      margin-top: 28px;
+    }
+
+    .pagination button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pagination button:hover {
+      border-color: var(--primary-lighter);
+      background: var(--primary-ghost);
+    }
+
+    .pagination button.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* ===== DATA DOWNLOAD TABLE ===== */
+    .data-section {
+      background: var(--bg);
+    }
+
+    .data-table-wrapper {
+      max-width: 1320px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table thead {
+      background: var(--primary);
+    }
+
+    .data-table th {
+      padding: 16px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fff;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table td {
+      padding: 14px 20px;
+      font-size: 0.88rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .data-table tbody tr {
+      transition: var(--transition);
+    }
+
+    .data-table tbody tr:hover {
+      background: var(--primary-ghost);
+    }
+
+    .data-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-badge {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .data-badge.endo {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .data-badge.meso {
+      background: #fce4ec;
+      color: #c62828;
+    }
+
+    .data-badge.ecto {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .data-badge.blood {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--primary-darker);
+      color: rgba(255, 255, 255, 0.6);
+      padding: 48px 40px 32px;
+    }
+
+    .footer-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-wrap: wrap;
+    }
+
+    .footer-brand .logo-text {
+      color: #fff;
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+
+    .footer-brand .logo-text span {
+      color: var(--accent-light);
+    }
+
+    .footer-brand p {
+      font-size: 0.82rem;
+      max-width: 320px;
+      line-height: 1.7;
+    }
+
+    .footer-links-group {
+      display: flex;
+      gap: 64px;
+    }
+
+    .footer-col h5 {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .footer-col a {
+      display: block;
+      padding: 4px 0;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.5);
+      transition: var(--transition);
+    }
+
+    .footer-col a:hover {
+      color: var(--accent-light);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-bottom p {
+      font-size: 0.8rem;
+    }
+
+    .footer-bottom a {
+      color: var(--accent-light);
+    }
+
+    .footer-social {
+      display: flex;
+      gap: 12px;
+    }
+
+    .footer-social a {
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.5);
+      transition: var(--transition);
+    }
+
+    .footer-social a:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fade-in-delay-1 {
+      transition-delay: 0.1s;
+    }
+
+    .fade-in-delay-2 {
+      transition-delay: 0.2s;
+    }
+
+    .fade-in-delay-3 {
+      transition-delay: 0.3s;
+    }
+
+    /* Back to top */
+    .back-to-top {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      width: 44px;
+      height: 44px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: var(--transition);
+      box-shadow: var(--shadow-lg);
+      z-index: 999;
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .back-to-top:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .hero-title {
+        font-size: 2.5rem;
+      }
+
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-top {
+        flex-direction: column;
+      }
+
+      .detail-panel {
+        width: 100%;
+        right: -100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-inner {
+        padding: 0 20px;
+      }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 68px;
+        left: 0;
+        right: 0;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        padding: 16px;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .nav-mobile-toggle {
+        display: block;
+      }
+
+      .hero {
+        padding: 120px 20px 60px;
+        min-height: auto;
+      }
+
+      .hero-title {
+        font-size: 2rem;
+      }
+
+      .hero-stat-row {
+        flex-direction: column;
+      }
+
+      .section {
+        padding: 60px 20px;
+      }
+
+      .section-title {
+        font-size: 1.7rem;
+      }
+
+      .tissue-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .results-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .footer {
+        padding: 40px 20px 24px;
+      }
+
+      .footer-links-group {
+        gap: 32px;
+      }
+
+      .search-section {
+        padding: 60px 20px 80px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .tissue-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .pipeline-stage {
+        flex-direction: column;
+      }
+
+      .pipeline-stage-label {
+        width: 100%;
+      }
+
+      .search-input-wrapper {
+        flex-wrap: wrap;
+      }
+
+      .search-type-select {
+        width: 100%;
+        padding: 0 12px 8px;
+      }
+
+      .search-type-select select {
+        width: 100%;
+      }
+
+      .search-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo" onclick="scrollToTop(event)">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+        </div>
+        <div class="logo-text">SMa<span>TCP</span></div>
+      </a>
+      <button class="nav-mobile-toggle" onclick="toggleMobileNav()">
+        <i class="fas fa-bars" id="navToggleIcon"></i>
+      </button>
+      <div class="nav-links" id="navLinks">
+        <a href="#home" class="active">Home</a>
+        <a href="#browse">Browse</a>
+        <a href="#search">Search</a>
+        <a href="#download">Download</a>
+        <a href="#about">About</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero-particles" id="heroParticles"></div>
+    <div class="hero-content">
+      <div class="hero-left">
+        <div class="hero-badge"><i class="fas fa-dna"></i> Cross-tissue Somatic Mutation Atlas</div>
+        <h1 class="hero-title">
+          Somatic Mutations<br>Across <span class="highlight">Human Tissues</span><br>of Chinese Population
+        </h1>
+        <p class="hero-subtitle">
+          SMaTCP integrates high-quality genomic, epigenomic, transcriptomic, translatomic, and proteomic data across
+          multiple normal tissues at both bulk and single-cell resolutions, providing a systematic framework for
+          characterizing tissue-specific and cross-tissue somatic mutations in East Asian populations.
+        </p>
+        <div class="hero-actions">
+          <a href="#search" class="btn btn-primary"><i class="fas fa-search"></i> Search Atlas</a>
+          <a href="#about" class="btn btn-outline"><i class="fas fa-info-circle"></i> Learn More</a>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-stat-row">
+          <div class="hero-stat-card accent">
+            <div class="hero-stat-number">68</div>
+            <div class="hero-stat-label">Individuals</div>
+          </div>
+          <div class="hero-stat-card">
+            <div class="hero-stat-number">13</div>
+            <div class="hero-stat-label">Tissues</div>
+          </div>
+        </div>
+        <div class="hero-stat-row">
+          <div class="hero-stat-card">
+            <div class="hero-stat-number">300x</div>
+            <div class="hero-stat-label">Short-read WGS</div>
+          </div>
+          <div class="hero-stat-card accent">
+            <div class="hero-stat-number">40x</div>
+            <div class="hero-stat-label">PacBio HiFi Long-read</div>
+          </div>
+        </div>
+        <div class="hero-stat-row">
+          <div class="hero-stat-card">
+            <div class="hero-stat-number">GRCh38</div>
+            <div class="hero-stat-label">Reference Assembly</div>
+          </div>
+          <div class="hero-stat-card">
+            <div class="hero-stat-number">DSA</div>
+            <div class="hero-stat-label">Donor-specific Assembly</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section class="section overview-section" id="about">
+    <div class="section-header">
+      <div class="section-tag"><i class="fas fa-flask"></i> About the Project</div>
+      <h2 class="section-title">Study Design and Data Generation</h2>
+      <p class="section-desc">A comprehensive multi-omics profiling across 13 tissues from 68 Chinese donors.</p>
+      <img src="./SMaTCP overview.png" alt="Overview Illustration" class="overview-illustration fade-in">
+    </div>
+    <div class="overview-grid">
+      <div class="overview-about fade-in">
+        <h3>Project Overview</h3>
+        <p>The Somatic Mutations Across human Tissues of Chinese Project (SMaTCP), as part of The Genotype
+          Tissues-Plasma Omics Project (GTOP), is an initiative to build the most comprehensive functional genomics
+          atlas of somatic mosaicism in East Asian populations.</p>
+        <p>By integrating multi-omics data across multiple normal tissues at both bulk and single-cell resolutions, GTOP
+          provides a systematic framework for characterizing genetic regulatory effects on gene expression and other
+          molecular phenotypes.</p>
+        <div class="highlight-box">
+          <p><i class="fas fa-bullseye" style="margin-right:6px;"></i> All data are generated with sample-matched
+            multi-omics strategy to enable precise cross-tissue somatic mutation calling.</p>
+        </div>
+      </div>
+      <div class="study-design-card fade-in fade-in-delay-1">
+        <h4><i class="fas fa-project-diagram"></i> Analytical Pipeline</h4>
+        <div class="pipeline-flow">
+          <div class="pipeline-stage">
+            <div class="pipeline-stage-label" style="background:var(--primary-dark)"><i class="fas fa-users"></i> Cohort
+            </div>
+            <div class="pipeline-stage-items">
+              <div class="pipeline-chip highlight-chip"><i class="fas fa-user-friends"></i> 68 Individuals</div>
+              <div class="pipeline-chip highlight-chip"><i class="fas fa-lungs"></i> 13 Tissues</div>
+            </div>
+          </div>
+          <div class="pipeline-connector"><i class="fas fa-arrow-down"></i></div>
+          <div class="pipeline-stage">
+            <div class="pipeline-stage-label"><i class="fas fa-dna"></i> Sequencing</div>
+            <div class="pipeline-stage-items">
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> PacBio HiFi (40x)</div>
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> PCR-free WGS (300x)</div>
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> RNA-seq</div>
+            </div>
+          </div>
+          <div class="pipeline-connector"><i class="fas fa-arrow-down"></i></div>
+          <div class="pipeline-stage">
+            <div class="pipeline-stage-label" style="background:var(--accent)"><i class="fas fa-search"></i> Calling
+            </div>
+            <div class="pipeline-stage-items">
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> SNV</div>
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> InDel</div>
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> SV</div>
+            </div>
+          </div>
+          <div class="pipeline-connector"><i class="fas fa-arrow-down"></i></div>
+          <div class="pipeline-stage">
+            <div class="pipeline-stage-label" style="background:var(--accent-warm)"><i class="fas fa-database"></i>
+              Annotation</div>
+            <div class="pipeline-stage-items">
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> Mosaicism</div>
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> Transcriptome</div>
+              <div class="pipeline-chip"><i class="fas fa-circle"></i> cCRE</div>
+            </div>
+          </div>
+
+          <!-- <p class="extelnal link">
+            <a class="btn btn-outline-dark" href="https://www.nature.com/articles/s41467-024-36540-1" target="_blank"
+              rel="noopener">
+              <i class="fas fa-external-link-alt"></i> Read the full paper in Nature Communications
+            </a>
+          </p> -->
+
+          <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+            <a class="btn btn-outline-dark" href="#search">
+              <i class="fas fa-database"></i> Data Access
+            </a>
+            <a class="btn btn-outline-dark" href="#browse">
+              <i class="fas fa-lungs"></i> Tissue Atlas
+            </a>
+            <a class="btn btn-outline-dark" href="#download">
+              <i class="fas fa-download"></i> Download Data
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TISSUE BROWSER -->
+  <section class="section tissue-section" id="browse">
+    <div class="section-header">
+      <div class="section-tag"><i class="fas fa-th-large"></i> Tissue Atlas</div>
+      <h2 class="section-title">Browse by Tissue</h2>
+      <p class="section-desc">Explore somatic mutations across 13 human tissues.</p>
+    </div>
+    <div class="tissue-grid">
+      <div class="tissue-card fade-in" onclick="searchByTissue('Liver')">
+        <div class="tissue-icon"><i class="fas fa-liver"></i></div>
+        <div class="tissue-name">Liver</div>
+        <div class="tissue-germ">Endoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('GallBladder')">
+        <div class="tissue-icon"><i class="fas fa-droplet"></i></div>
+        <div class="tissue-name">GallBladder</div>
+        <div class="tissue-germ">Endoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Pancreas')">
+        <div class="tissue-icon"><i class="fas fa-disease"></i></div>
+        <div class="tissue-name">Pancreas - Head</div>
+        <div class="tissue-germ">Endoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Lung')">
+        <div class="tissue-icon"><i class="fas fa-lungs"></i></div>
+        <div class="tissue-name">Lung</div>
+        <div class="tissue-germ">Endoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Stomach')">
+        <div class="tissue-icon"><i class="fas fa-stomach"></i></div>
+        <div class="tissue-name">Stomach</div>
+        <div class="tissue-germ">Endoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Muscle')">
+        <div class="tissue-icon"><i class="fas fa-dumbbell"></i></div>
+        <div class="tissue-name">Muscle</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Atrial')">
+        <div class="tissue-icon"><i class="fas fa-heart-pulse"></i></div>
+        <div class="tissue-name">Heart - Atrial</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Ventricle')">
+        <div class="tissue-icon"><i class="fas fa-heart"></i></div>
+        <div class="tissue-name">Heart - Ventricle</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Mitral')">
+        <div class="tissue-icon"><i class="fas fa-heart-circle-check"></i></div>
+        <div class="tissue-name">Heart - Mitral Valve</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Tricuspid')">
+        <div class="tissue-icon"><i class="fas fa-heart-circle-plus"></i></div>
+        <div class="tissue-name">Heart - Tricuspid Valve</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Blood')">
+        <div class="tissue-icon"><i class="fas fa-droplet"></i></div>
+        <div class="tissue-name">Whole Blood</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Adrenal')">
+        <div class="tissue-icon"><i class="fas fa-kidney"></i></div>
+        <div class="tissue-name">Adrenal Gland</div>
+        <div class="tissue-germ">Mesoderm / Ectoderm</div>
+      </div>
+      <div class="tissue-card fade-in" onclick="searchByTissue('Skin')">
+        <div class="tissue-icon"><i class="fas fa-hand-dots"></i></div>
+        <div class="tissue-name">Skin</div>
+        <div class="tissue-germ">Ectoderm</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE CARDS -->
+  <!-- <section class="section features-section">
+    <div class="section-header">
+      <div class="section-tag"><i class="fas fa-compass"></i> Explore</div>
+      <h2 class="section-title">Data Access and Exploration</h2>
+      <p class="section-desc">Multiple entry points designed for different research needs.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon"><i class="fas fa-lungs"></i></div>
+        <h3 class="feature-title">Browse by Tissue</h3>
+        <p class="feature-desc">Navigate the atlas by selecting tissues. View tissue-specific somatic mutation
+          landscapes and compare mutation burden across organs.</p>
+        <a href="#browse" class="feature-link">Start browsing <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="feature-card fade-in fade-in-delay-1">
+        <div class="feature-icon"><i class="fas fa-dna"></i></div>
+        <h3 class="feature-title">Browse by Mutation</h3>
+        <p class="feature-desc">Query specific somatic mutations including SNVs, InDels, and structural variations.
+          Filter by coordinates, genes, or annotations.</p>
+        <a href="#search" class="feature-link">Explore mutations <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="feature-card fade-in fade-in-delay-2">
+        <div class="feature-icon"><i class="fas fa-download"></i></div>
+        <h3 class="feature-title">Download Data</h3>
+        <p class="feature-desc">Download processed variant call files, summary statistics, and annotation tables in
+          standard formats.</p>
+        <a href="#download" class="feature-link">Go to downloads <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </section> -->
+
+  <!-- ========== ENHANCED SEARCH SECTION ========== -->
+  <section class="section search-section" id="search">
+    <div class="section-header">
+      <div class="section-tag"><i class="fas fa-search"></i> Query</div>
+      <h2 class="section-title">Search the Atlas</h2>
+      <p class="section-desc">Search by gene name, genomic region, tissue, or variant type with real-time suggestions.
+      </p>
+    </div>
+
+    <div class="search-container">
+      <!-- Filter Tags -->
+      <div class="search-filters">
+        <span class="search-filters-label">Filter by:</span>
+        <button class="filter-tag active" data-filter="all" onclick="setFilter(this,'all')"><i class="fas fa-globe"></i>
+          All</button>
+        <button class="filter-tag" data-filter="gene" onclick="setFilter(this,'gene')"><i class="fas fa-dna"></i>
+          Gene</button>
+        <button class="filter-tag" data-filter="tissue" onclick="setFilter(this,'tissue')"><i class="fas fa-lungs"></i>
+          Tissue</button>
+        <button class="filter-tag" data-filter="region" onclick="setFilter(this,'region')"><i
+            class="fas fa-map-marker-alt"></i> Region</button>
+        <button class="filter-tag" data-filter="variant" onclick="setFilter(this,'variant')"><i
+            class="fas fa-exchange-alt"></i> Variant Type</button>
+      </div>
+
+      <!-- Search Box with Autocomplete -->
+      <div class="search-main-box">
+        <div class="search-input-wrapper">
+          <div class="search-icon-left"><i class="fas fa-search"></i></div>
+          <input type="text" id="searchInput"
+            placeholder="Type a gene (TP53), tissue (Liver), region (chr17:7668402-7687538)..." autocomplete="off"
+            oninput="handleAutocomplete(this.value)" onkeydown="handleSearchKeydown(event)"
+            onfocus="handleAutocomplete(this.value)">
+          <div class="search-type-select">
+            <select id="searchType">
+              <option value="all">All Types</option>
+              <option value="gene">Gene</option>
+              <option value="tissue">Tissue</option>
+              <option value="region">Region</option>
+              <option value="variant">Variant</option>
+            </select>
+          </div>
+          <button class="search-btn" onclick="executeSearch()"><i class="fas fa-search"></i> Search</button>
+        </div>
+
+        <!-- Autocomplete Dropdown -->
+        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+      </div>
+
+      <!-- Quick Examples -->
+      <div class="search-examples">
+        Try:
+        <a href="#" onclick="quickSearch('TP53'); return false;">TP53</a>
+        <a href="#" onclick="quickSearch('DNMT3A'); return false;">DNMT3A</a>
+        <a href="#" onclick="quickSearch('Liver'); return false;">Liver</a>
+        <a href="#" onclick="quickSearch('Heart'); return false;">Heart</a>
+        <a href="#" onclick="quickSearch('chr2:25234373-25250285'); return false;">chr2:25234373-25250285</a>
+        <a href="#" onclick="quickSearch('ASXL1'); return false;">ASXL1</a>
+      </div>
+
+      <!-- Search Results -->
+      <div class="search-results" id="searchResults">
+        <div class="results-header">
+          <div class="results-count" id="resultsCount"></div>
+          <div class="results-view-toggle">
+            <button class="active" id="tableViewBtn" onclick="setResultView('table')"><i
+                class="fas fa-list"></i></button>
+            <button id="cardViewBtn" onclick="setResultView('card')"><i class="fas fa-th-large"></i></button>
+          </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="results-table-wrapper" id="resultsTableView">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th onclick="sortResults('gene')">Gene <i class="fas fa-sort sort-icon"></i></th>
+                <th onclick="sortResults('chr')">Chr <i class="fas fa-sort sort-icon"></i></th>
+                <th onclick="sortResults('position')">Position <i class="fas fa-sort sort-icon"></i></th>
+                <th>Ref / Alt</th>
+                <th onclick="sortResults('tissue')">Tissue <i class="fas fa-sort sort-icon"></i></th>
+                <th onclick="sortResults('type')">Type <i class="fas fa-sort sort-icon"></i></th>
+                <th onclick="sortResults('vaf')">VAF <i class="fas fa-sort sort-icon"></i></th>
+                <th>Donors</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Card View -->
+        <div class="results-cards" id="resultsCardView"></div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD TABLE -->
+  <section class="section data-section" id="download">
+    <div class="section-header">
+      <div class="section-tag"><i class="fas fa-database"></i> Data Summary</div>
+      <h2 class="section-title">Download Data</h2>
+      <p class="section-desc">Access processed datasets organized by tissue and data type.</p>
+    </div>
+    <div class="data-table-wrapper fade-in">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tissue</th>
+            <th>Germ Layer</th>
+            <th>Donors</th>
+            <th>WGS (300x)</th>
+            <th>HiFi (40x)</th>
+            <th>RNA-seq</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Liver</strong></td>
+            <td><span class="data-badge endo">Endoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>GallBladder</strong></td>
+            <td><span class="data-badge endo">Endoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Pancreas</strong></td>
+            <td><span class="data-badge endo">Endoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Lung</strong></td>
+            <td><span class="data-badge endo">Endoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Stomach</strong></td>
+            <td><span class="data-badge endo">Endoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Muscle</strong></td>
+            <td><span class="data-badge meso">Mesoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Heart - Atrial</strong></td>
+            <td><span class="data-badge meso">Mesoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Heart - Ventricle</strong></td>
+            <td><span class="data-badge meso">Mesoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Whole Blood</strong></td>
+            <td><span class="data-badge blood">Mesoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Adrenal Gland</strong></td>
+            <td><span class="data-badge ecto">Ectoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+          <tr>
+            <td><strong>Skin</strong></td>
+            <td><span class="data-badge ecto">Ectoderm</span></td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td>68</td>
+            <td><a href="#" style="color:var(--accent);font-weight:600;"><i class="fas fa-download"></i> VCF</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo-text">SMa<span>TCP</span></div>
+          <p>Cross-tissue Somatic Mutation Atlas. Somatic Mutations Across human Tissues of Chinese Project.</p>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-col">
+            <h5>Navigation</h5><a href="#home">Home</a><a href="#browse">Browse</a><a href="#search">Search</a><a
+              href="#download">Download</a><a href="#about">About</a>
+          </div>
+          <div class="footer-col">
+            <h5>Resources</h5><a href="#">Documentation</a><a href="#">API</a><a href="#">FAQs</a><a
+              href="#">Citation</a>
+          </div>
+          <div class="footer-col">
+            <h5>Related</h5><a href="#">GTOP Project</a><a href="#">SMaHT Network</a><a href="#">Data Policy</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 SMaTCP Project</p>
+        <div class="footer-social"><a href="#"><i class="fab fa-github"></i></a><a href="#"><i
+              class="fab fa-twitter"></i></a><a href="#"><i class="fas fa-envelope"></i></a></div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Detail Side Panel -->
+  <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <h3 id="detailTitle">Mutation Detail</h3>
+      <button class="detail-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+
+  <!-- Back to Top -->
+  <button class="back-to-top" id="backToTop" onclick="scrollToTop(event)"><i class="fas fa-arrow-up"></i></button>
+
+  <script>
+    // ===================== MOCK DATA =====================
+    const MOCK_DATA = [];
+    const GENES = [
+      { name: 'TP53', chr: 'chr17', start: 7668402, end: 7687538, desc: 'Tumor protein p53' },
+      { name: 'DNMT3A', chr: 'chr2', start: 25234373, end: 25250285, desc: 'DNA methyltransferase 3 alpha' },
+      { name: 'ASXL1', chr: 'chr20', start: 32354066, end: 32440095, desc: 'ASXL transcriptional regulator 1' },
+      { name: 'TET2', chr: 'chr4', start: 105145826, end: 105279784, desc: 'Tet methylcytosine dioxygenase 2' },
+      { name: 'JAK2', chr: 'chr9', start: 4985245, end: 5128183, desc: 'Janus kinase 2' },
+      { name: 'KRAS', chr: 'chr12', start: 25204789, end: 25250936, desc: 'KRAS proto-oncogene' },
+      { name: 'PIK3CA', chr: 'chr3', start: 179148114, end: 179240093, desc: 'PI3-kinase catalytic subunit alpha' },
+      { name: 'BRAF', chr: 'chr7', start: 140713328, end: 140924929, desc: 'B-Raf proto-oncogene' },
+      { name: 'IDH1', chr: 'chr2', start: 208236227, end: 208255071, desc: 'Isocitrate dehydrogenase 1' },
+      { name: 'IDH2', chr: 'chr15', start: 90083045, end: 90102548, desc: 'Isocitrate dehydrogenase 2' },
+      { name: 'NPM1', chr: 'chr5', start: 171387119, end: 171410948, desc: 'Nucleophosmin 1' },
+      { name: 'SF3B1', chr: 'chr2', start: 197389784, end: 197435093, desc: 'Splicing factor 3b subunit 1' },
+      { name: 'SRSF2', chr: 'chr17', start: 76736877, end: 76739379, desc: 'Serine/arginine-rich splicing factor 2' },
+      { name: 'NOTCH1', chr: 'chr9', start: 136494433, end: 136545786, desc: 'Notch receptor 1' },
+      { name: 'EGFR', chr: 'chr7', start: 55019017, end: 55211628, desc: 'Epidermal growth factor receptor' },
+      { name: 'APC', chr: 'chr5', start: 112707498, end: 112846239, desc: 'APC regulator of WNT signaling pathway' },
+      { name: 'BRCA1', chr: 'chr17', start: 43044295, end: 43170245, desc: 'BRCA1 DNA repair associated' },
+      { name: 'BRCA2', chr: 'chr13', start: 32315508, end: 32399672, desc: 'BRCA2 DNA repair associated' },
+      { name: 'MYC', chr: 'chr8', start: 127735434, end: 127742951, desc: 'MYC proto-oncogene' },
+      { name: 'PTEN', chr: 'chr10', start: 87863438, end: 87971930, desc: 'Phosphatase and tensin homolog' },
+    ];
+
+    const TISSUES = [
+      { name: 'Liver', germ: 'Endoderm', germClass: 'endo', icon: 'fa-liver' },
+      { name: 'GallBladder', germ: 'Endoderm', germClass: 'endo', icon: 'fa-droplet' },
+      { name: 'Pancreas', germ: 'Endoderm', germClass: 'endo', icon: 'fa-disease' },
+      { name: 'Lung', germ: 'Endoderm', germClass: 'endo', icon: 'fa-lungs' },
+      { name: 'Stomach', germ: 'Endoderm', germClass: 'endo', icon: 'fa-disease' },
+      { name: 'Muscle', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-dumbbell' },
+      { name: 'Heart Atrial', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart-pulse' },
+      { name: 'Heart Ventricle', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart' },
+      { name: 'Heart Mitral', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart' },
+      { name: 'Heart Tricuspid', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart' },
+      { name: 'Blood', germ: 'Mesoderm', germClass: 'blood', icon: 'fa-droplet' },
+      { name: 'Adrenal', germ: 'Ectoderm', germClass: 'ecto', icon: 'fa-kidney' },
+      { name: 'Skin', germ: 'Ectoderm', germClass: 'ecto', icon: 'fa-hand-dots' },
+    ];
+
+    const VARIANT_TYPES = ['SNV', 'InDel', 'SV'];
+    const BASES = ['A', 'T', 'C', 'G'];
+    const EFFECTS = ['Missense', 'Nonsense', 'Frameshift', 'Splice site', 'Synonymous', 'Intergenic', 'Intronic', 'UTR'];
+
+    // Generate mock mutations
+    function generateMockData() {
+      for (let i = 0; i < 200; i++) {
+        const gene = GENES[Math.floor(Math.random() * GENES.length)];
+        const tissue = TISSUES[Math.floor(Math.random() * TISSUES.length)];
+        const vtype = VARIANT_TYPES[Math.floor(Math.random() * VARIANT_TYPES.length)];
+        const pos = gene.start + Math.floor(Math.random() * (gene.end - gene.start));
+        const ref = BASES[Math.floor(Math.random() * 4)];
+        let alt = BASES[Math.floor(Math.random() * 4)];
+        while (alt === ref) alt = BASES[Math.floor(Math.random() * 4)];
+        const vaf = +(Math.random() * 0.35 + 0.01).toFixed(4);
+        const donors = Math.floor(Math.random() * 15) + 1;
+        const effect = EFFECTS[Math.floor(Math.random() * EFFECTS.length)];
+
+        // Tissues affected
+        const nTissues = Math.floor(Math.random() * 5) + 1;
+        const affectedTissues = [];
+        const usedIdx = new Set();
+        for (let t = 0; t < nTissues; t++) {
+          let idx = Math.floor(Math.random() * TISSUES.length);
+          while (usedIdx.has(idx)) idx = Math.floor(Math.random() * TISSUES.length);
+          usedIdx.add(idx);
+          affectedTissues.push({
+            name: TISSUES[idx].name,
+            germ: TISSUES[idx].germ,
+            germClass: TISSUES[idx].germClass,
+            vaf: +(Math.random() * 0.3 + 0.01).toFixed(4)
+          });
+        }
+        // Ensure the primary tissue is included
+        if (!affectedTissues.find(t => t.name === tissue.name)) {
+          affectedTissues[0] = { name: tissue.name, germ: tissue.germ, germClass: tissue.germClass, vaf };
+        }
+
+        MOCK_DATA.push({
+          id: 'SM_' + String(i + 1).padStart(6, '0'),
+          gene: gene.name,
+          geneDesc: gene.desc,
+          chr: gene.chr,
+          position: pos,
+          ref, alt,
+          tissue: tissue.name,
+          tissueGerm: tissue.germ,
+          tissueGermClass: tissue.germClass,
+          type: vtype,
+          vaf, donors, effect,
+          affectedTissues,
+          crossTissue: affectedTissues.length > 1
+        });
+      }
+    }
+    generateMockData();
+
+    // ===================== STATE =====================
+    let currentFilter = 'all';
+    let currentResults = [];
+    let currentPage = 1;
+    const PAGE_SIZE = 15;
+    let currentView = 'table';
+    let sortField = null;
+    let sortDir = 1;
+    let selectedAutocompleteIdx = -1;
+    let autocompleteItems = [];
+
+    // ===================== SEARCH LOGIC =====================
+    function setFilter(btn, filter) {
+      document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = filter;
+      document.getElementById('searchType').value = filter;
+      handleAutocomplete(document.getElementById('searchInput').value);
+    }
+
+    function handleAutocomplete(query) {
+      const dropdown = document.getElementById('autocompleteDropdown');
+      query = query.trim().toLowerCase();
+
+      if (query.length < 1) { dropdown.classList.remove('open'); return; }
+
+      autocompleteItems = [];
+      let html = '';
+
+      const filter = currentFilter;
+
+      // Gene suggestions
+      if (filter === 'all' || filter === 'gene') {
+        const geneMatches = GENES.filter(g =>
+          g.name.toLowerCase().includes(query) || g.desc.toLowerCase().includes(query)
+        ).slice(0, 5);
+        if (geneMatches.length) {
+          html += '<div class="autocomplete-group-label">Genes</div>';
+          geneMatches.forEach((g, i) => {
+            const highlighted = g.name.replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
+            html += `<div class="autocomplete-item" data-type="gene" data-value="${g.name}" onclick="selectAutocomplete('${g.name}','gene')">
+          <div class="autocomplete-item-icon gene"><i class="fas fa-dna"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${highlighted}</div>
+            <div class="autocomplete-item-meta">${g.chr}:${g.start.toLocaleString()}-${g.end.toLocaleString()} | ${g.desc}</div>
+          </div>
+          <span class="autocomplete-item-tag gene-tag">Gene</span>
+        </div>`;
+            autocompleteItems.push({ type: 'gene', value: g.name });
+          });
+        }
+      }
+
+      // Tissue suggestions
+      if (filter === 'all' || filter === 'tissue') {
+        const tissueMatches = TISSUES.filter(t =>
+          t.name.toLowerCase().includes(query) || t.germ.toLowerCase().includes(query)
+        ).slice(0, 5);
+        if (tissueMatches.length) {
+          html += '<div class="autocomplete-group-label">Tissues</div>';
+          tissueMatches.forEach(t => {
+            const highlighted = t.name.replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
+            html += `<div class="autocomplete-item" data-type="tissue" data-value="${t.name}" onclick="selectAutocomplete('${t.name}','tissue')">
+          <div class="autocomplete-item-icon tissue"><i class="fas ${t.icon}"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${highlighted}</div>
+            <div class="autocomplete-item-meta">${t.germ}</div>
+          </div>
+          <span class="autocomplete-item-tag tissue-tag">Tissue</span>
+        </div>`;
+            autocompleteItems.push({ type: 'tissue', value: t.name });
+          });
+        }
+      }
+
+      // Region pattern
+      if (filter === 'all' || filter === 'region') {
+        const regionMatch = query.match(/^chr\d+/i);
+        if (regionMatch) {
+          html += '<div class="autocomplete-group-label">Genomic Region</div>';
+          html += `<div class="autocomplete-item" onclick="selectAutocomplete('${query}','region')">
+        <div class="autocomplete-item-icon region"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="autocomplete-item-info">
+          <div class="autocomplete-item-name">${query}</div>
+          <div class="autocomplete-item-meta">Search for mutations in this genomic region</div>
+        </div>
+        <span class="autocomplete-item-tag region-tag">Region</span>
+      </div>`;
+          autocompleteItems.push({ type: 'region', value: query });
+        }
+      }
+
+      // Variant type
+      if (filter === 'all' || filter === 'variant') {
+        const vtMatches = VARIANT_TYPES.filter(v => v.toLowerCase().includes(query));
+        if (vtMatches.length) {
+          html += '<div class="autocomplete-group-label">Variant Type</div>';
+          vtMatches.forEach(v => {
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${v}','variant')">
+          <div class="autocomplete-item-icon variant"><i class="fas fa-exchange-alt"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${v}</div>
+            <div class="autocomplete-item-meta">Filter by ${v} variant type</div>
+          </div>
+        </div>`;
+            autocompleteItems.push({ type: 'variant', value: v });
+          });
+        }
+      }
+
+      if (html) {
+        dropdown.innerHTML = html;
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+      selectedAutocompleteIdx = -1;
+    }
+
+    function selectAutocomplete(value, type) {
+      document.getElementById('searchInput').value = value;
+      document.getElementById('autocompleteDropdown').classList.remove('open');
+      document.getElementById('searchType').value = type === 'all' ? 'all' : type;
+      executeSearch();
+    }
+
+    function handleSearchKeydown(e) {
+      const dropdown = document.getElementById('autocompleteDropdown');
+      const items = dropdown.querySelectorAll('.autocomplete-item');
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedAutocompleteIdx = Math.min(selectedAutocompleteIdx + 1, items.length - 1);
+        items.forEach((it, i) => it.classList.toggle('selected', i === selectedAutocompleteIdx));
+        if (items[selectedAutocompleteIdx]) items[selectedAutocompleteIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedAutocompleteIdx = Math.max(selectedAutocompleteIdx - 1, 0);
+        items.forEach((it, i) => it.classList.toggle('selected', i === selectedAutocompleteIdx));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedAutocompleteIdx >= 0 && autocompleteItems[selectedAutocompleteIdx]) {
+          const ac = autocompleteItems[selectedAutocompleteIdx];
+          selectAutocomplete(ac.value, ac.type);
+        } else {
+          executeSearch();
+        }
+      } else if (e.key === 'Escape') {
+        dropdown.classList.remove('open');
+      }
+    }
+
+    // Close autocomplete on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-main-box')) {
+        document.getElementById('autocompleteDropdown').classList.remove('open');
+      }
+    });
+
+    function quickSearch(term) {
+      document.getElementById('searchInput').value = term;
+      executeSearch();
+      document.getElementById('search').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function searchByTissue(tissue) {
+      document.getElementById('searchInput').value = tissue;
+      document.getElementById('searchType').value = 'tissue';
+      setFilter(document.querySelector('.filter-tag[data-filter="tissue"]'), 'tissue');
+      executeSearch();
+      setTimeout(() => {
+        document.getElementById('search').scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+
+    function executeSearch() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const type = document.getElementById('searchType').value;
+      document.getElementById('autocompleteDropdown').classList.remove('open');
+
+      if (!query) return;
+
+      // Filter mock data
+      currentResults = MOCK_DATA.filter(d => {
+        if (type === 'gene' || type === 'all') {
+          if (d.gene.toLowerCase().includes(query)) return true;
+        }
+        if (type === 'tissue' || type === 'all') {
+          if (d.tissue.toLowerCase().includes(query)) return true;
+          if (d.affectedTissues.some(t => t.name.toLowerCase().includes(query))) return true;
+        }
+        if (type === 'region' || type === 'all') {
+          const regionRe = /^(chr\w+):(\d+)-(\d+)$/i;
+          const m = query.match(regionRe);
+          if (m) {
+            const qChr = m[1].toLowerCase();
+            const qStart = parseInt(m[2]);
+            const qEnd = parseInt(m[3]);
+            if (d.chr.toLowerCase() === qChr && d.position >= qStart && d.position <= qEnd) return true;
+          } else if (d.chr.toLowerCase().includes(query)) return true;
+        }
+        if (type === 'variant' || type === 'all') {
+          if (d.type.toLowerCase().includes(query)) return true;
+        }
+        if (type === 'all') {
+          if (d.geneDesc.toLowerCase().includes(query)) return true;
+          if (d.effect.toLowerCase().includes(query)) return true;
+        }
+        return false;
+      });
+
+      currentPage = 1;
+      sortField = null;
+      renderResults();
+    }
+
+    function renderResults() {
+      const container = document.getElementById('searchResults');
+      container.classList.add('visible');
+
+      document.getElementById('resultsCount').innerHTML =
+        `Found <strong>${currentResults.length}</strong> somatic mutation${currentResults.length !== 1 ? 's' : ''} matching your query`;
+
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageData = currentResults.slice(start, start + PAGE_SIZE);
+
+      // Table
+      const tbody = document.getElementById('resultsTableBody');
+      tbody.innerHTML = pageData.map((d, i) => {
+        const vafPct = Math.min(d.vaf * 100 / 35 * 100, 100);
+        const vtClass = d.type.toLowerCase();
+        return `<tr onclick="showDetail(${start + i})">
+      <td><div class="gene-name-cell"><span class="gene-name-badge">${d.gene}</span></div></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.chr}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.position.toLocaleString()}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.ref} / ${d.alt}</td>
+      <td><span class="tissue-badge ${d.tissueGermClass}">${d.tissue}</span></td>
+      <td><span class="mut-type-badge ${vtClass}">${d.type}</span></td>
+      <td><div class="vaf-bar"><div class="vaf-bar-track"><div class="vaf-bar-fill" style="width:${vafPct}%"></div></div><span class="vaf-value">${(d.vaf * 100).toFixed(2)}%</span></div></td>
+      <td style="font-weight:600;color:var(--primary);">${d.donors}</td>
+    </tr>`;
+      }).join('');
+
+      // Cards
+      const cardContainer = document.getElementById('resultsCardView');
+      cardContainer.innerHTML = pageData.map((d, i) => {
+        return `<div class="result-card" onclick="showDetail(${start + i})">
+      <div class="result-card-header">
+        <span class="result-card-gene">${d.gene}</span>
+        <span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span>
+      </div>
+      <div class="result-card-body">
+        <div class="result-card-row"><span class="result-card-label">Position</span><span class="result-card-value mono">${d.chr}:${d.position.toLocaleString()}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Change</span><span class="result-card-value mono">${d.ref} &gt; ${d.alt}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Tissue</span><span class="tissue-badge ${d.tissueGermClass}">${d.tissue}</span></div>
+        <div class="result-card-row"><span class="result-card-label">VAF</span><span class="result-card-value">${(d.vaf * 100).toFixed(2)}%</span></div>
+        <div class="result-card-row"><span class="result-card-label">Effect</span><span class="result-card-value">${d.effect}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Donors</span><span class="result-card-value">${d.donors} / 68</span></div>
+        <div class="result-card-row"><span class="result-card-label">Cross-tissue</span><span class="result-card-value">${d.crossTissue ? d.affectedTissues.length + ' tissues' : 'Single tissue'}</span></div>
+      </div>
+    </div>`;
+      }).join('');
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const total = Math.ceil(currentResults.length / PAGE_SIZE);
+      const pg = document.getElementById('pagination');
+      if (total <= 1) { pg.innerHTML = ''; return; }
+
+      let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
+      for (let i = 1; i <= total; i++) {
+        if (total > 7 && i > 2 && i < total - 1 && Math.abs(i - currentPage) > 1) {
+          if (i === 3 || i === total - 2) html += '<button disabled>...</button>';
+          continue;
+        }
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+      }
+      html += `<button ${currentPage === total ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+      pg.innerHTML = html;
+    }
+
+    function goPage(p) {
+      currentPage = p;
+      renderResults();
+      document.getElementById('searchResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function setResultView(view) {
+      currentView = view;
+      document.getElementById('tableViewBtn').classList.toggle('active', view === 'table');
+      document.getElementById('cardViewBtn').classList.toggle('active', view === 'card');
+      document.getElementById('resultsTableView').style.display = view === 'table' ? 'block' : 'none';
+      document.getElementById('resultsCardView').classList.toggle('active', view === 'card');
+    }
+
+    function sortResults(field) {
+      if (sortField === field) { sortDir *= -1; } else { sortField = field; sortDir = 1; }
+      currentResults.sort((a, b) => {
+        let va = a[field], vb = b[field];
+        if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+        if (va < vb) return -1 * sortDir;
+        if (va > vb) return 1 * sortDir;
+        return 0;
+      });
+      currentPage = 1;
+      renderResults();
+    }
+
+    // ===================== DETAIL PANEL =====================
+    function showDetail(idx) {
+      const d = currentResults[idx];
+      if (!d) return;
+
+      document.getElementById('detailTitle').textContent = d.gene + ' — ' + d.id;
+
+      let html = '';
+
+      // Basic info
+      html += `<div class="detail-section">
+    <div class="detail-section-title"><i class="fas fa-info-circle"></i> Basic Information</div>
+    <div class="detail-field"><span class="detail-field-label">Mutation ID</span><span class="detail-field-value mono">${d.id}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Gene</span><span class="detail-field-value" style="color:var(--primary);font-weight:700;">${d.gene}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Description</span><span class="detail-field-value">${d.geneDesc}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Chromosome</span><span class="detail-field-value mono">${d.chr}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Position</span><span class="detail-field-value mono">${d.position.toLocaleString()}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Ref / Alt</span><span class="detail-field-value mono">${d.ref} / ${d.alt}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Variant Type</span><span class="detail-field-value"><span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span></span></div>
+    <div class="detail-field"><span class="detail-field-label">Effect</span><span class="detail-field-value">${d.effect}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Donors</span><span class="detail-field-value">${d.donors} / 68</span></div>
+  </div>`;
+
+      // Cross-tissue
+      html += `<div class="detail-section">
+    <div class="detail-section-title"><i class="fas fa-lungs"></i> Tissue Distribution (${d.affectedTissues.length} tissue${d.affectedTissues.length > 1 ? 's' : ''})</div>
+    <div class="detail-tissue-list">
+      ${d.affectedTissues.map(t => `<div class="detail-tissue-chip"><span class="chip-dot ${t.germClass}"></span>${t.name}</div>`).join('')}
+    </div>
+  </div>`;
+
+      // VAF by tissue
+      html += `<div class="detail-section">
+    <div class="detail-section-title"><i class="fas fa-chart-bar"></i> VAF Across Tissues</div>
+    <div class="detail-vaf-chart">
+      ${d.affectedTissues.map(t => {
+        const pct = Math.min(t.vaf * 100 / 0.35 * 100, 100);
+        const cls = t.vaf < 0.05 ? 'low' : t.vaf < 0.15 ? 'mid' : 'high';
+        return `<div class="detail-vaf-row">
+          <span class="detail-vaf-label">${t.name}</span>
+          <div class="detail-vaf-track"><div class="detail-vaf-fill ${cls}" style="width:${pct}%"></div></div>
+          <span class="detail-vaf-val">${(t.vaf * 100).toFixed(2)}%</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+      document.getElementById('detailBody').innerHTML = html;
+      document.getElementById('detailPanel').classList.add('open');
+      document.getElementById('detailOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetail() {
+      document.getElementById('detailPanel').classList.remove('open');
+      document.getElementById('detailOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // ===================== UI UTILS =====================
+    function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    function scrollToTop(e) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    function toggleMobileNav() {
+      const navLinks = document.getElementById('navLinks');
+      const icon = document.getElementById('navToggleIcon');
+      navLinks.classList.toggle('open');
+      icon.className = navLinks.classList.contains('open') ? 'fas fa-times' : 'fas fa-bars';
+    }
+
+    // Navbar scroll
+    window.addEventListener('scroll', () => {
+      document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+      document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 400);
+    });
+
+    // Active nav
+    const sections = document.querySelectorAll('section[id]');
+    const navLinksAll = document.querySelectorAll('.nav-links a');
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(sec => { if (window.scrollY >= sec.offsetTop - 100) current = sec.id; });
+      navLinksAll.forEach(a => {
+        a.classList.remove('active');
+        if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+      });
+    });
+    navLinksAll.forEach(a => a.addEventListener('click', () => {
+      document.getElementById('navLinks').classList.remove('open');
+      document.getElementById('navToggleIcon').className = 'fas fa-bars';
+    }));
+
+    // Fade-in
+    const fadeEls = document.querySelectorAll('.fade-in');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    fadeEls.forEach(el => observer.observe(el));
+
+    // Hero particles
+    (function () {
+      const c = document.getElementById('heroParticles');
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'hero-particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = (60 + Math.random() * 40) + '%';
+        const s = (2 + Math.random() * 4) + 'px'; p.style.width = s; p.style.height = s;
+        p.style.animationDuration = (6 + Math.random() * 10) + 's';
+        p.style.animationDelay = (Math.random() * 8) + 's';
+        c.appendChild(p);
+      }
+    })();
+
+    // ESC to close detail
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+  </script>
+</body>
+
+</html>

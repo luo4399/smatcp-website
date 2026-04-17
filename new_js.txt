@@ -1,0 +1,488 @@
+    // ===================== REAL DATA FROM CSV =====================
+    // Loaded from data_output.js:
+    //   TISSUES_META:      [{name, germ, icon}]
+    //   REGIONS_META:      [string]          (intronic / exonic / intergenic / ...)
+    //   VARIANT_TYPES_META:[string]          ("SNV" / "INDEL")
+    //   CHROMS_META:       [string]          ("chr1" ... "chrY")
+    //   GENES_META:        [[name,count,tissueCount]]  (top 2000, for autocomplete)
+    //   MUTATIONS:         [[chrIdx,pos,ref,alt,vaf,regionIdx,gene,tissueIdx,variantIdx]]
+
+    const BASES = ['A', 'T', 'C', 'G'];
+
+    // ===================== STATE =====================
+    let currentFilter = 'gene';
+    let currentResults = [];       // array of expanded objects for the active query
+    let currentPage = 1;
+    const PAGE_SIZE = 15;
+    let currentView = 'table';
+    let sortField = null;
+    let sortDir = 1;
+    let selectedAutocompleteIdx = -1;
+    let autocompleteItems = [];
+
+    // ===================== RECORD HELPERS =====================
+    function expandRecord(r) {
+      const tm = TISSUES_META[r[7]];
+      return {
+        chr: CHROMS_META[r[0]],
+        chrIdx: r[0],
+        position: r[1],
+        ref: r[2],
+        alt: r[3],
+        vaf: r[4],
+        annotation: REGIONS_META[r[5]],
+        gene: r[6],
+        tissue: tm.name,
+        germ: tm.germ,
+        type: VARIANT_TYPES_META[r[8]]
+      };
+    }
+
+    // ===================== SEARCH LOGIC =====================
+    function setFilter(btn, filter) {
+      document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = filter;
+      document.getElementById('searchType').value = filter;
+      handleAutocomplete(document.getElementById('searchInput').value);
+    }
+
+    function handleAutocomplete(query) {
+      const dropdown = document.getElementById('autocompleteDropdown');
+      query = query.trim().toLowerCase();
+      if (query.length < 1) { dropdown.classList.remove('open'); return; }
+
+      autocompleteItems = [];
+      let html = '';
+      const filter = currentFilter;
+
+      // Gene suggestions (from GENES_META, top 2000 by count)
+      if (filter === 'all' || filter === 'gene') {
+        const geneMatches = [];
+        for (let i = 0; i < GENES_META.length && geneMatches.length < 6; i++) {
+          if (GENES_META[i][0].toLowerCase().includes(query)) geneMatches.push(GENES_META[i]);
+        }
+        if (geneMatches.length) {
+          html += '<div class="autocomplete-group-label">Genes</div>';
+          geneMatches.forEach(g => {
+            const highlighted = g[0].replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${g[0].replace(/'/g,"\\'")}','gene')">
+          <div class="autocomplete-item-icon gene"><i class="fas fa-dna"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${highlighted}</div>
+            <div class="autocomplete-item-meta">${g[1]} mutation${g[1] !== 1 ? 's' : ''} across ${g[2]} tissue${g[2] !== 1 ? 's' : ''}</div>
+          </div>
+          <span class="autocomplete-item-tag gene-tag">Gene</span>
+        </div>`;
+            autocompleteItems.push({ type: 'gene', value: g[0] });
+          });
+        }
+      }
+
+      // Tissue suggestions
+      if (filter === 'all' || filter === 'tissue') {
+        const tissueMatches = TISSUES_META.filter(t =>
+          t.name.toLowerCase().includes(query) || t.germ.toLowerCase().includes(query)
+        ).slice(0, 6);
+        if (tissueMatches.length) {
+          html += '<div class="autocomplete-group-label">Tissues</div>';
+          tissueMatches.forEach(t => {
+            const highlighted = t.name.replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${t.name}','tissue')">
+          <div class="autocomplete-item-icon tissue"><i class="fas ${t.icon}"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${highlighted}</div>
+            <div class="autocomplete-item-meta">${t.germ.toUpperCase()} germ layer</div>
+          </div>
+          <span class="autocomplete-item-tag tissue-tag">Tissue</span>
+        </div>`;
+            autocompleteItems.push({ type: 'tissue', value: t.name });
+          });
+        }
+      }
+
+      // Position pattern (chr{n}[:start[-end]])
+      if (filter === 'all' || filter === 'position') {
+        if (/^chr[\dxy]/i.test(query)) {
+          html += '<div class="autocomplete-group-label">Genomic Position</div>';
+          html += `<div class="autocomplete-item" onclick="selectAutocomplete('${query}','position')">
+        <div class="autocomplete-item-icon region"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="autocomplete-item-info">
+          <div class="autocomplete-item-name">${query}</div>
+          <div class="autocomplete-item-meta">Search mutations by chromosome or coordinate range</div>
+        </div>
+        <span class="autocomplete-item-tag region-tag">Position</span>
+      </div>`;
+          autocompleteItems.push({ type: 'position', value: query });
+        }
+      }
+
+      // Annotation (functional region) suggestions
+      if (filter === 'all' || filter === 'annotation') {
+        const annMatches = REGIONS_META.filter(r => r.toLowerCase().includes(query)).slice(0, 6);
+        if (annMatches.length) {
+          html += '<div class="autocomplete-group-label">Annotation</div>';
+          annMatches.forEach(a => {
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${a}','annotation')">
+          <div class="autocomplete-item-icon region"><i class="fas fa-tag"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${a}</div>
+            <div class="autocomplete-item-meta">Filter by ${a} functional annotation</div>
+          </div>
+        </div>`;
+            autocompleteItems.push({ type: 'annotation', value: a });
+          });
+        }
+      }
+
+      // Variant type
+      if (filter === 'all' || filter === 'variant') {
+        const vtMatches = VARIANT_TYPES_META.filter(v => v.toLowerCase().includes(query));
+        if (vtMatches.length) {
+          html += '<div class="autocomplete-group-label">Variant Type</div>';
+          vtMatches.forEach(v => {
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${v}','variant')">
+          <div class="autocomplete-item-icon variant"><i class="fas fa-exchange-alt"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${v}</div>
+            <div class="autocomplete-item-meta">Filter by ${v} variant type</div>
+          </div>
+        </div>`;
+            autocompleteItems.push({ type: 'variant', value: v });
+          });
+        }
+      }
+
+      if (html) { dropdown.innerHTML = html; dropdown.classList.add('open'); }
+      else { dropdown.classList.remove('open'); }
+      selectedAutocompleteIdx = -1;
+    }
+
+    function selectAutocomplete(value, type) {
+      document.getElementById('searchInput').value = value;
+      document.getElementById('autocompleteDropdown').classList.remove('open');
+      document.getElementById('searchType').value = type;
+      const btn = document.querySelector(`.filter-tag[data-filter="${type}"]`);
+      if (btn) setFilter(btn, type);
+      executeSearch();
+    }
+
+    function handleSearchKeydown(e) {
+      const dropdown = document.getElementById('autocompleteDropdown');
+      const items = dropdown.querySelectorAll('.autocomplete-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedAutocompleteIdx = Math.min(selectedAutocompleteIdx + 1, items.length - 1);
+        items.forEach((it, i) => it.classList.toggle('selected', i === selectedAutocompleteIdx));
+        if (items[selectedAutocompleteIdx]) items[selectedAutocompleteIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedAutocompleteIdx = Math.max(selectedAutocompleteIdx - 1, 0);
+        items.forEach((it, i) => it.classList.toggle('selected', i === selectedAutocompleteIdx));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedAutocompleteIdx >= 0 && autocompleteItems[selectedAutocompleteIdx]) {
+          const ac = autocompleteItems[selectedAutocompleteIdx];
+          selectAutocomplete(ac.value, ac.type);
+        } else { executeSearch(); }
+      } else if (e.key === 'Escape') { dropdown.classList.remove('open'); }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-main-box')) {
+        document.getElementById('autocompleteDropdown').classList.remove('open');
+      }
+    });
+
+    function quickSearch(term, type) {
+      document.getElementById('searchInput').value = term;
+      if (type) {
+        document.getElementById('searchType').value = type;
+        const btn = document.querySelector(`.filter-tag[data-filter="${type}"]`);
+        if (btn) setFilter(btn, type);
+      }
+      executeSearch();
+      document.getElementById('search').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Browse-by-tissue card handler
+    function searchByTissue(label) {
+      // map card labels to actual subtissue names in the data
+      const map = {
+        'Liver': 'Liver',
+        'GallBladder': 'Gallbladder',
+        'Pancreas': 'Pancreas_Head',
+        'Muscle': 'Muscle',
+        'Heart Atrial': 'Heart_Left_Atrium',
+        'Heart Ventricle': 'Heart_Left_Ventricle',
+        'Heart Mitral': 'Heart_Mitral_Valve',
+        'Heart Tricuspid': 'Heart_Tricuspid_Valve',
+        'Blood': 'Whole_Blood',
+        'Adrenal': 'Adrenal_Gland',
+        'Skin': 'Skin',
+      };
+      const target = map[label] || label;
+      const btn = document.querySelector('.filter-tag[data-filter="tissue"]');
+      if (btn) setFilter(btn, 'tissue');
+      document.getElementById('searchInput').value = target;
+      document.getElementById('searchType').value = 'tissue';
+      executeSearch();
+      setTimeout(() => document.getElementById('search').scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+
+    // Match a MUTATIONS row against the query, returning true if it matches.
+    function rowMatches(r, type, query) {
+      // r = [chrIdx, pos, ref, alt, vaf, regionIdx, gene, tissueIdx, variantIdx]
+      if (type === 'gene') {
+        return r[6].toLowerCase().includes(query);
+      }
+      if (type === 'tissue') {
+        return TISSUES_META[r[7]].name.toLowerCase().includes(query)
+          || TISSUES_META[r[7]].germ.toLowerCase().includes(query);
+      }
+      if (type === 'position') {
+        // chr8:100-200  or  chr8:100  or  chr8
+        const m = query.match(/^(chr[\dxy]+)(?::(\d+)(?:-(\d+))?)?$/i);
+        if (!m) return false;
+        const qChr = m[1].toLowerCase();
+        if (CHROMS_META[r[0]].toLowerCase() !== qChr) return false;
+        if (m[2] === undefined) return true;
+        const s = parseInt(m[2]);
+        const e = m[3] === undefined ? s : parseInt(m[3]);
+        return r[1] >= Math.min(s, e) && r[1] <= Math.max(s, e);
+      }
+      if (type === 'annotation') {
+        return REGIONS_META[r[5]].toLowerCase() === query
+          || REGIONS_META[r[5]].toLowerCase().includes(query);
+      }
+      if (type === 'variant') {
+        return VARIANT_TYPES_META[r[8]].toLowerCase() === query;
+      }
+      if (type === 'all') {
+        return r[6].toLowerCase().includes(query)
+          || TISSUES_META[r[7]].name.toLowerCase().includes(query)
+          || REGIONS_META[r[5]].toLowerCase().includes(query)
+          || VARIANT_TYPES_META[r[8]].toLowerCase() === query
+          || CHROMS_META[r[0]].toLowerCase() === query;
+      }
+      return false;
+    }
+
+    function executeSearch() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const type = document.getElementById('searchType').value;
+      document.getElementById('autocompleteDropdown').classList.remove('open');
+      if (!query) return;
+
+      const matched = [];
+      const CAP = 5000; // hard cap to keep UI responsive
+      for (let i = 0; i < MUTATIONS.length; i++) {
+        if (rowMatches(MUTATIONS[i], type, query)) {
+          matched.push(expandRecord(MUTATIONS[i]));
+          if (matched.length >= CAP) break;
+        }
+      }
+
+      currentResults = matched;
+      currentResults._capped = matched.length >= CAP;
+      currentPage = 1;
+      sortField = null;
+      renderResults();
+    }
+
+    function renderResults() {
+      const container = document.getElementById('searchResults');
+      container.classList.add('visible');
+
+      const n = currentResults.length;
+      const capNote = currentResults._capped ? ' (showing first ' + n + ')' : '';
+      document.getElementById('resultsCount').innerHTML =
+        `Found <strong>${n.toLocaleString()}</strong> somatic mutation${n !== 1 ? 's' : ''} matching your query${capNote}`;
+
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageData = currentResults.slice(start, start + PAGE_SIZE);
+
+      // Table
+      const tbody = document.getElementById('resultsTableBody');
+      tbody.innerHTML = pageData.map((d, i) => {
+        const vafPct = Math.min(d.vaf / 0.35 * 100, 100);
+        const vtClass = d.type.toLowerCase();
+        return `<tr onclick="showDetail(${start + i})">
+      <td><div class="gene-name-cell"><span class="gene-name-badge">${d.gene}</span></div></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.chr}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.position.toLocaleString()}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.ref} / ${d.alt}</td>
+      <td><span class="tissue-badge ${d.germ}">${d.tissue.replace(/_/g,' ')}</span></td>
+      <td><span class="mut-type-badge ${vtClass}">${d.type}</span></td>
+      <td><div class="vaf-bar"><div class="vaf-bar-track"><div class="vaf-bar-fill" style="width:${vafPct}%"></div></div><span class="vaf-value">${(d.vaf * 100).toFixed(2)}%</span></div></td>
+      <td style="font-size:0.82rem;color:var(--text-secondary);">${d.annotation}</td>
+    </tr>`;
+      }).join('');
+
+      // Cards
+      const cardContainer = document.getElementById('resultsCardView');
+      cardContainer.innerHTML = pageData.map((d, i) => {
+        return `<div class="result-card" onclick="showDetail(${start + i})">
+      <div class="result-card-header">
+        <span class="result-card-gene">${d.gene}</span>
+        <span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span>
+      </div>
+      <div class="result-card-body">
+        <div class="result-card-row"><span class="result-card-label">Position</span><span class="result-card-value mono">${d.chr}:${d.position.toLocaleString()}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Change</span><span class="result-card-value mono">${d.ref} &gt; ${d.alt}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Tissue</span><span class="tissue-badge ${d.germ}">${d.tissue.replace(/_/g,' ')}</span></div>
+        <div class="result-card-row"><span class="result-card-label">VAF</span><span class="result-card-value">${(d.vaf * 100).toFixed(2)}%</span></div>
+        <div class="result-card-row"><span class="result-card-label">Annotation</span><span class="result-card-value">${d.annotation}</span></div>
+      </div>
+    </div>`;
+      }).join('');
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const total = Math.ceil(currentResults.length / PAGE_SIZE);
+      const pg = document.getElementById('pagination');
+      if (total <= 1) { pg.innerHTML = ''; return; }
+      let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
+      for (let i = 1; i <= total; i++) {
+        if (total > 7 && i > 2 && i < total - 1 && Math.abs(i - currentPage) > 1) {
+          if (i === 3 || i === total - 2) html += '<button disabled>...</button>';
+          continue;
+        }
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+      }
+      html += `<button ${currentPage === total ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+      pg.innerHTML = html;
+    }
+
+    function goPage(p) {
+      currentPage = p;
+      renderResults();
+      document.getElementById('searchResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function setResultView(view) {
+      currentView = view;
+      document.getElementById('tableViewBtn').classList.toggle('active', view === 'table');
+      document.getElementById('cardViewBtn').classList.toggle('active', view === 'card');
+      document.getElementById('resultsTableView').style.display = view === 'table' ? 'block' : 'none';
+      document.getElementById('resultsCardView').classList.toggle('active', view === 'card');
+    }
+
+    function sortResults(field) {
+      if (sortField === field) { sortDir *= -1; } else { sortField = field; sortDir = 1; }
+      currentResults.sort((a, b) => {
+        let va = a[field], vb = b[field];
+        if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+        if (va < vb) return -1 * sortDir;
+        if (va > vb) return 1 * sortDir;
+        return 0;
+      });
+      currentPage = 1;
+      renderResults();
+    }
+
+    // ===================== DETAIL PANEL =====================
+    // For a clicked row, gather all MUTATIONS rows sharing the same gene + chr + position
+    // so we can show cross-tissue distribution derived from the real data.
+    function collectCrossTissue(d) {
+      const out = [];
+      for (let i = 0; i < MUTATIONS.length; i++) {
+        const r = MUTATIONS[i];
+        if (r[6] === d.gene && r[0] === d.chrIdx && r[1] === d.position && r[2] === d.ref && r[3] === d.alt) {
+          out.push(expandRecord(r));
+        }
+      }
+      return out;
+    }
+
+    // Same-gene records across all tissues (broader view)
+    function collectGeneTissueSummary(gene) {
+      const byTissue = new Map();
+      for (let i = 0; i < MUTATIONS.length; i++) {
+        const r = MUTATIONS[i];
+        if (r[6] !== gene) continue;
+        const tname = TISSUES_META[r[7]].name;
+        if (!byTissue.has(tname)) byTissue.set(tname, { name: tname, germ: TISSUES_META[r[7]].germ, count: 0, vafSum: 0, vafMax: 0 });
+        const entry = byTissue.get(tname);
+        entry.count += 1;
+        entry.vafSum += r[4];
+        if (r[4] > entry.vafMax) entry.vafMax = r[4];
+      }
+      const arr = Array.from(byTissue.values());
+      arr.forEach(e => e.vafMean = e.vafSum / e.count);
+      arr.sort((a, b) => b.count - a.count);
+      return arr;
+    }
+
+    function showDetail(idx) {
+      const d = currentResults[idx];
+      if (!d) return;
+      const mutId = `${d.chr}_${d.position}_${d.ref}_${d.alt}`;
+      document.getElementById('detailTitle').textContent = d.gene + ' — ' + mutId;
+
+      const sameMut = collectCrossTissue(d);
+      const geneTissues = collectGeneTissueSummary(d.gene);
+
+      let html = '';
+
+      // Basic info
+      html += `<div class="detail-section">
+    <div class="detail-section-title"><i class="fas fa-info-circle"></i> Basic Information</div>
+    <div class="detail-field"><span class="detail-field-label">Mutation ID</span><span class="detail-field-value mono">${mutId}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Gene</span><span class="detail-field-value" style="color:var(--primary);font-weight:700;">${d.gene}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Chromosome</span><span class="detail-field-value mono">${d.chr}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Position</span><span class="detail-field-value mono">${d.position.toLocaleString()}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Ref / Alt</span><span class="detail-field-value mono">${d.ref} / ${d.alt}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Variant Type</span><span class="detail-field-value"><span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span></span></div>
+    <div class="detail-field"><span class="detail-field-label">Annotation</span><span class="detail-field-value">${d.annotation}</span></div>
+    <div class="detail-field"><span class="detail-field-label">VAF (this record)</span><span class="detail-field-value">${(d.vaf * 100).toFixed(2)}%</span></div>
+  </div>`;
+
+      // Cross-tissue for exact same mutation
+      if (sameMut.length > 1) {
+        html += `<div class="detail-section">
+      <div class="detail-section-title"><i class="fas fa-lungs"></i> Exact Variant Across Tissues (${sameMut.length})</div>
+      <div class="detail-tissue-list">
+        ${sameMut.map(t => `<div class="detail-tissue-chip"><span class="chip-dot ${t.germ}"></span>${t.tissue.replace(/_/g,' ')} — ${(t.vaf * 100).toFixed(2)}%</div>`).join('')}
+      </div>
+    </div>`;
+      }
+
+      // Gene-level tissue distribution
+      html += `<div class="detail-section">
+    <div class="detail-section-title"><i class="fas fa-chart-bar"></i> ${d.gene} Mutations Across Tissues (${geneTissues.length} tissue${geneTissues.length > 1 ? 's' : ''})</div>
+    <div class="detail-vaf-chart">
+      ${geneTissues.map(t => {
+          const pct = Math.min(t.vafMean / 0.35 * 100, 100);
+          const cls = t.vafMean < 0.05 ? 'low' : t.vafMean < 0.15 ? 'mid' : 'high';
+          return `<div class="detail-vaf-row">
+              <span class="detail-vaf-label">${t.name.replace(/_/g,' ')} <span style="color:var(--text-muted);font-weight:500;">(n=${t.count})</span></span>
+              <div class="detail-vaf-track"><div class="detail-vaf-fill ${cls}" style="width:${pct}%"></div></div>
+              <span class="detail-vaf-val">${(t.vafMean * 100).toFixed(2)}%</span>
+            </div>`;
+        }).join('')}
+    </div>
+  </div>`;
+
+      document.getElementById('detailBody').innerHTML = html;
+      document.getElementById('detailPanel').classList.add('open');
+      document.getElementById('detailOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetail() {
+      document.getElementById('detailPanel').classList.remove('open');
+      document.getElementById('detailOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // ===================== DEFAULT LOAD =====================
+    // Auto-run a gene query on page load so the section isn't empty.
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof MUTATIONS === 'undefined') return;
+      document.getElementById('searchInput').value = 'CSMD1';
+      document.getElementById('searchType').value = 'gene';
+      executeSearch();
+    });

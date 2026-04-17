@@ -19,16 +19,18 @@
     }
 
     :root {
-      --primary: #3e5973;
-      --primary-dark: #2c4156;
-      --primary-darker: #1e2f3d;
-      --primary-light: #5a7a96;
-      --primary-lighter: #8ba8c2;
-      --primary-pale: #d6e3ef;
-      --primary-ghost: #eef3f8;
-      --accent: #4a9ece;
-      --accent-light: #7dbde0;
+      /* GTOP-inspired palette: deep navy + indigo accent */
+      --primary: #1f3864;
+      --primary-dark: #14284a;
+      --primary-darker: #0d1f3a;
+      --primary-light: #2e5091;
+      --primary-lighter: #6b84b0;
+      --primary-pale: #dde6f2;
+      --primary-ghost: #f0f4fa;
+      --accent: #4a5bc8;
+      --accent-light: #6b7fd8;
       --accent-warm: #e8935a;
+      --link: #2e6db5;
       --success: #4caf7d;
       --warning: #f0ad4e;
       --danger: #e74c3c;
@@ -40,10 +42,10 @@
       --text-muted: #8a9aaa;
       --border: #dce4ec;
       --border-light: #e8eef4;
-      --shadow-sm: 0 1px 3px rgba(30, 47, 61, 0.06), 0 1px 2px rgba(30, 47, 61, 0.04);
-      --shadow-md: 0 4px 12px rgba(30, 47, 61, 0.08), 0 2px 4px rgba(30, 47, 61, 0.04);
-      --shadow-lg: 0 12px 36px rgba(30, 47, 61, 0.1), 0 4px 12px rgba(30, 47, 61, 0.06);
-      --shadow-xl: 0 20px 60px rgba(30, 47, 61, 0.12), 0 8px 20px rgba(30, 47, 61, 0.06);
+      --shadow-sm: 0 1px 3px rgba(13, 31, 58, 0.06), 0 1px 2px rgba(13, 31, 58, 0.04);
+      --shadow-md: 0 4px 12px rgba(13, 31, 58, 0.08), 0 2px 4px rgba(13, 31, 58, 0.04);
+      --shadow-lg: 0 12px 36px rgba(13, 31, 58, 0.1), 0 4px 12px rgba(13, 31, 58, 0.06);
+      --shadow-xl: 0 20px 60px rgba(13, 31, 58, 0.12), 0 8px 20px rgba(13, 31, 58, 0.06);
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
@@ -684,10 +686,15 @@
       left: 0;
       right: 0;
       height: 3px;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      opacity: 0;
+      background: var(--primary-lighter);
+      opacity: 0.9;
       transition: var(--transition);
     }
+
+    .tissue-card[data-germ="endo"]::before { background: #43a26a; }
+    .tissue-card[data-germ="meso"]::before { background: #d65d7a; }
+    .tissue-card[data-germ="ecto"]::before { background: #3e82d6; }
+    .tissue-card[data-germ="blood"]::before { background: #e08a3c; }
 
     .tissue-card:hover {
       transform: translateY(-4px);
@@ -697,6 +704,7 @@
 
     .tissue-card:hover::before {
       opacity: 1;
+      height: 4px;
     }
 
     .tissue-icon {
@@ -1273,12 +1281,28 @@
       background: var(--surface);
       border: 1px solid var(--border-light);
       border-radius: var(--radius-lg);
-      overflow: hidden;
       box-shadow: var(--shadow-md);
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .results-table-wrapper::-webkit-scrollbar {
+      height: 10px;
+    }
+
+    .results-table-wrapper::-webkit-scrollbar-thumb {
+      background: var(--primary-lighter);
+      border-radius: 5px;
+    }
+
+    .results-table-wrapper::-webkit-scrollbar-track {
+      background: var(--bg-alt);
     }
 
     .results-table {
       width: 100%;
+      min-width: 960px;
       border-collapse: collapse;
     }
 
@@ -1287,13 +1311,13 @@
     }
 
     .results-table th {
-      padding: 14px 18px;
-      font-size: 0.78rem;
+      padding: 11px 14px;
+      font-size: 0.74rem;
       font-weight: 600;
       color: #fff;
       text-align: left;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
       cursor: pointer;
       user-select: none;
       white-space: nowrap;
@@ -1311,15 +1335,20 @@
     }
 
     .results-table td {
-      padding: 13px 18px;
-      font-size: 0.86rem;
+      padding: 10px 14px;
+      font-size: 0.82rem;
       color: var(--text);
       border-bottom: 1px solid var(--border-light);
+      white-space: nowrap;
     }
 
     .results-table tbody tr {
       transition: var(--transition);
       cursor: pointer;
+    }
+
+    .results-table tbody tr:nth-child(even) {
+      background: #fafbfd;
     }
 
     .results-table tbody tr:hover {
@@ -1709,22 +1738,47 @@
     }
 
     /* Pagination */
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 24px;
+      padding: 4px 2px;
+    }
+
+    .pagination-total {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .pagination-total strong {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .pagination-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
     .pagination {
       display: flex;
-      justify-content: center;
       align-items: center;
       gap: 4px;
-      margin-top: 28px;
     }
 
     .pagination button {
-      width: 38px;
-      height: 38px;
+      min-width: 34px;
+      height: 34px;
+      padding: 0 8px;
       border: 1px solid var(--border);
       background: var(--surface);
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 500;
       color: var(--text-secondary);
       transition: var(--transition);
@@ -1733,9 +1787,10 @@
       justify-content: center;
     }
 
-    .pagination button:hover {
+    .pagination button:hover:not(:disabled) {
       border-color: var(--primary-lighter);
       background: var(--primary-ghost);
+      color: var(--primary);
     }
 
     .pagination button.active {
@@ -1747,6 +1802,34 @@
     .pagination button:disabled {
       opacity: 0.4;
       cursor: default;
+    }
+
+    .page-size-select {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .page-size-select select {
+      height: 32px;
+      padding: 0 26px 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      font-size: 0.82rem;
+      color: var(--text);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%235a6a7a' d='M0 0l5 6 5-6z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+
+    .page-size-select select:focus {
+      outline: none;
+      border-color: var(--accent);
     }
 
     /* ===== DATA DOWNLOAD TABLE ===== */
@@ -2294,70 +2377,70 @@
     <div class="section-header">
       <div class="section-tag"><i class="fas fa-th-large"></i> Tissue Atlas</div>
       <h2 class="section-title">Browse by Tissue</h2>
-      <p class="section-desc">Explore somatic mutations across 13 human tissues.</p>
+      <p class="section-desc">Explore somatic mutations across 13 subtissues profiled in this cohort.</p>
     </div>
     <div class="tissue-grid">
-      <div class="tissue-card fade-in" onclick="searchByTissue('Liver')">
-        <div class="tissue-icon"><i class="fas fa-liver"></i></div>
+      <div class="tissue-card fade-in" data-germ="endo" onclick="searchByTissue('Liver')">
+        <div class="tissue-icon"><i class="fas fa-heart"></i></div>
         <div class="tissue-name">Liver</div>
         <div class="tissue-germ">Endoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('GallBladder')">
-        <div class="tissue-icon"><i class="fas fa-droplet"></i></div>
-        <div class="tissue-name">GallBladder</div>
+      <div class="tissue-card fade-in" data-germ="endo" onclick="searchByTissue('Gallbladder')">
+        <div class="tissue-icon"><i class="fas fa-flask"></i></div>
+        <div class="tissue-name">Gallbladder</div>
         <div class="tissue-germ">Endoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Pancreas')">
-        <div class="tissue-icon"><i class="fas fa-disease"></i></div>
-        <div class="tissue-name">Pancreas - Head</div>
+      <div class="tissue-card fade-in" data-germ="endo" onclick="searchByTissue('Pancreas_Head')">
+        <div class="tissue-icon"><i class="fas fa-pills"></i></div>
+        <div class="tissue-name">Pancreas Head</div>
         <div class="tissue-germ">Endoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Lung')">
-        <div class="tissue-icon"><i class="fas fa-lungs"></i></div>
-        <div class="tissue-name">Lung</div>
-        <div class="tissue-germ">Endoderm</div>
-      </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Stomach')">
-        <div class="tissue-icon"><i class="fas fa-stomach"></i></div>
-        <div class="tissue-name">Stomach</div>
-        <div class="tissue-germ">Endoderm</div>
-      </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Muscle')">
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Muscle')">
         <div class="tissue-icon"><i class="fas fa-dumbbell"></i></div>
         <div class="tissue-name">Muscle</div>
         <div class="tissue-germ">Mesoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Atrial')">
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Heart_Left_Atrium')">
         <div class="tissue-icon"><i class="fas fa-heart-pulse"></i></div>
-        <div class="tissue-name">Heart - Atrial</div>
+        <div class="tissue-name">Heart - Left Atrium</div>
         <div class="tissue-germ">Mesoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Ventricle')">
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Heart_Right_Atrium')">
+        <div class="tissue-icon"><i class="fas fa-heart-pulse"></i></div>
+        <div class="tissue-name">Heart - Right Atrium</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Heart_Left_Ventricle')">
         <div class="tissue-icon"><i class="fas fa-heart"></i></div>
-        <div class="tissue-name">Heart - Ventricle</div>
+        <div class="tissue-name">Heart - Left Ventricle</div>
         <div class="tissue-germ">Mesoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Mitral')">
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Heart_Right_Ventricle')">
+        <div class="tissue-icon"><i class="fas fa-heart"></i></div>
+        <div class="tissue-name">Heart - Right Ventricle</div>
+        <div class="tissue-germ">Mesoderm</div>
+      </div>
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Heart_Mitral_Valve')">
         <div class="tissue-icon"><i class="fas fa-heart-circle-check"></i></div>
         <div class="tissue-name">Heart - Mitral Valve</div>
         <div class="tissue-germ">Mesoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Heart Tricuspid')">
+      <div class="tissue-card fade-in" data-germ="meso" onclick="searchByTissue('Heart_Tricuspid_Valve')">
         <div class="tissue-icon"><i class="fas fa-heart-circle-plus"></i></div>
         <div class="tissue-name">Heart - Tricuspid Valve</div>
         <div class="tissue-germ">Mesoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Blood')">
+      <div class="tissue-card fade-in" data-germ="blood" onclick="searchByTissue('Whole_Blood')">
         <div class="tissue-icon"><i class="fas fa-droplet"></i></div>
         <div class="tissue-name">Whole Blood</div>
         <div class="tissue-germ">Mesoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Adrenal')">
-        <div class="tissue-icon"><i class="fas fa-kidney"></i></div>
+      <div class="tissue-card fade-in" data-germ="ecto" onclick="searchByTissue('Adrenal_Gland')">
+        <div class="tissue-icon"><i class="fas fa-circle-nodes"></i></div>
         <div class="tissue-name">Adrenal Gland</div>
-        <div class="tissue-germ">Mesoderm / Ectoderm</div>
+        <div class="tissue-germ">Ectoderm</div>
       </div>
-      <div class="tissue-card fade-in" onclick="searchByTissue('Skin')">
+      <div class="tissue-card fade-in" data-germ="ecto" onclick="searchByTissue('Skin')">
         <div class="tissue-icon"><i class="fas fa-hand-dots"></i></div>
         <div class="tissue-name">Skin</div>
         <div class="tissue-germ">Ectoderm</div>
@@ -2410,14 +2493,16 @@
       <!-- Filter Tags -->
       <div class="search-filters">
         <span class="search-filters-label">Filter by:</span>
-        <button class="filter-tag active" data-filter="all" onclick="setFilter(this,'all')"><i class="fas fa-globe"></i>
+        <button class="filter-tag" data-filter="all" onclick="setFilter(this,'all')"><i class="fas fa-globe"></i>
           All</button>
-        <button class="filter-tag" data-filter="gene" onclick="setFilter(this,'gene')"><i class="fas fa-dna"></i>
+        <button class="filter-tag active" data-filter="gene" onclick="setFilter(this,'gene')"><i class="fas fa-dna"></i>
           Gene</button>
         <button class="filter-tag" data-filter="tissue" onclick="setFilter(this,'tissue')"><i class="fas fa-lungs"></i>
           Tissue</button>
-        <button class="filter-tag" data-filter="region" onclick="setFilter(this,'region')"><i
-            class="fas fa-map-marker-alt"></i> Region</button>
+        <button class="filter-tag" data-filter="position" onclick="setFilter(this,'position')"><i
+            class="fas fa-map-marker-alt"></i> Position</button>
+        <button class="filter-tag" data-filter="annotation" onclick="setFilter(this,'annotation')"><i
+            class="fas fa-tag"></i> Annotation</button>
         <button class="filter-tag" data-filter="variant" onclick="setFilter(this,'variant')"><i
             class="fas fa-exchange-alt"></i> Variant Type</button>
       </div>
@@ -2427,15 +2512,16 @@
         <div class="search-input-wrapper">
           <div class="search-icon-left"><i class="fas fa-search"></i></div>
           <input type="text" id="searchInput"
-            placeholder="Type a gene (TP53), tissue (Liver), region (chr17:7668402-7687538)..." autocomplete="off"
-            oninput="handleAutocomplete(this.value)" onkeydown="handleSearchKeydown(event)"
+            placeholder="Type a gene (CSMD1), tissue (Liver), position (chr8:2900000-3100000), annotation (exonic)..."
+            autocomplete="off" oninput="handleAutocomplete(this.value)" onkeydown="handleSearchKeydown(event)"
             onfocus="handleAutocomplete(this.value)">
           <div class="search-type-select">
             <select id="searchType">
               <option value="all">All Types</option>
-              <option value="gene">Gene</option>
+              <option value="gene" selected>Gene</option>
               <option value="tissue">Tissue</option>
-              <option value="region">Region</option>
+              <option value="position">Position</option>
+              <option value="annotation">Annotation</option>
               <option value="variant">Variant</option>
             </select>
           </div>
@@ -2449,12 +2535,14 @@
       <!-- Quick Examples -->
       <div class="search-examples">
         Try:
-        <a href="#" onclick="quickSearch('TP53'); return false;">TP53</a>
-        <a href="#" onclick="quickSearch('DNMT3A'); return false;">DNMT3A</a>
-        <a href="#" onclick="quickSearch('Liver'); return false;">Liver</a>
-        <a href="#" onclick="quickSearch('Heart'); return false;">Heart</a>
-        <a href="#" onclick="quickSearch('chr2:25234373-25250285'); return false;">chr2:25234373-25250285</a>
-        <a href="#" onclick="quickSearch('ASXL1'); return false;">ASXL1</a>
+        <a href="#" onclick="quickSearch('CSMD1','gene'); return false;">CSMD1</a>
+        <a href="#" onclick="quickSearch('RBFOX1','gene'); return false;">RBFOX1</a>
+        <a href="#" onclick="quickSearch('DMD','gene'); return false;">DMD</a>
+        <a href="#" onclick="quickSearch('Liver','tissue'); return false;">Liver</a>
+        <a href="#" onclick="quickSearch('Whole_Blood','tissue'); return false;">Whole_Blood</a>
+        <a href="#" onclick="quickSearch('chr8:2900000-4200000','position'); return false;">chr8:2900000-4200000</a>
+        <a href="#" onclick="quickSearch('exonic','annotation'); return false;">exonic</a>
+        <a href="#" onclick="quickSearch('INDEL','variant'); return false;">INDEL</a>
       </div>
 
       <!-- Search Results -->
@@ -2480,7 +2568,7 @@
                 <th onclick="sortResults('tissue')">Tissue <i class="fas fa-sort sort-icon"></i></th>
                 <th onclick="sortResults('type')">Type <i class="fas fa-sort sort-icon"></i></th>
                 <th onclick="sortResults('vaf')">VAF <i class="fas fa-sort sort-icon"></i></th>
-                <th>Donors</th>
+                <th onclick="sortResults('annotation')">Annotation <i class="fas fa-sort sort-icon"></i></th>
               </tr>
             </thead>
             <tbody id="resultsTableBody"></tbody>
@@ -2490,8 +2578,23 @@
         <!-- Card View -->
         <div class="results-cards" id="resultsCardView"></div>
 
-        <!-- Pagination -->
-        <div class="pagination" id="pagination"></div>
+        <!-- Pagination Bar: total on left, pagination + page-size on right -->
+        <div class="pagination-bar" id="paginationBar" style="display:none;">
+          <div class="pagination-total" id="paginationTotal"></div>
+          <div class="pagination-right">
+            <div class="pagination" id="pagination"></div>
+            <div class="page-size-select">
+              <span>Show</span>
+              <select id="pageSizeSelect" onchange="setPageSize(parseInt(this.value,10))">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>/ Page</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -2664,115 +2767,47 @@
   <!-- Back to Top -->
   <button class="back-to-top" id="backToTop" onclick="scrollToTop(event)"><i class="fas fa-arrow-up"></i></button>
 
+  <script src="data_output.js"></script>
   <script>
-    // ===================== MOCK DATA =====================
-    const MOCK_DATA = [];
-    const GENES = [
-      { name: 'TP53', chr: 'chr17', start: 7668402, end: 7687538, desc: 'Tumor protein p53' },
-      { name: 'DNMT3A', chr: 'chr2', start: 25234373, end: 25250285, desc: 'DNA methyltransferase 3 alpha' },
-      { name: 'ASXL1', chr: 'chr20', start: 32354066, end: 32440095, desc: 'ASXL transcriptional regulator 1' },
-      { name: 'TET2', chr: 'chr4', start: 105145826, end: 105279784, desc: 'Tet methylcytosine dioxygenase 2' },
-      { name: 'JAK2', chr: 'chr9', start: 4985245, end: 5128183, desc: 'Janus kinase 2' },
-      { name: 'KRAS', chr: 'chr12', start: 25204789, end: 25250936, desc: 'KRAS proto-oncogene' },
-      { name: 'PIK3CA', chr: 'chr3', start: 179148114, end: 179240093, desc: 'PI3-kinase catalytic subunit alpha' },
-      { name: 'BRAF', chr: 'chr7', start: 140713328, end: 140924929, desc: 'B-Raf proto-oncogene' },
-      { name: 'IDH1', chr: 'chr2', start: 208236227, end: 208255071, desc: 'Isocitrate dehydrogenase 1' },
-      { name: 'IDH2', chr: 'chr15', start: 90083045, end: 90102548, desc: 'Isocitrate dehydrogenase 2' },
-      { name: 'NPM1', chr: 'chr5', start: 171387119, end: 171410948, desc: 'Nucleophosmin 1' },
-      { name: 'SF3B1', chr: 'chr2', start: 197389784, end: 197435093, desc: 'Splicing factor 3b subunit 1' },
-      { name: 'SRSF2', chr: 'chr17', start: 76736877, end: 76739379, desc: 'Serine/arginine-rich splicing factor 2' },
-      { name: 'NOTCH1', chr: 'chr9', start: 136494433, end: 136545786, desc: 'Notch receptor 1' },
-      { name: 'EGFR', chr: 'chr7', start: 55019017, end: 55211628, desc: 'Epidermal growth factor receptor' },
-      { name: 'APC', chr: 'chr5', start: 112707498, end: 112846239, desc: 'APC regulator of WNT signaling pathway' },
-      { name: 'BRCA1', chr: 'chr17', start: 43044295, end: 43170245, desc: 'BRCA1 DNA repair associated' },
-      { name: 'BRCA2', chr: 'chr13', start: 32315508, end: 32399672, desc: 'BRCA2 DNA repair associated' },
-      { name: 'MYC', chr: 'chr8', start: 127735434, end: 127742951, desc: 'MYC proto-oncogene' },
-      { name: 'PTEN', chr: 'chr10', start: 87863438, end: 87971930, desc: 'Phosphatase and tensin homolog' },
-    ];
+    // ===================== REAL DATA FROM CSV =====================
+    // Loaded from data_output.js:
+    //   TISSUES_META:      [{name, germ, icon}]
+    //   REGIONS_META:      [string]          (intronic / exonic / intergenic / ...)
+    //   VARIANT_TYPES_META:[string]          ("SNV" / "INDEL")
+    //   CHROMS_META:       [string]          ("chr1" ... "chrY")
+    //   GENES_META:        [[name,count,tissueCount]]  (top 2000, for autocomplete)
+    //   MUTATIONS:         [[chrIdx,pos,ref,alt,vaf,regionIdx,gene,tissueIdx,variantIdx]]
 
-    const TISSUES = [
-      { name: 'Liver', germ: 'Endoderm', germClass: 'endo', icon: 'fa-liver' },
-      { name: 'GallBladder', germ: 'Endoderm', germClass: 'endo', icon: 'fa-droplet' },
-      { name: 'Pancreas', germ: 'Endoderm', germClass: 'endo', icon: 'fa-disease' },
-      { name: 'Lung', germ: 'Endoderm', germClass: 'endo', icon: 'fa-lungs' },
-      { name: 'Stomach', germ: 'Endoderm', germClass: 'endo', icon: 'fa-disease' },
-      { name: 'Muscle', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-dumbbell' },
-      { name: 'Heart Atrial', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart-pulse' },
-      { name: 'Heart Ventricle', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart' },
-      { name: 'Heart Mitral', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart' },
-      { name: 'Heart Tricuspid', germ: 'Mesoderm', germClass: 'meso', icon: 'fa-heart' },
-      { name: 'Blood', germ: 'Mesoderm', germClass: 'blood', icon: 'fa-droplet' },
-      { name: 'Adrenal', germ: 'Ectoderm', germClass: 'ecto', icon: 'fa-kidney' },
-      { name: 'Skin', germ: 'Ectoderm', germClass: 'ecto', icon: 'fa-hand-dots' },
-    ];
-
-    const VARIANT_TYPES = ['SNV', 'InDel', 'SV'];
     const BASES = ['A', 'T', 'C', 'G'];
-    const EFFECTS = ['Missense', 'Nonsense', 'Frameshift', 'Splice site', 'Synonymous', 'Intergenic', 'Intronic', 'UTR'];
-
-    // Generate mock mutations
-    function generateMockData() {
-      for (let i = 0; i < 200; i++) {
-        const gene = GENES[Math.floor(Math.random() * GENES.length)];
-        const tissue = TISSUES[Math.floor(Math.random() * TISSUES.length)];
-        const vtype = VARIANT_TYPES[Math.floor(Math.random() * VARIANT_TYPES.length)];
-        const pos = gene.start + Math.floor(Math.random() * (gene.end - gene.start));
-        const ref = BASES[Math.floor(Math.random() * 4)];
-        let alt = BASES[Math.floor(Math.random() * 4)];
-        while (alt === ref) alt = BASES[Math.floor(Math.random() * 4)];
-        const vaf = +(Math.random() * 0.35 + 0.01).toFixed(4);
-        const donors = Math.floor(Math.random() * 15) + 1;
-        const effect = EFFECTS[Math.floor(Math.random() * EFFECTS.length)];
-
-        // Tissues affected
-        const nTissues = Math.floor(Math.random() * 5) + 1;
-        const affectedTissues = [];
-        const usedIdx = new Set();
-        for (let t = 0; t < nTissues; t++) {
-          let idx = Math.floor(Math.random() * TISSUES.length);
-          while (usedIdx.has(idx)) idx = Math.floor(Math.random() * TISSUES.length);
-          usedIdx.add(idx);
-          affectedTissues.push({
-            name: TISSUES[idx].name,
-            germ: TISSUES[idx].germ,
-            germClass: TISSUES[idx].germClass,
-            vaf: +(Math.random() * 0.3 + 0.01).toFixed(4)
-          });
-        }
-        // Ensure the primary tissue is included
-        if (!affectedTissues.find(t => t.name === tissue.name)) {
-          affectedTissues[0] = { name: tissue.name, germ: tissue.germ, germClass: tissue.germClass, vaf };
-        }
-
-        MOCK_DATA.push({
-          id: 'SM_' + String(i + 1).padStart(6, '0'),
-          gene: gene.name,
-          geneDesc: gene.desc,
-          chr: gene.chr,
-          position: pos,
-          ref, alt,
-          tissue: tissue.name,
-          tissueGerm: tissue.germ,
-          tissueGermClass: tissue.germClass,
-          type: vtype,
-          vaf, donors, effect,
-          affectedTissues,
-          crossTissue: affectedTissues.length > 1
-        });
-      }
-    }
-    generateMockData();
 
     // ===================== STATE =====================
-    let currentFilter = 'all';
-    let currentResults = [];
+    let currentFilter = 'gene';
+    let currentResults = [];       // array of expanded objects for the active query
     let currentPage = 1;
-    const PAGE_SIZE = 15;
+    let pageSize = 20;
     let currentView = 'table';
     let sortField = null;
     let sortDir = 1;
     let selectedAutocompleteIdx = -1;
     let autocompleteItems = [];
+
+    // ===================== RECORD HELPERS =====================
+    function expandRecord(r) {
+      const tm = TISSUES_META[r[7]];
+      return {
+        chr: CHROMS_META[r[0]],
+        chrIdx: r[0],
+        position: r[1],
+        ref: r[2],
+        alt: r[3],
+        vaf: r[4],
+        annotation: REGIONS_META[r[5]],
+        gene: r[6],
+        tissue: tm.name,
+        germ: tm.germ,
+        type: VARIANT_TYPES_META[r[8]]
+      };
+    }
 
     // ===================== SEARCH LOGIC =====================
     function setFilter(btn, filter) {
@@ -2786,50 +2821,49 @@
     function handleAutocomplete(query) {
       const dropdown = document.getElementById('autocompleteDropdown');
       query = query.trim().toLowerCase();
-
       if (query.length < 1) { dropdown.classList.remove('open'); return; }
 
       autocompleteItems = [];
       let html = '';
-
       const filter = currentFilter;
 
-      // Gene suggestions
+      // Gene suggestions (from GENES_META, top 2000 by count)
       if (filter === 'all' || filter === 'gene') {
-        const geneMatches = GENES.filter(g =>
-          g.name.toLowerCase().includes(query) || g.desc.toLowerCase().includes(query)
-        ).slice(0, 5);
+        const geneMatches = [];
+        for (let i = 0; i < GENES_META.length && geneMatches.length < 6; i++) {
+          if (GENES_META[i][0].toLowerCase().includes(query)) geneMatches.push(GENES_META[i]);
+        }
         if (geneMatches.length) {
           html += '<div class="autocomplete-group-label">Genes</div>';
-          geneMatches.forEach((g, i) => {
-            const highlighted = g.name.replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
-            html += `<div class="autocomplete-item" data-type="gene" data-value="${g.name}" onclick="selectAutocomplete('${g.name}','gene')">
+          geneMatches.forEach(g => {
+            const highlighted = g[0].replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${g[0].replace(/'/g,"\\'")}','gene')">
           <div class="autocomplete-item-icon gene"><i class="fas fa-dna"></i></div>
           <div class="autocomplete-item-info">
             <div class="autocomplete-item-name">${highlighted}</div>
-            <div class="autocomplete-item-meta">${g.chr}:${g.start.toLocaleString()}-${g.end.toLocaleString()} | ${g.desc}</div>
+            <div class="autocomplete-item-meta">${g[1]} mutation${g[1] !== 1 ? 's' : ''} across ${g[2]} tissue${g[2] !== 1 ? 's' : ''}</div>
           </div>
           <span class="autocomplete-item-tag gene-tag">Gene</span>
         </div>`;
-            autocompleteItems.push({ type: 'gene', value: g.name });
+            autocompleteItems.push({ type: 'gene', value: g[0] });
           });
         }
       }
 
       // Tissue suggestions
       if (filter === 'all' || filter === 'tissue') {
-        const tissueMatches = TISSUES.filter(t =>
+        const tissueMatches = TISSUES_META.filter(t =>
           t.name.toLowerCase().includes(query) || t.germ.toLowerCase().includes(query)
-        ).slice(0, 5);
+        ).slice(0, 6);
         if (tissueMatches.length) {
           html += '<div class="autocomplete-group-label">Tissues</div>';
           tissueMatches.forEach(t => {
             const highlighted = t.name.replace(new RegExp('(' + escRegex(query) + ')', 'gi'), '<span class="match">$1</span>');
-            html += `<div class="autocomplete-item" data-type="tissue" data-value="${t.name}" onclick="selectAutocomplete('${t.name}','tissue')">
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${t.name}','tissue')">
           <div class="autocomplete-item-icon tissue"><i class="fas ${t.icon}"></i></div>
           <div class="autocomplete-item-info">
             <div class="autocomplete-item-name">${highlighted}</div>
-            <div class="autocomplete-item-meta">${t.germ}</div>
+            <div class="autocomplete-item-meta">${t.germ.toUpperCase()} germ layer</div>
           </div>
           <span class="autocomplete-item-tag tissue-tag">Tissue</span>
         </div>`;
@@ -2838,26 +2872,43 @@
         }
       }
 
-      // Region pattern
-      if (filter === 'all' || filter === 'region') {
-        const regionMatch = query.match(/^chr\d+/i);
-        if (regionMatch) {
-          html += '<div class="autocomplete-group-label">Genomic Region</div>';
-          html += `<div class="autocomplete-item" onclick="selectAutocomplete('${query}','region')">
+      // Position pattern (chr{n}[:start[-end]])
+      if (filter === 'all' || filter === 'position') {
+        if (/^chr[\dxy]/i.test(query)) {
+          html += '<div class="autocomplete-group-label">Genomic Position</div>';
+          html += `<div class="autocomplete-item" onclick="selectAutocomplete('${query}','position')">
         <div class="autocomplete-item-icon region"><i class="fas fa-map-marker-alt"></i></div>
         <div class="autocomplete-item-info">
           <div class="autocomplete-item-name">${query}</div>
-          <div class="autocomplete-item-meta">Search for mutations in this genomic region</div>
+          <div class="autocomplete-item-meta">Search mutations by chromosome or coordinate range</div>
         </div>
-        <span class="autocomplete-item-tag region-tag">Region</span>
+        <span class="autocomplete-item-tag region-tag">Position</span>
       </div>`;
-          autocompleteItems.push({ type: 'region', value: query });
+          autocompleteItems.push({ type: 'position', value: query });
+        }
+      }
+
+      // Annotation (functional region) suggestions
+      if (filter === 'all' || filter === 'annotation') {
+        const annMatches = REGIONS_META.filter(r => r.toLowerCase().includes(query)).slice(0, 6);
+        if (annMatches.length) {
+          html += '<div class="autocomplete-group-label">Annotation</div>';
+          annMatches.forEach(a => {
+            html += `<div class="autocomplete-item" onclick="selectAutocomplete('${a}','annotation')">
+          <div class="autocomplete-item-icon region"><i class="fas fa-tag"></i></div>
+          <div class="autocomplete-item-info">
+            <div class="autocomplete-item-name">${a}</div>
+            <div class="autocomplete-item-meta">Filter by ${a} functional annotation</div>
+          </div>
+        </div>`;
+            autocompleteItems.push({ type: 'annotation', value: a });
+          });
         }
       }
 
       // Variant type
       if (filter === 'all' || filter === 'variant') {
-        const vtMatches = VARIANT_TYPES.filter(v => v.toLowerCase().includes(query));
+        const vtMatches = VARIANT_TYPES_META.filter(v => v.toLowerCase().includes(query));
         if (vtMatches.length) {
           html += '<div class="autocomplete-group-label">Variant Type</div>';
           vtMatches.forEach(v => {
@@ -2873,26 +2924,23 @@
         }
       }
 
-      if (html) {
-        dropdown.innerHTML = html;
-        dropdown.classList.add('open');
-      } else {
-        dropdown.classList.remove('open');
-      }
+      if (html) { dropdown.innerHTML = html; dropdown.classList.add('open'); }
+      else { dropdown.classList.remove('open'); }
       selectedAutocompleteIdx = -1;
     }
 
     function selectAutocomplete(value, type) {
       document.getElementById('searchInput').value = value;
       document.getElementById('autocompleteDropdown').classList.remove('open');
-      document.getElementById('searchType').value = type === 'all' ? 'all' : type;
+      document.getElementById('searchType').value = type;
+      const btn = document.querySelector(`.filter-tag[data-filter="${type}"]`);
+      if (btn) setFilter(btn, type);
       executeSearch();
     }
 
     function handleSearchKeydown(e) {
       const dropdown = document.getElementById('autocompleteDropdown');
       const items = dropdown.querySelectorAll('.autocomplete-item');
-
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         selectedAutocompleteIdx = Math.min(selectedAutocompleteIdx + 1, items.length - 1);
@@ -2907,73 +2955,94 @@
         if (selectedAutocompleteIdx >= 0 && autocompleteItems[selectedAutocompleteIdx]) {
           const ac = autocompleteItems[selectedAutocompleteIdx];
           selectAutocomplete(ac.value, ac.type);
-        } else {
-          executeSearch();
-        }
-      } else if (e.key === 'Escape') {
-        dropdown.classList.remove('open');
-      }
+        } else { executeSearch(); }
+      } else if (e.key === 'Escape') { dropdown.classList.remove('open'); }
     }
 
-    // Close autocomplete on outside click
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.search-main-box')) {
         document.getElementById('autocompleteDropdown').classList.remove('open');
       }
     });
 
-    function quickSearch(term) {
+    function quickSearch(term, type) {
       document.getElementById('searchInput').value = term;
+      if (type) {
+        document.getElementById('searchType').value = type;
+        const btn = document.querySelector(`.filter-tag[data-filter="${type}"]`);
+        if (btn) setFilter(btn, type);
+      }
       executeSearch();
       document.getElementById('search').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function searchByTissue(tissue) {
-      document.getElementById('searchInput').value = tissue;
+    // Browse-by-tissue card handler
+    function searchByTissue(subtissue) {
+      const btn = document.querySelector('.filter-tag[data-filter="tissue"]');
+      if (btn) setFilter(btn, 'tissue');
+      document.getElementById('searchInput').value = subtissue;
       document.getElementById('searchType').value = 'tissue';
-      setFilter(document.querySelector('.filter-tag[data-filter="tissue"]'), 'tissue');
       executeSearch();
-      setTimeout(() => {
-        document.getElementById('search').scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      setTimeout(() => document.getElementById('search').scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+
+    // Match a MUTATIONS row against the query, returning true if it matches.
+    function rowMatches(r, type, query) {
+      // r = [chrIdx, pos, ref, alt, vaf, regionIdx, gene, tissueIdx, variantIdx]
+      if (type === 'gene') {
+        return r[6].toLowerCase().includes(query);
+      }
+      if (type === 'tissue') {
+        const q = query.replace(/\s+/g, '_');
+        const tname = TISSUES_META[r[7]].name.toLowerCase();
+        return tname.includes(q) || tname.replace(/_/g,' ').includes(query)
+          || TISSUES_META[r[7]].germ.toLowerCase().includes(query);
+      }
+      if (type === 'position') {
+        // chr8:100-200  or  chr8:100  or  chr8
+        const m = query.match(/^(chr[\dxy]+)(?::(\d+)(?:-(\d+))?)?$/i);
+        if (!m) return false;
+        const qChr = m[1].toLowerCase();
+        if (CHROMS_META[r[0]].toLowerCase() !== qChr) return false;
+        if (m[2] === undefined) return true;
+        const s = parseInt(m[2]);
+        const e = m[3] === undefined ? s : parseInt(m[3]);
+        return r[1] >= Math.min(s, e) && r[1] <= Math.max(s, e);
+      }
+      if (type === 'annotation') {
+        return REGIONS_META[r[5]].toLowerCase() === query
+          || REGIONS_META[r[5]].toLowerCase().includes(query);
+      }
+      if (type === 'variant') {
+        return VARIANT_TYPES_META[r[8]].toLowerCase() === query;
+      }
+      if (type === 'all') {
+        return r[6].toLowerCase().includes(query)
+          || TISSUES_META[r[7]].name.toLowerCase().includes(query)
+          || REGIONS_META[r[5]].toLowerCase().includes(query)
+          || VARIANT_TYPES_META[r[8]].toLowerCase() === query
+          || CHROMS_META[r[0]].toLowerCase() === query;
+      }
+      return false;
     }
 
     function executeSearch() {
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const type = document.getElementById('searchType').value;
       document.getElementById('autocompleteDropdown').classList.remove('open');
-
       if (!query) return;
 
-      // Filter mock data
-      currentResults = MOCK_DATA.filter(d => {
-        if (type === 'gene' || type === 'all') {
-          if (d.gene.toLowerCase().includes(query)) return true;
+      const matched = [];
+      const CAP = 5000; // hard cap to keep UI responsive
+      for (let i = 0; i < MUTATIONS.length; i++) {
+        if (rowMatches(MUTATIONS[i], type, query)) {
+          matched.push(expandRecord(MUTATIONS[i]));
+          if (matched.length >= CAP) break;
         }
-        if (type === 'tissue' || type === 'all') {
-          if (d.tissue.toLowerCase().includes(query)) return true;
-          if (d.affectedTissues.some(t => t.name.toLowerCase().includes(query))) return true;
-        }
-        if (type === 'region' || type === 'all') {
-          const regionRe = /^(chr\w+):(\d+)-(\d+)$/i;
-          const m = query.match(regionRe);
-          if (m) {
-            const qChr = m[1].toLowerCase();
-            const qStart = parseInt(m[2]);
-            const qEnd = parseInt(m[3]);
-            if (d.chr.toLowerCase() === qChr && d.position >= qStart && d.position <= qEnd) return true;
-          } else if (d.chr.toLowerCase().includes(query)) return true;
-        }
-        if (type === 'variant' || type === 'all') {
-          if (d.type.toLowerCase().includes(query)) return true;
-        }
-        if (type === 'all') {
-          if (d.geneDesc.toLowerCase().includes(query)) return true;
-          if (d.effect.toLowerCase().includes(query)) return true;
-        }
-        return false;
-      });
+      }
 
+      currentResults = matched;
+      currentResults._capped = matched.length >= CAP;
       currentPage = 1;
       sortField = null;
       renderResults();
@@ -2983,26 +3052,28 @@
       const container = document.getElementById('searchResults');
       container.classList.add('visible');
 
+      const n = currentResults.length;
+      const capNote = currentResults._capped ? ' (showing first ' + n + ')' : '';
       document.getElementById('resultsCount').innerHTML =
-        `Found <strong>${currentResults.length}</strong> somatic mutation${currentResults.length !== 1 ? 's' : ''} matching your query`;
+        `Found <strong>${n.toLocaleString()}</strong> somatic mutation${n !== 1 ? 's' : ''} matching your query${capNote}`;
 
-      const start = (currentPage - 1) * PAGE_SIZE;
-      const pageData = currentResults.slice(start, start + PAGE_SIZE);
+      const start = (currentPage - 1) * pageSize;
+      const pageData = currentResults.slice(start, start + pageSize);
 
       // Table
       const tbody = document.getElementById('resultsTableBody');
       tbody.innerHTML = pageData.map((d, i) => {
-        const vafPct = Math.min(d.vaf * 100 / 35 * 100, 100);
+        const vafPct = Math.min(d.vaf / 0.35 * 100, 100);
         const vtClass = d.type.toLowerCase();
         return `<tr onclick="showDetail(${start + i})">
       <td><div class="gene-name-cell"><span class="gene-name-badge">${d.gene}</span></div></td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.chr}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.position.toLocaleString()}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.position}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.ref} / ${d.alt}</td>
-      <td><span class="tissue-badge ${d.tissueGermClass}">${d.tissue}</span></td>
+      <td><span class="tissue-badge ${d.germ}">${d.tissue.replace(/_/g,' ')}</span></td>
       <td><span class="mut-type-badge ${vtClass}">${d.type}</span></td>
       <td><div class="vaf-bar"><div class="vaf-bar-track"><div class="vaf-bar-fill" style="width:${vafPct}%"></div></div><span class="vaf-value">${(d.vaf * 100).toFixed(2)}%</span></div></td>
-      <td style="font-weight:600;color:var(--primary);">${d.donors}</td>
+      <td style="font-size:0.82rem;color:var(--text-secondary);">${d.annotation}</td>
     </tr>`;
       }).join('');
 
@@ -3015,13 +3086,11 @@
         <span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span>
       </div>
       <div class="result-card-body">
-        <div class="result-card-row"><span class="result-card-label">Position</span><span class="result-card-value mono">${d.chr}:${d.position.toLocaleString()}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Position</span><span class="result-card-value mono">${d.chr}:${d.position}</span></div>
         <div class="result-card-row"><span class="result-card-label">Change</span><span class="result-card-value mono">${d.ref} &gt; ${d.alt}</span></div>
-        <div class="result-card-row"><span class="result-card-label">Tissue</span><span class="tissue-badge ${d.tissueGermClass}">${d.tissue}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Tissue</span><span class="tissue-badge ${d.germ}">${d.tissue.replace(/_/g,' ')}</span></div>
         <div class="result-card-row"><span class="result-card-label">VAF</span><span class="result-card-value">${(d.vaf * 100).toFixed(2)}%</span></div>
-        <div class="result-card-row"><span class="result-card-label">Effect</span><span class="result-card-value">${d.effect}</span></div>
-        <div class="result-card-row"><span class="result-card-label">Donors</span><span class="result-card-value">${d.donors} / 68</span></div>
-        <div class="result-card-row"><span class="result-card-label">Cross-tissue</span><span class="result-card-value">${d.crossTissue ? d.affectedTissues.length + ' tissues' : 'Single tissue'}</span></div>
+        <div class="result-card-row"><span class="result-card-label">Annotation</span><span class="result-card-value">${d.annotation}</span></div>
       </div>
     </div>`;
       }).join('');
@@ -3030,8 +3099,18 @@
     }
 
     function renderPagination() {
-      const total = Math.ceil(currentResults.length / PAGE_SIZE);
+      const bar = document.getElementById('paginationBar');
       const pg = document.getElementById('pagination');
+      const totalEl = document.getElementById('paginationTotal');
+      const n = currentResults.length;
+
+      if (n === 0) { bar.style.display = 'none'; return; }
+      bar.style.display = 'flex';
+
+      totalEl.innerHTML = `Total: <strong>${n.toLocaleString()}</strong> record${n !== 1 ? 's' : ''}` +
+        (currentResults._capped ? ' <span style="color:var(--text-muted);">(showing first ' + n + ')</span>' : '');
+
+      const total = Math.ceil(n / pageSize);
       if (total <= 1) { pg.innerHTML = ''; return; }
 
       let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
@@ -3044,6 +3123,12 @@
       }
       html += `<button ${currentPage === total ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
       pg.innerHTML = html;
+    }
+
+    function setPageSize(n) {
+      pageSize = n;
+      currentPage = 1;
+      renderResults();
     }
 
     function goPage(p) {
@@ -3074,49 +3159,85 @@
     }
 
     // ===================== DETAIL PANEL =====================
+    // For a clicked row, gather all MUTATIONS rows sharing the same gene + chr + position
+    // so we can show cross-tissue distribution derived from the real data.
+    function collectCrossTissue(d) {
+      const out = [];
+      for (let i = 0; i < MUTATIONS.length; i++) {
+        const r = MUTATIONS[i];
+        if (r[6] === d.gene && r[0] === d.chrIdx && r[1] === d.position && r[2] === d.ref && r[3] === d.alt) {
+          out.push(expandRecord(r));
+        }
+      }
+      return out;
+    }
+
+    // Same-gene records across all tissues (broader view)
+    function collectGeneTissueSummary(gene) {
+      const byTissue = new Map();
+      for (let i = 0; i < MUTATIONS.length; i++) {
+        const r = MUTATIONS[i];
+        if (r[6] !== gene) continue;
+        const tname = TISSUES_META[r[7]].name;
+        if (!byTissue.has(tname)) byTissue.set(tname, { name: tname, germ: TISSUES_META[r[7]].germ, count: 0, vafSum: 0, vafMax: 0 });
+        const entry = byTissue.get(tname);
+        entry.count += 1;
+        entry.vafSum += r[4];
+        if (r[4] > entry.vafMax) entry.vafMax = r[4];
+      }
+      const arr = Array.from(byTissue.values());
+      arr.forEach(e => e.vafMean = e.vafSum / e.count);
+      arr.sort((a, b) => b.count - a.count);
+      return arr;
+    }
+
     function showDetail(idx) {
       const d = currentResults[idx];
       if (!d) return;
+      const mutId = `${d.chr}_${d.position}_${d.ref}_${d.alt}`;
+      document.getElementById('detailTitle').textContent = d.gene + ' — ' + mutId;
 
-      document.getElementById('detailTitle').textContent = d.gene + ' — ' + d.id;
+      const sameMut = collectCrossTissue(d);
+      const geneTissues = collectGeneTissueSummary(d.gene);
 
       let html = '';
 
       // Basic info
       html += `<div class="detail-section">
     <div class="detail-section-title"><i class="fas fa-info-circle"></i> Basic Information</div>
-    <div class="detail-field"><span class="detail-field-label">Mutation ID</span><span class="detail-field-value mono">${d.id}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Mutation ID</span><span class="detail-field-value mono">${mutId}</span></div>
     <div class="detail-field"><span class="detail-field-label">Gene</span><span class="detail-field-value" style="color:var(--primary);font-weight:700;">${d.gene}</span></div>
-    <div class="detail-field"><span class="detail-field-label">Description</span><span class="detail-field-value">${d.geneDesc}</span></div>
     <div class="detail-field"><span class="detail-field-label">Chromosome</span><span class="detail-field-value mono">${d.chr}</span></div>
-    <div class="detail-field"><span class="detail-field-label">Position</span><span class="detail-field-value mono">${d.position.toLocaleString()}</span></div>
+    <div class="detail-field"><span class="detail-field-label">Position</span><span class="detail-field-value mono">${d.position}</span></div>
     <div class="detail-field"><span class="detail-field-label">Ref / Alt</span><span class="detail-field-value mono">${d.ref} / ${d.alt}</span></div>
     <div class="detail-field"><span class="detail-field-label">Variant Type</span><span class="detail-field-value"><span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span></span></div>
-    <div class="detail-field"><span class="detail-field-label">Effect</span><span class="detail-field-value">${d.effect}</span></div>
-    <div class="detail-field"><span class="detail-field-label">Donors</span><span class="detail-field-value">${d.donors} / 68</span></div>
+    <div class="detail-field"><span class="detail-field-label">Annotation</span><span class="detail-field-value">${d.annotation}</span></div>
+    <div class="detail-field"><span class="detail-field-label">VAF (this record)</span><span class="detail-field-value">${(d.vaf * 100).toFixed(2)}%</span></div>
   </div>`;
 
-      // Cross-tissue
-      html += `<div class="detail-section">
-    <div class="detail-section-title"><i class="fas fa-lungs"></i> Tissue Distribution (${d.affectedTissues.length} tissue${d.affectedTissues.length > 1 ? 's' : ''})</div>
-    <div class="detail-tissue-list">
-      ${d.affectedTissues.map(t => `<div class="detail-tissue-chip"><span class="chip-dot ${t.germClass}"></span>${t.name}</div>`).join('')}
-    </div>
-  </div>`;
+      // Cross-tissue for exact same mutation
+      if (sameMut.length > 1) {
+        html += `<div class="detail-section">
+      <div class="detail-section-title"><i class="fas fa-lungs"></i> Exact Variant Across Tissues (${sameMut.length})</div>
+      <div class="detail-tissue-list">
+        ${sameMut.map(t => `<div class="detail-tissue-chip"><span class="chip-dot ${t.germ}"></span>${t.tissue.replace(/_/g,' ')} — ${(t.vaf * 100).toFixed(2)}%</div>`).join('')}
+      </div>
+    </div>`;
+      }
 
-      // VAF by tissue
+      // Gene-level tissue distribution
       html += `<div class="detail-section">
-    <div class="detail-section-title"><i class="fas fa-chart-bar"></i> VAF Across Tissues</div>
+    <div class="detail-section-title"><i class="fas fa-chart-bar"></i> ${d.gene} Mutations Across Tissues (${geneTissues.length} tissue${geneTissues.length > 1 ? 's' : ''})</div>
     <div class="detail-vaf-chart">
-      ${d.affectedTissues.map(t => {
-        const pct = Math.min(t.vaf * 100 / 0.35 * 100, 100);
-        const cls = t.vaf < 0.05 ? 'low' : t.vaf < 0.15 ? 'mid' : 'high';
-        return `<div class="detail-vaf-row">
-          <span class="detail-vaf-label">${t.name}</span>
-          <div class="detail-vaf-track"><div class="detail-vaf-fill ${cls}" style="width:${pct}%"></div></div>
-          <span class="detail-vaf-val">${(t.vaf * 100).toFixed(2)}%</span>
-        </div>`;
-      }).join('')}
+      ${geneTissues.map(t => {
+          const pct = Math.min(t.vafMean / 0.35 * 100, 100);
+          const cls = t.vafMean < 0.05 ? 'low' : t.vafMean < 0.15 ? 'mid' : 'high';
+          return `<div class="detail-vaf-row">
+              <span class="detail-vaf-label">${t.name.replace(/_/g,' ')} <span style="color:var(--text-muted);font-weight:500;">(n=${t.count})</span></span>
+              <div class="detail-vaf-track"><div class="detail-vaf-fill ${cls}" style="width:${pct}%"></div></div>
+              <span class="detail-vaf-val">${(t.vafMean * 100).toFixed(2)}%</span>
+            </div>`;
+        }).join('')}
     </div>
   </div>`;
 
@@ -3131,6 +3252,16 @@
       document.getElementById('detailOverlay').classList.remove('open');
       document.body.style.overflow = '';
     }
+
+    // ===================== DEFAULT LOAD =====================
+    // Auto-run a gene query on page load so the section isn't empty.
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof MUTATIONS === 'undefined') return;
+      document.getElementById('searchInput').value = 'CSMD1';
+      document.getElementById('searchType').value = 'gene';
+      executeSearch();
+    });
+
 
     // ===================== UI UTILS =====================
     function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }

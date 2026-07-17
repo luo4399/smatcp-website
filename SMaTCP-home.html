@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SMaTCP</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #f5f7fa;
+}
+
+.navbar {
+    background: #3f5873;
+    color: white;
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.navbar a {
+    color: white;
+    margin-left: 20px;
+    text-decoration: none;
+}
+
+.hero {
+    padding: 60px;
+    text-align: center;
+    background: white;
+}
+
+.hero h1 {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    color: #555;
+    font-size: 16px;
+}
+
+.search-box {
+    text-align: center;
+    margin: 30px;
+}
+
+.search-box input {
+    width: 400px;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 40px;
+}
+
+.card {
+    background: white;
+    padding: 20px 40px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.pipeline {
+    text-align: center;
+    padding: 40px;
+}
+
+.pipeline img {
+    width: 80%;
+    border-radius: 10px;
+}
+
+.quick-links {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 40px;
+}
+
+.button {
+    padding: 12px 25px;
+    background: #3f5873;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.footer {
+    background: #3f5873;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <div><b>SMaTCP</b></div>
+    <div>
+        <a href="#">Home</a>
+        <a href="#">Browse</a>
+        <a href="#">Search</a>
+        <a href="#">Download</a>
+        <a href="#">About</a>
+    </div>
+</div>
+
+<div class="hero">
+    <h1>Cross-tissue Somatic Mutation Atlas</h1>
+    <p>A multi-omics resource for studying somatic mosaicism across human tissues</p>
+</div>
+
+<div class="search-box">
+    <input type="text" placeholder="Search gene, region, or tissue...">
+</div>
+
+<div class="stats">
+    <div class="card">
+        <h2>68</h2>
+        <p>Individuals</p>
+    </div>
+    <div class="card">
+        <h2>13</h2>
+        <p>Tissues</p>
+    </div>
+    <div class="card">
+        <h2>Millions</h2>
+        <p>Variants</p>
+    </div>
+</div>
+
+<div class="pipeline">
+    <h2>Study Overview</h2>
+    <img src="./SMaTCP overview.png" alt="pipeline">
+</div>
+
+<div class="quick-links">
+    <a class="button" href="#">Browse by Tissue</a>
+    <a class="button" href="#">Browse by Mutation</a>
+    <a class="button" href="#">Download Data</a>
+</div>
+
+<div class="footer">
+    © 2026 SMaTCP Project | Contact: your@email.com
+</div>
+
+</body>
+</html>

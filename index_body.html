@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMaTCP — Cross-tissue Somatic Mutation Atlas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #3e5973;
+  --primary-dark: #2c4156;
+  --primary-darker: #1e2f3d;
+  --primary-light: #5a7a96;
+  --primary-lighter: #8ba8c2;
+  --primary-pale: #d6e3ef;
+  --primary-ghost: #eef3f8;
+  --accent: #4a9ece;
+  --accent-light: #7dbde0;
+  --accent-warm: #e8935a;
+  --success: #4caf7d;
+  --warning: #f0ad4e;
+  --danger: #e74c3c;
+  --surface: #ffffff;
+  --bg: #f5f7fa;
+  --bg-alt: #edf1f5;
+  --text: #1a2a3a;
+  --text-secondary: #5a6a7a;
+  --text-muted: #8a9aaa;
+  --border: #dce4ec;
+  --border-light: #e8eef4;
+  --shadow-sm: 0 1px 3px rgba(30,47,61,0.06), 0 1px 2px rgba(30,47,61,0.04);
+  --shadow-md: 0 4px 12px rgba(30,47,61,0.08), 0 2px 4px rgba(30,47,61,0.04);
+  --shadow-lg: 0 12px 36px rgba(30,47,61,0.1), 0 4px 12px rgba(30,47,61,0.06);
+  --shadow-xl: 0 20px 60px rgba(30,47,61,0.12), 0 8px 20px rgba(30,47,61,0.06);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --endo-color: #4caf50;
+  --endo-bg: #e8f5e9;
+  --meso-color: #e91e63;
+  --meso-bg: #fce4ec;
+  --ecto-color: #2196f3;
+  --ecto-bg: #e3f2fd;
+  --blood-color: #e65100;
+  --blood-bg: #fff3e0;
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; display: block; }
+ul { list-style: none; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--primary-lighter); border-radius: 4px; }
+
+/* ===== NAVBAR ===== */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+.navbar.scrolled { box-shadow: var(--shadow-md); }
+.nav-inner {
+  max-width: 1320px; margin: 0 auto; padding: 0 40px;
+  display: flex; align-items: center; justify-content: space-between; height: 68px;
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.logo-icon {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.logo-icon::before {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: conic-gradient(from 180deg, transparent, rgba(255,255,255,0.1) 50%, transparent);
+  animation: logoShine 6s linear infinite;
+}
+@keyframes logoShine { to { transform: rotate(360deg); } }
+.logo-icon svg { width: 24px; height: 24px; fill: #fff; position: relative; z-index: 1; }
+.logo-text { font-size: 1.35rem; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+.logo-text span { color: var(--accent); }
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-links a {
+  padding: 8px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 500;
+  color: var(--text-secondary); transition: var(--transition);
+}
+.nav-links a:hover { color: var(--primary); background: var(--primary-ghost); }
+.nav-links a.active { color: var(--primary); background: var(--primary-pale); font-weight: 600; }
+.nav-mobile-toggle {
+  display: none; background: none; border: none;
+  font-size: 1.4rem; color: var(--primary); cursor: pointer; padding: 8px; border-radius: 8px;
+}
+
+/* ===== HERO ===== */
+.hero {
+  padding: 140px 40px 80px;
+  background: linear-gradient(165deg, var(--primary-darker) 0%, var(--primary) 40%, var(--primary-light) 100%);
+  position: relative; overflow: hidden; min-height: 580px; display: flex; align-items: center;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(74,158,206,0.15), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139,168,194,0.1), transparent 50%);
+}
+.hero-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.hero-particle {
+  position: absolute; width: 4px; height: 4px;
+  background: rgba(255,255,255,0.15); border-radius: 50%;
+  animation: particleFloat linear infinite;
+}
+@keyframes particleFloat {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 1; } 90% { opacity: 1; }
+  100% { transform: translateY(-800px) scale(0.5); opacity: 0; }
+}
+.hero-content {
+  max-width: 1320px; margin: 0 auto; width: 100%; position: relative; z-index: 2;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+  padding: 6px 16px; border-radius: 100px;
+  font-size: 0.78rem; font-weight: 500; color: rgba(255,255,255,0.85);
+  margin-bottom: 24px; backdrop-filter: blur(10px);
+}
+.hero-badge i { color: var(--accent-light); }
+.hero-title {
+  font-size: 3.2rem; font-weight: 900; color: #fff;
+  line-height: 1.15; letter-spacing: -1.5px; margin-bottom: 12px;
+}
+.hero-title .highlight {
+  background: linear-gradient(135deg, var(--accent-light), #a8d8ea);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero-subtitle {
+  font-size: 1.1rem; font-weight: 400; color: rgba(255,255,255,0.65);
+  margin-bottom: 28px; line-height: 1.7; max-width: 540px;
+}
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 28px; border-radius: 10px;
+  font-size: 0.92rem; font-weight: 600;
+  cursor: pointer; border: none; transition: var(--transition); font-family: inherit;
+}
+.btn-primary { background: #fff; color: var(--primary); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.btn-outline { background: rgba(255,255,255,0.08); color: #fff; border: 1.5px solid rgba(255,255,255,0.25); }
+.btn-outline:hover { background: rgba(255,255,255,0.15); }
+.hero-right { display: flex; flex-direction: column; gap: 16px; }
+.hero-stat-row { display: flex; gap: 16px; }
+.hero-stat-card {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(16px); border-radius: var(--radius-md);
+  padding: 22px 24px; flex: 1; transition: var(--transition);
+}
+.hero-stat-card:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.hero-stat-number {
+  font-size: 2rem; font-weight: 800; color: #fff;
+  font-family: 'JetBrains Mono', monospace; line-height: 1.1;
+}
+.hero-stat-label { font-size: 0.8rem; color: rgba(255,255,255,0.55); margin-top: 4px; font-weight: 500; }
+.hero-stat-card.accent { border-color: rgba(74,158,206,0.3); }
+.hero-stat-card.accent .hero-stat-number { color: var(--accent-light); }
+
+/* ===== SECTION COMMONS ===== */
+.section { padding: 80px 40px; }
+.section-header { text-align: center; max-width: 700px; margin: 0 auto 56px; }
+.section-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.78rem; font-weight: 600; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+}
+.section-tag i { font-size: 0.7rem; }
+.section-title {
+  font-size: 2.2rem; font-weight: 800; color: var(--text);
+  letter-spacing: -0.8px; line-height: 1.2; margin-bottom: 14px;
+}
+.section-desc { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; }
+
+/* ===== INTERACTIVE BODY BROWSER ===== */
+.body-browser-section {
+  background: var(--surface);
+  padding: 80px 40px 100px;
+}
+.body-browser {
+  max-width: 1320px; margin: 0 auto;
+  display: grid; grid-template-columns: 480px 1fr; gap: 48px;
+  align-items: start;
+}
+
+/* Left: Human Body */
+.body-diagram-wrapper {
+  position: sticky; top: 100px;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 40px 30px;
+  box-shadow: var(--shadow-sm);
+}
+.body-diagram-header {
+  text-align: center; margin-bottom: 24px;
+}
+.body-diagram-header h3 {
+  font-size: 1.1rem; font-weight: 700; color: var(--text);
+  margin-bottom: 6px;
+}
+.body-diagram-header p {
+  font-size: 0.82rem; color: var(--text-muted);
+}
+
+.body-diagram {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  aspect-ratio: 0.42;
+}
+
+/* SVG body silhouette */
+.body-svg-container {
+  position: absolute; inset: 0;
+  display: flex; justify-content: center; align-items: center;
+}
+.body-svg-container svg {
+  width: 100%; height: 100%;
+}
+
+/* Tissue hotspots */
+.tissue-hotspot {
+  position: absolute;
+  cursor: pointer;
+  z-index: 10;
+  transition: var(--transition);
+}
+.hotspot-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: var(--transition);
+  position: relative;
+}
+.hotspot-dot::after {
+  content: '';
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: var(--transition);
+}
+.tissue-hotspot:hover .hotspot-dot,
+.tissue-hotspot.active .hotspot-dot {
+  transform: scale(1.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.tissue-hotspot.active .hotspot-dot::after {
+  border-color: currentColor;
+  animation: hotspotPulse 2s ease-in-out infinite;
+}
+@keyframes hotspotPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Hotspot label */
+.hotspot-label {
+  position: absolute;
+  white-space: nowrap;
+  font-size: 0.72rem; font-weight: 600;
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: var(--transition);
+  transform: translateY(2px);
+  box-shadow: var(--shadow-sm);
+}
+.tissue-hotspot:hover .hotspot-label,
+.tissue-hotspot.active .hotspot-label {
+  opacity: 1; transform: translateY(0);
+}
+.tissue-hotspot.active .hotspot-label {
+  background: var(--primary); color: #fff;
+}
+
+/* Connector lines */
+.hotspot-connector {
+  position: absolute;
+  border-top: 1.5px dashed var(--border);
+  transform-origin: left center;
+  z-index: 5;
+  opacity: 0;
+  transition: var(--transition);
+}
+.tissue-hotspot:hover .hotspot-connector,
+.tissue-hotspot.active .hotspot-connector {
+  opacity: 1;
+  border-color: var(--primary-lighter);
+}
+
+/* Germ layer legend */
+.germ-legend {
+  display: flex; justify-content: center; gap: 20px;
+  margin-top: 24px; flex-wrap: wrap;
+}
+.germ-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; font-weight: 500; color: var(--text-secondary);
+  cursor: pointer; padding: 4px 10px; border-radius: 6px;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.germ-legend-item:hover { background: var(--primary-ghost); }
+.germ-legend-item.active { border-color: var(--border); background: var(--surface); }
+.germ-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.germ-dot.endo { background: var(--endo-color); }
+.germ-dot.meso { background: var(--meso-color); }
+.germ-dot.ecto { background: var(--ecto-color); }
+
+/* Right: Tissue Detail */
+.tissue-detail-panel {
+  min-height: 600px;
+}
+.tissue-detail-placeholder {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 80px 40px;
+  background: var(--bg);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-xl);
+  min-height: 400px;
+}
+.tissue-detail-placeholder i {
+  font-size: 3rem; color: var(--primary-lighter);
+  margin-bottom: 20px;
+}
+.tissue-detail-placeholder h4 {
+  font-size: 1.2rem; font-weight: 700; color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.tissue-detail-placeholder p {
+  font-size: 0.88rem; color: var(--text-muted);
+  max-width: 300px;
+}
+
+/* Active tissue detail */
+.tissue-detail-content {
+  display: none;
+  animation: fadeSlideIn 0.4s ease;
+}
+.tissue-detail-content.active { display: block; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Detail header card */
+.td-header-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+.td-header-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+}
+.td-header-card.endo::before { background: var(--endo-color); }
+.td-header-card.meso::before { background: var(--meso-color); }
+.td-header-card.ecto::before { background: var(--ecto-color); }
+
+.td-header-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 20px; margin-bottom: 20px;
+}
+.td-header-icon {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+}
+.td-header-icon.endo { background: var(--endo-bg); color: var(--endo-color); }
+.td-header-icon.meso { background: var(--meso-bg); color: var(--meso-color); }
+.td-header-icon.ecto { background: var(--ecto-bg); color: var(--ecto-color); }
+.td-header-info { flex: 1; }
+.td-header-info h2 {
+  font-size: 1.6rem; font-weight: 800; color: var(--text);
+  margin-bottom: 4px; letter-spacing: -0.5px;
+}
+.td-germ-tag {
+  display: inline-flex; padding: 4px 12px; border-radius: 100px;
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.td-germ-tag.endo { background: var(--endo-bg); color: var(--endo-color); }
+.td-germ-tag.meso { background: var(--meso-bg); color: var(--meso-color); }
+.td-germ-tag.ecto { background: var(--ecto-bg); color: var(--ecto-color); }
+
+.td-description {
+  font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;
+}
+
+/* Stats row */
+.td-stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  margin-bottom: 20px;
+}
+.td-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px; text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+.td-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.td-stat-value {
+  font-size: 1.6rem; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--primary);
+  line-height: 1.1;
+}
+.td-stat-label {
+  font-size: 0.72rem; font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 4px; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Data section cards */
+.td-section-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+.td-section-title {
+  font-size: 0.92rem; font-weight: 700; color: var(--text);
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.td-section-title i { color: var(--accent); font-size: 0.85rem; }
+
+/* Mutation spectrum chart */
+.mutation-spectrum {
+  display: flex; gap: 10px; align-items: flex-end;
+  height: 140px; padding: 10px 0;
+}
+.spectrum-bar-group {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; height: 100%;
+  justify-content: flex-end;
+}
+.spectrum-bar {
+  width: 100%; border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.6s ease, background 0.3s ease;
+  cursor: pointer; position: relative;
+}
+.spectrum-bar:hover { filter: brightness(1.1); }
+.spectrum-bar-tooltip {
+  position: absolute; bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%);
+  background: var(--primary-darker); color: #fff;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 0.7rem; font-weight: 600;
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: var(--transition);
+}
+.spectrum-bar:hover .spectrum-bar-tooltip { opacity: 1; }
+.spectrum-label {
+  font-size: 0.65rem; font-weight: 600;
+  color: var(--text-muted);
+  text-align: center; line-height: 1.2;
+}
+
+/* Sample info table */
+.td-info-table { width: 100%; }
+.td-info-row {
+  display: flex; justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.td-info-row:last-child { border-bottom: none; }
+.td-info-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+.td-info-value { font-size: 0.85rem; color: var(--text); font-weight: 600; }
+.td-info-value.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Top mutated genes */
+.td-gene-list { display: flex; flex-direction: column; gap: 8px; }
+.td-gene-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  transition: var(--transition); cursor: pointer;
+}
+.td-gene-item:hover { background: var(--primary-ghost); }
+.td-gene-rank {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700;
+  background: var(--primary-pale); color: var(--primary);
+}
+.td-gene-name {
+  flex: 1; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem; font-weight: 600; color: var(--primary);
+}
+.td-gene-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+.td-gene-bar-track {
+  width: 80px; height: 6px;
+  background: var(--border-light); border-radius: 3px; overflow: hidden;
+}
+.td-gene-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  transition: width 0.6s ease;
+}
+
+/* Action buttons */
+.td-actions {
+  display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;
+}
+.td-action-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 22px; border-radius: 10px;
+  font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; border: none; font-family: inherit;
+  transition: var(--transition);
+}
+.td-action-btn.primary {
+  background: var(--primary); color: #fff;
+}
+.td-action-btn.primary:hover { background: var(--primary-dark); }
+.td-action-btn.secondary {
+  background: var(--primary-ghost); color: var(--primary);
+  border: 1px solid var(--primary-pale);
+}
+.td-action-btn.secondary:hover { background: var(--primary-pale); }
+
+/* ===== SEARCH SECTION (Compact) ===== */
+.search-section { background: var(--bg); padding: 80px 40px; }
+.search-container { max-width: 960px; margin: 0 auto; }
+.search-filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.search-filters-label { font-size: 0.82rem; font-weight: 500; color: var(--text-muted); }
+.filter-tag {
+  padding: 6px 14px; border-radius: 100px;
+  font-size: 0.78rem; font-weight: 500;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-secondary); cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; gap: 5px;
+}
+.filter-tag:hover { border-color: var(--primary-lighter); background: var(--primary-ghost); }
+.filter-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.filter-tag i { font-size: 0.7rem; }
+
+.search-main-box { position: relative; margin-bottom: 20px; }
+.search-input-wrapper {
+  display: flex; background: var(--surface);
+  border: 2px solid var(--border); border-radius: 16px;
+  overflow: hidden; transition: var(--transition); box-shadow: var(--shadow-md);
+}
+.search-input-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(74,158,206,0.12), var(--shadow-lg);
+}
+.search-input-wrapper .search-icon-left {
+  display: flex; align-items: center; padding: 0 0 0 20px;
+  color: var(--text-muted); font-size: 1.1rem;
+}
+.search-input-wrapper input {
+  flex: 1; padding: 18px 16px; border: none; outline: none;
+  font-size: 1.05rem; font-family: inherit; color: var(--text); background: transparent;
+}
+.search-input-wrapper input::placeholder { color: var(--text-muted); }
+.search-type-select { display: flex; align-items: center; padding: 0 8px 0 0; }
+.search-type-select select {
+  padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 8px;
+  font-size: 0.82rem; font-family: inherit; color: var(--text-secondary);
+  background: var(--primary-ghost); cursor: pointer; outline: none;
+}
+.search-btn {
+  padding: 18px 32px; background: var(--primary); color: #fff; border: none;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: var(--transition); display: flex; align-items: center; gap: 8px;
+}
+.search-btn:hover { background: var(--primary-dark); }
+
+.autocomplete-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-xl);
+  z-index: 100; max-height: 400px; overflow-y: auto; display: none;
+}
+.autocomplete-dropdown.open { display: block; }
+.autocomplete-group-label {
+  padding: 10px 20px 6px; font-size: 0.7rem; font-weight: 700;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;
+  background: var(--bg); border-bottom: 1px solid var(--border-light); position: sticky; top: 0;
+}
+.autocomplete-item {
+  padding: 12px 20px; display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: var(--transition); border-bottom: 1px solid var(--border-light);
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item.selected { background: var(--primary-ghost); }
+.autocomplete-item-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+}
+.autocomplete-item-icon.gene { background: #e8f5e9; color: #2e7d32; }
+.autocomplete-item-icon.tissue { background: #e3f2fd; color: #1565c0; }
+.autocomplete-item-icon.region { background: #fff3e0; color: #e65100; }
+.autocomplete-item-info { flex: 1; min-width: 0; }
+.autocomplete-item-name { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.autocomplete-item-name .match { background: #fff3cd; padding: 1px 2px; border-radius: 2px; }
+.autocomplete-item-meta {
+  font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.autocomplete-item-tag {
+  font-size: 0.68rem; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+}
+.autocomplete-item-tag.gene-tag { background: #e8f5e9; color: #2e7d32; }
+.autocomplete-item-tag.tissue-tag { background: #e3f2fd; color: #1565c0; }
+
+.search-examples {
+  text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-top: 16px;
+}
+.search-examples a {
+  color: var(--accent); font-weight: 500; margin: 0 3px;
+  padding: 3px 10px; border-radius: 6px; transition: var(--transition);
+  background: rgba(74,158,206,0.06);
+}
+.search-examples a:hover { background: rgba(74,158,206,0.15); }
+
+/* Search Results */
+.search-results { margin-top: 40px; display: none; }
+.search-results.visible { display: block; }
+.results-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+}
+.results-count { font-size: 0.92rem; color: var(--text-secondary); }
+.results-count strong { color: var(--text); font-weight: 700; }
+.results-view-toggle { display: flex; gap: 4px; }
+.results-view-toggle button {
+  width: 36px; height: 36px; border: 1px solid var(--border); background: var(--surface);
+  border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.results-view-toggle button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.results-table-wrapper {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md);
+}
+.results-table { width: 100%; border-collapse: collapse; }
+.results-table thead { background: var(--primary); }
+.results-table th {
+  padding: 14px 18px; font-size: 0.78rem; font-weight: 600;
+  color: #fff; text-align: left; text-transform: uppercase;
+  letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
+}
+.results-table th:hover { background: var(--primary-dark); }
+.results-table td {
+  padding: 13px 18px; font-size: 0.86rem; color: var(--text);
+  border-bottom: 1px solid var(--border-light);
+}
+.results-table tbody tr { transition: var(--transition); cursor: pointer; }
+.results-table tbody tr:hover { background: var(--primary-ghost); }
+.results-table tbody tr:last-child td { border-bottom: none; }
+.gene-name-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem; font-weight: 600; color: var(--primary);
+}
+.tissue-badge {
+  display: inline-flex; padding: 3px 9px; border-radius: 6px;
+  font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+}
+.tissue-badge.endo { background: var(--endo-bg); color: var(--endo-color); }
+.tissue-badge.meso { background: var(--meso-bg); color: var(--meso-color); }
+.tissue-badge.ecto { background: var(--ecto-bg); color: var(--ecto-color); }
+.tissue-badge.blood { background: var(--blood-bg); color: var(--blood-color); }
+.mut-type-badge {
+  display: inline-flex; padding: 3px 9px; border-radius: 6px;
+  font-size: 0.72rem; font-weight: 600;
+}
+.mut-type-badge.snv { background: #e8eaf6; color: #283593; }
+.mut-type-badge.indel { background: #fce4ec; color: #880e4f; }
+.mut-type-badge.sv { background: #fff8e1; color: #f57f17; }
+.vaf-bar { display: flex; align-items: center; gap: 8px; }
+.vaf-bar-track { width: 60px; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+.vaf-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--success)); }
+.vaf-value { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); }
+
+.results-cards { display: none; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.results-cards.active { display: grid; }
+.result-card {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius-md); padding: 24px;
+  transition: var(--transition); cursor: pointer;
+}
+.result-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.result-card-header { display: flex; justify-content: space-between; margin-bottom: 16px; }
+.result-card-gene {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem; font-weight: 700; color: var(--primary);
+}
+.result-card-body { display: flex; flex-direction: column; gap: 10px; }
+.result-card-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+.result-card-label { color: var(--text-muted); font-weight: 500; }
+.result-card-value { color: var(--text); font-weight: 600; }
+.result-card-value.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+
+.pagination { display: flex; justify-content: center; gap: 4px; margin-top: 28px; }
+.pagination button {
+  width: 38px; height: 38px; border: 1px solid var(--border); background: var(--surface);
+  border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+  color: var(--text-secondary); transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.pagination button:hover { border-color: var(--primary-lighter); background: var(--primary-ghost); }
+.pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pagination button:disabled { opacity: 0.4; cursor: default; }
+
+/* Detail Panel */
+.detail-panel {
+  position: fixed; top: 0; right: -520px; bottom: 0; width: 520px;
+  background: var(--surface); box-shadow: -8px 0 40px rgba(0,0,0,0.12);
+  z-index: 2000; transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto;
+}
+.detail-panel.open { right: 0; }
+.detail-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  z-index: 1999; opacity: 0; pointer-events: none; transition: var(--transition);
+}
+.detail-overlay.open { opacity: 1; pointer-events: all; }
+.detail-header {
+  padding: 24px 28px; border-bottom: 1px solid var(--border-light);
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.detail-header h3 { font-size: 1.15rem; font-weight: 700; }
+.detail-close {
+  width: 36px; height: 36px; border: 1px solid var(--border); background: var(--bg);
+  border-radius: 8px; cursor: pointer; color: var(--text-secondary); font-size: 1rem;
+  display: flex; align-items: center; justify-content: center; transition: var(--transition);
+}
+.detail-close:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.detail-body { padding: 28px; }
+.detail-section { margin-bottom: 28px; }
+.detail-section-title {
+  font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.detail-section-title i { color: var(--accent); }
+.detail-field {
+  display: flex; justify-content: space-between; padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.detail-field:last-child { border-bottom: none; }
+.detail-field-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+.detail-field-value { font-size: 0.85rem; color: var(--text); font-weight: 600; text-align: right; }
+.detail-field-value.mono { font-family: 'JetBrains Mono', monospace; }
+.detail-tissue-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.detail-tissue-chip {
+  padding: 6px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 500;
+  background: var(--primary-ghost); border: 1px solid var(--primary-pale); color: var(--primary-dark);
+  display: flex; align-items: center; gap: 6px;
+}
+.detail-tissue-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+.detail-tissue-chip .chip-dot.endo { background: var(--endo-color); }
+.detail-tissue-chip .chip-dot.meso { background: var(--meso-color); }
+.detail-tissue-chip .chip-dot.ecto { background: var(--ecto-color); }
+.detail-vaf-chart { margin-top: 12px; }
+.detail-vaf-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.detail-vaf-label { width: 140px; font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+.detail-vaf-track { flex: 1; height: 8px; background: var(--border-light); border-radius: 4px; overflow: hidden; }
+.detail-vaf-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.detail-vaf-fill.low { background: var(--accent); }
+.detail-vaf-fill.mid { background: var(--warning); }
+.detail-vaf-fill.high { background: var(--danger); }
+.detail-vaf-val {
+  width: 50px; text-align: right; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem; color: var(--text-secondary);
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  background: var(--primary-darker); color: rgba(255,255,255,0.6); padding: 48px 40px 32px;
+}
+.footer-inner { max-width: 1320px; margin: 0 auto; }
+.footer-top {
+  display: flex; justify-content: space-between; gap: 48px;
+  padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;
+}
+.footer-brand .logo-text { color: #fff; font-size: 1.2rem; margin-bottom: 10px; }
+.footer-brand .logo-text span { color: var(--accent-light); }
+.footer-brand p { font-size: 0.82rem; max-width: 320px; line-height: 1.7; }
+.footer-links-group { display: flex; gap: 64px; }
+.footer-col h5 {
+  color: rgba(255,255,255,0.85); font-size: 0.82rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+}
+.footer-col a {
+  display: block; padding: 4px 0; font-size: 0.85rem;
+  color: rgba(255,255,255,0.5); transition: var(--transition);
+}
+.footer-col a:hover { color: var(--accent-light); }
+.footer-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 24px; flex-wrap: wrap; gap: 16px;
+}
+.footer-bottom p { font-size: 0.8rem; }
+.footer-bottom a { color: var(--accent-light); }
+.footer-social { display: flex; gap: 12px; }
+.footer-social a {
+  width: 36px; height: 36px; background: rgba(255,255,255,0.06); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.5); transition: var(--transition);
+}
+.footer-social a:hover { background: var(--accent); color: #fff; }
+
+.fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+
+.back-to-top {
+  position: fixed; bottom: 32px; right: 32px; width: 44px; height: 44px;
+  background: var(--primary); color: #fff; border: none; border-radius: 12px;
+  cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateY(20px); transition: var(--transition);
+  box-shadow: var(--shadow-lg); z-index: 999;
+}
+.back-to-top.visible { opacity: 1; transform: translateY(0); }
+.back-to-top:hover { background: var(--primary-dark); }
+
+@media (max-width: 1100px) {
+  .body-browser { grid-template-columns: 1fr; }
+  .body-diagram-wrapper { position: static; max-width: 480px; margin: 0 auto; }
+  .hero-content { grid-template-columns: 1fr; }
+  .hero-title { font-size: 2.5rem; }
+  .td-stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .nav-inner { padding: 0 20px; }
+  .nav-links {
+    display: none; position: absolute; top: 68px; left: 0; right: 0;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-direction: column; padding: 16px; box-shadow: var(--shadow-lg);
+  }
+  .nav-links.open { display: flex; }
+  .nav-mobile-toggle { display: block; }
+  .hero { padding: 120px 20px 60px; min-height: auto; }
+  .hero-title { font-size: 2rem; }
+  .hero-stat-row { flex-direction: column; }
+  .section { padding: 60px 20px; }
+  .body-browser-section { padding: 60px 20px; }
+  .section-title { font-size: 1.7rem; }
+  .td-stats-row { grid-template-columns: 1fr 1fr; }
+  .results-cards { grid-template-columns: 1fr; }
+  .detail-panel { width: 100%; right: -100%; }
+  .footer { padding: 40px 20px 24px; }
+  .footer-links-group { gap: 32px; }
+  .search-section { padding: 60px 20px; }
+}
+@media (max-width: 480px) {
+  .hero-actions { flex-direction: column; }
+  .search-input-wrapper { flex-wrap: wrap; }
+  .search-type-select { width: 100%; padding: 0 12px 8px; }
+  .search-type-select select { width: 100%; }
+  .search-btn { width: 100%; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo" onclick="scrollToTop(event)">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
+      <div class="logo-text">SMa<span>TCP</span></div>
+    </a>
+    <button class="nav-mobile-toggle" onclick="toggleMobileNav()"><i class="fas fa-bars" id="navToggleIcon"></i></button>
+    <div class="nav-links" id="navLinks">
+      <a href="#home" class="active">Home</a>
+      <a href="#browse">Browse</a>
+      <a href="#search">Search</a>
+      <a href="#about">About</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-particles" id="heroParticles"></div>
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-badge"><i class="fas fa-dna"></i> Cross-tissue Somatic Mutation Atlas</div>
+      <h1 class="hero-title">Somatic Mutations<br>Across <span class="highlight">Human Tissues</span><br>of Chinese Project</h1>
+      <p class="hero-subtitle">SMaTCP integrates high-quality genomic, epigenomic, transcriptomic, translatomic, and proteomic data across multiple normal tissues at both bulk and single-cell resolutions, providing a systematic framework for characterizing tissue-specific and cross-tissue somatic mutations in East Asian populations.</p>
+      <div class="hero-actions">
+        <a href="#browse" class="btn btn-primary"><i class="fas fa-microscope"></i> Explore Atlas</a>
+        <a href="#search" class="btn btn-outline"><i class="fas fa-search"></i> Search</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-stat-row">
+        <div class="hero-stat-card accent"><div class="hero-stat-number">68</div><div class="hero-stat-label">Individuals</div></div>
+        <div class="hero-stat-card"><div class="hero-stat-number">13</div><div class="hero-stat-label">Tissues</div></div>
+      </div>
+      <div class="hero-stat-row">
+        <div class="hero-stat-card"><div class="hero-stat-number">300x</div><div class="hero-stat-label">Short-read WGS</div></div>
+        <div class="hero-stat-card accent"><div class="hero-stat-number">40x</div><div class="hero-stat-label">PacBio HiFi</div></div>
+      </div>
+      <div class="hero-stat-row">
+        <div class="hero-stat-card"><div class="hero-stat-number">GRCh38</div><div class="hero-stat-label">Reference Assembly</div></div>
+        <div class="hero-stat-card"><div class="hero-stat-number">DSA</div><div class="hero-stat-label">Donor-specific Assembly</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INTERACTIVE BODY BROWSER ===== -->
+<section class="body-browser-section section" id="browse">
+  <div class="section-header">
+    <div class="section-tag"><i class="fas fa-th-large"></i> Tissue Atlas</div>
+    <h2 class="section-title">Browse by Tissue</h2>
+    <p class="section-desc">Click any tissue on the human body diagram to view its somatic mutation profile, mutation spectrum, and top mutated genes.</p>
+  </div>
+
+  <div class="body-browser">
+    <!-- LEFT: Body Diagram -->
+    <div class="body-diagram-wrapper">
+      <div class="body-diagram-header">
+        <h3>Human Tissue Map</h3>
+        <p>Click a tissue marker to explore</p>
+      </div>
+      <div class="body-diagram" id="bodyDiagram">
+        <!-- SVG Human Body Silhouette -->
+        <div class="body-svg-container">
+          <svg viewBox="0 0 300 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="150" cy="60" rx="38" ry="45" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+            <!-- Neck -->
+            <rect x="138" y="100" width="24" height="28" rx="8" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+            <!-- Torso -->
+            <path d="M100 128 Q90 140 85 180 L80 310 Q80 330 95 340 L110 345 L110 360 Q110 370 115 380 L118 420 Q120 435 130 440 L170 440 Q180 435 182 420 L185 380 Q190 370 190 360 L190 345 L205 340 Q220 330 220 310 L215 180 Q210 140 200 128 Z" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+            <!-- Left Arm -->
+            <path d="M85 140 Q60 160 50 220 L45 300 Q42 320 48 335 L55 350 Q58 355 60 350 L65 320 Q68 310 70 290 L80 220 Q82 200 85 180" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+            <!-- Right Arm -->
+            <path d="M215 140 Q240 160 250 220 L255 300 Q258 320 252 335 L245 350 Q242 355 240 350 L235 320 Q232 310 230 290 L220 220 Q218 200 215 180" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+            <!-- Left Leg -->
+            <path d="M110 440 L105 520 L100 600 Q98 630 100 650 L105 670 Q108 680 115 678 L120 670 L122 650 Q124 630 122 600 L125 520 L130 440" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+            <!-- Right Leg -->
+            <path d="M170 440 L175 520 L178 600 Q180 630 178 650 L175 670 Q172 680 185 678 L195 670 L200 650 Q202 630 200 600 L195 520 L190 440" fill="#d6e3ef" stroke="#8ba8c2" stroke-width="1.5"/>
+          </svg>
+        </div>
+
+        <!-- Tissue Hotspots — positioned over the body -->
+        <!-- Each hotspot has a data-tissue attribute matching TISSUE_DATA keys -->
+      </div>
+
+      <!-- Germ Layer Legend -->
+      <div class="germ-legend">
+        <div class="germ-legend-item" onclick="filterGerm('endo')"><span class="germ-dot endo"></span> Endoderm</div>
+        <div class="germ-legend-item" onclick="filterGerm('meso')"><span class="germ-dot meso"></span> Mesoderm</div>
+        <div class="germ-legend-item" onclick="filterGerm('ecto')"><span class="germ-dot ecto"></span> Ectoderm</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Detail Panel -->
+    <div class="tissue-detail-panel" id="tissueDetailPanel">
+      <!-- Placeholder -->
+      <div class="tissue-detail-placeholder" id="tissuePlaceholder">
+        <i class="fas fa-hand-pointer"></i>
+        <h4>Select a Tissue</h4>
+        <p>Click on any tissue marker on the human body diagram to view detailed somatic mutation information.</p>
+      </div>
+      <!-- Dynamic content injected here -->
+      <div class="tissue-detail-content" id="tissueDetailContent"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SEARCH SECTION -->
+<section class="section search-section" id="search">
+  <div class="section-header">
+    <div class="section-tag"><i class="fas fa-search"></i> Query</div>
+    <h2 class="section-title">Search the Atlas</h2>
+    <p class="section-desc">Search by gene name, genomic region, tissue, or variant type with real-time suggestions.</p>
+  </div>
+  <div class="search-container">
+    <div class="search-filters">
+      <span class="search-filters-label">Filter:</span>
+      <button class="filter-tag active" data-filter="all" onclick="setSearchFilter(this,'all')"><i class="fas fa-globe"></i> All</button>
+      <button class="filter-tag" data-filter="gene" onclick="setSearchFilter(this,'gene')"><i class="fas fa-dna"></i> Gene</button>
+      <button class="filter-tag" data-filter="tissue" onclick="setSearchFilter(this,'tissue')"><i class="fas fa-lungs"></i> Tissue</button>
+      <button class="filter-tag" data-filter="region" onclick="setSearchFilter(this,'region')"><i class="fas fa-map-marker-alt"></i> Region</button>
+    </div>
+    <div class="search-main-box">
+      <div class="search-input-wrapper">
+        <div class="search-icon-left"><i class="fas fa-search"></i></div>
+        <input type="text" id="searchInput" placeholder="Gene (TP53), tissue (Liver), region (chr17:7668402-7687538)..."
+               autocomplete="off" oninput="handleAutocomplete(this.value)" onkeydown="handleSearchKeydown(event)" onfocus="handleAutocomplete(this.value)">
+        <div class="search-type-select"><select id="searchType"><option value="all">All</option><option value="gene">Gene</option><option value="tissue">Tissue</option><option value="region">Region</option></select></div>
+        <button class="search-btn" onclick="executeSearch()"><i class="fas fa-search"></i> Search</button>
+      </div>
+      <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+    </div>
+    <div class="search-examples">
+      Try: <a href="#" onclick="quickSearch('TP53');return false;">TP53</a>
+      <a href="#" onclick="quickSearch('DNMT3A');return false;">DNMT3A</a>
+      <a href="#" onclick="quickSearch('Liver');return false;">Liver</a>
+      <a href="#" onclick="quickSearch('chr2:25234373-25250285');return false;">chr2:25234373-25250285</a>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="results-header">
+        <div class="results-count" id="resultsCount"></div>
+        <div class="results-view-toggle">
+          <button class="active" id="tableViewBtn" onclick="setResultView('table')"><i class="fas fa-list"></i></button>
+          <button id="cardViewBtn" onclick="setResultView('card')"><i class="fas fa-th-large"></i></button>
+        </div>
+      </div>
+      <div class="results-table-wrapper" id="resultsTableView">
+        <table class="results-table">
+          <thead><tr>
+            <th onclick="sortResults('gene')">Gene <i class="fas fa-sort" style="font-size:0.65rem;opacity:0.6;"></i></th>
+            <th onclick="sortResults('chr')">Chr</th>
+            <th onclick="sortResults('position')">Position</th>
+            <th>Ref/Alt</th>
+            <th onclick="sortResults('tissue')">Tissue</th>
+            <th onclick="sortResults('type')">Type</th>
+            <th onclick="sortResults('vaf')">VAF</th>
+            <th>Donors</th>
+          </tr></thead>
+          <tbody id="resultsTableBody"></tbody>
+        </table>
+      </div>
+      <div class="results-cards" id="resultsCardView"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="logo-text">SMa<span>TCP</span></div>
+        <p>Cross-tissue Somatic Mutation Atlas of Chinese Project.</p>
+      </div>
+      <div class="footer-links-group">
+        <div class="footer-col"><h5>Navigation</h5><a href="#home">Home</a><a href="#browse">Browse</a><a href="#search">Search</a><a href="#about">About</a></div>
+        <div class="footer-col"><h5>Resources</h5><a href="#">Documentation</a><a href="#">API</a><a href="#">Citation</a></div>
+        <div class="footer-col"><h5>Related</h5><a href="#">GTOP Project</a><a href="#">SMaHT Network</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 SMaTCP Project</p>
+      <div class="footer-social"><a href="#"><i class="fab fa-github"></i></a><a href="#"><i class="fab fa-twitter"></i></a><a href="#"><i class="fas fa-envelope"></i></a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- Detail Side Panel -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <h3 id="detailTitle">Mutation Detail</h3>
+    <button class="detail-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<button class="back-to-top" id="backToTop" onclick="scrollToTop(event)"><i class="fas fa-arrow-up"></i></button>
+
+<script>
+// ==================== TISSUE DATA ====================
+const TISSUE_DATA = {
+  skin: {
+    name: 'Skin', germ: 'Ectoderm', germClass: 'ecto',
+    icon: 'fa-hand-dots',
+    position: { top: '8%', left: '68%' }, labelPos: { top: '-6px', left: '26px' },
+    color: '#2196f3',
+    donors: 68, samples: 68, snvCount: 12450, indelCount: 1820, svCount: 340,
+    desc: 'Skin is the largest organ derived from ectoderm. It accumulates UV-induced somatic mutations throughout life, making it one of the highest mutation burden tissues.',
+    topGenes: [
+      { name:'NOTCH1', count:42, pct:62 }, { name:'TP53', count:38, pct:56 },
+      { name:'FAT1', count:28, pct:41 }, { name:'NOTCH2', count:22, pct:32 },
+      { name:'RBM10', count:15, pct:22 }
+    ],
+    spectrum: { 'C>T':42, 'C>A':12, 'C>G':5, 'T>A':8, 'T>C':18, 'T>G':3 }
+  },
+  lung: {
+    name: 'Lung', germ: 'Endoderm', germClass: 'endo',
+    icon: 'fa-lungs',
+    position: { top: '25%', left: '28%' }, labelPos: { top: '-6px', right: '26px' },
+    color: '#4caf50',
+    donors: 68, samples: 68, snvCount: 8920, indelCount: 1340, svCount: 280,
+    desc: 'Lung tissue derived from endoderm, exposed to environmental mutagens. Somatic mutations in lung reflect both intrinsic and extrinsic mutagenic processes.',
+    topGenes: [
+      { name:'EGFR', count:18, pct:26 }, { name:'KRAS', count:15, pct:22 },
+      { name:'TP53', count:35, pct:51 }, { name:'STK11', count:10, pct:15 },
+      { name:'BRAF', count:8, pct:12 }
+    ],
+    spectrum: { 'C>T':28, 'C>A':22, 'C>G':7, 'T>A':12, 'T>C':15, 'T>G':6 }
+  },
+  heart_atrial: {
+    name: 'Heart - Atrial', germ: 'Mesoderm', germClass: 'meso',
+    icon: 'fa-heart-pulse',
+    position: { top: '27%', left: '56%' }, labelPos: { top: '-6px', left: '26px' },
+    color: '#e91e63',
+    donors: 68, samples: 68, snvCount: 3200, indelCount: 580, svCount: 120,
+    desc: 'Atrial cardiac tissue from the upper right chamber. Cardiomyocytes are largely post-mitotic, resulting in lower somatic mutation burden compared to proliferative tissues.',
+    topGenes: [
+      { name:'TTN', count:25, pct:37 }, { name:'MYH7', count:12, pct:18 },
+      { name:'LMNA', count:8, pct:12 }, { name:'SCN5A', count:6, pct:9 },
+      { name:'TNNT2', count:5, pct:7 }
+    ],
+    spectrum: { 'C>T':35, 'C>A':10, 'C>G':6, 'T>A':9, 'T>C':22, 'T>G':4 }
+  },
+  heart_ventricle: {
+    name: 'Heart - Ventricle', germ: 'Mesoderm', germClass: 'meso',
+    icon: 'fa-heart',
+    position: { top: '31%', left: '52%' }, labelPos: { top: '22px', left: '22px' },
+    color: '#e91e63',
+    donors: 68, samples: 68, snvCount: 3050, indelCount: 520, svCount: 105,
+    desc: 'Ventricular cardiac tissue from left and right ventricles. Shows similar mutation patterns to atrial tissue with subtle differences in mutation spectrum.',
+    topGenes: [
+      { name:'TTN', count:28, pct:41 }, { name:'MYH6', count:10, pct:15 },
+      { name:'MYBPC3', count:9, pct:13 }, { name:'RYR2', count:7, pct:10 },
+      { name:'DSP', count:5, pct:7 }
+    ],
+    spectrum: { 'C>T':36, 'C>A':9, 'C>G':5, 'T>A':10, 'T>C':23, 'T>G':3 }
+  },
+  heart_mitral: {
+    name: 'Heart - Mitral Valve', germ: 'Mesoderm', germClass: 'meso',
+    icon: 'fa-heart-circle-check',
+    position: { top: '30%', left: '60%' }, labelPos: { top: '-6px', left: '26px' },
+    color: '#e91e63',
+    donors: 68, samples: 68, snvCount: 2180, indelCount: 380, svCount: 78,
+    desc: 'Mitral valve tissue connecting left atrium and ventricle. Valvular interstitial cells show distinct somatic mutation profiles from myocardial tissue.',
+    topGenes: [
+      { name:'NOTCH1', count:12, pct:18 }, { name:'FBN1', count:8, pct:12 },
+      { name:'COL1A1', count:6, pct:9 }, { name:'MMP2', count:5, pct:7 },
+      { name:'TGFBR2', count:4, pct:6 }
+    ],
+    spectrum: { 'C>T':38, 'C>A':8, 'C>G':5, 'T>A':8, 'T>C':24, 'T>G':3 }
+  },
+  heart_tricuspid: {
+    name: 'Heart - Tricuspid Valve', germ: 'Mesoderm', germClass: 'meso',
+    icon: 'fa-heart-circle-plus',
+    position: { top: '28%', left: '44%' }, labelPos: { top: '-6px', right: '26px' },
+    color: '#e91e63',
+    donors: 68, samples: 68, snvCount: 2050, indelCount: 350, svCount: 65,
+    desc: 'Tricuspid valve tissue between right atrium and ventricle. Similar mutation landscape to mitral valve with slight variation in structural gene mutations.',
+    topGenes: [
+      { name:'NOTCH1', count:10, pct:15 }, { name:'FBN1', count:7, pct:10 },
+      { name:'COL3A1', count:5, pct:7 }, { name:'ELN', count:4, pct:6 },
+      { name:'TGFB1', count:3, pct:4 }
+    ],
+    spectrum: { 'C>T':37, 'C>A':9, 'C>G':4, 'T>A':9, 'T>C':25, 'T>G':2 }
+  },
+  liver: {
+    name: 'Liver', germ: 'Endoderm', germClass: 'endo',
+    icon: 'fa-liver',
+    position: { top: '35%', left: '36%' }, labelPos: { top: '-6px', right: '26px' },
+    color: '#4caf50',
+    donors: 68, samples: 68, snvCount: 9850, indelCount: 1560, svCount: 310,
+    desc: 'Liver is a highly regenerative endoderm-derived organ. Hepatocytes undergo clonal expansion throughout life, and the tissue accumulates somatic mutations related to metabolic processes.',
+    topGenes: [
+      { name:'TP53', count:32, pct:47 }, { name:'ARID1A', count:22, pct:32 },
+      { name:'AXIN1', count:18, pct:26 }, { name:'CTNNB1', count:15, pct:22 },
+      { name:'ALB', count:12, pct:18 }
+    ],
+    spectrum: { 'C>T':30, 'C>A':15, 'C>G':8, 'T>A':10, 'T>C':20, 'T>G':5 }
+  },
+  gallbladder: {
+    name: 'GallBladder', germ: 'Endoderm', germClass: 'endo',
+    icon: 'fa-droplet',
+    position: { top: '37%', left: '43%' }, labelPos: { top: '22px', left: '22px' },
+    color: '#4caf50',
+    donors: 68, samples: 68, snvCount: 4200, indelCount: 680, svCount: 130,
+    desc: 'Gallbladder epithelium derived from endoderm. Somatic mutations in gallbladder tissue may relate to bile acid exposure and chronic inflammation.',
+    topGenes: [
+      { name:'TP53', count:20, pct:29 }, { name:'ERBB2', count:12, pct:18 },
+      { name:'SMAD4', count:8, pct:12 }, { name:'ARID1A', count:7, pct:10 },
+      { name:'PIK3CA', count:5, pct:7 }
+    ],
+    spectrum: { 'C>T':33, 'C>A':14, 'C>G':6, 'T>A':11, 'T>C':19, 'T>G':5 }
+  },
+  stomach: {
+    name: 'Stomach', germ: 'Endoderm', germClass: 'endo',
+    icon: 'fa-disease',
+    position: { top: '39%', left: '58%' }, labelPos: { top: '-6px', left: '26px' },
+    color: '#4caf50',
+    donors: 68, samples: 68, snvCount: 7600, indelCount: 1180, svCount: 240,
+    desc: 'Gastric epithelium with high cell turnover rate. Stomach tissue shows characteristic mutation patterns associated with gastric mucosal renewal and H. pylori related mutagenesis.',
+    topGenes: [
+      { name:'TP53', count:30, pct:44 }, { name:'CDH1', count:18, pct:26 },
+      { name:'ARID1A', count:15, pct:22 }, { name:'RHOA', count:10, pct:15 },
+      { name:'PIK3CA', count:9, pct:13 }
+    ],
+    spectrum: { 'C>T':32, 'C>A':13, 'C>G':7, 'T>A':11, 'T>C':20, 'T>G':5 }
+  },
+  pancreas: {
+    name: 'Pancreas - Head', germ: 'Endoderm', germClass: 'endo',
+    icon: 'fa-disease',
+    position: { top: '42%', left: '48%' }, labelPos: { top: '22px', left: '16px' },
+    color: '#4caf50',
+    donors: 68, samples: 68, snvCount: 5400, indelCount: 860, svCount: 180,
+    desc: 'Pancreatic tissue from the head region. Both exocrine and endocrine compartments contribute to the somatic mutation landscape with distinct clonal dynamics.',
+    topGenes: [
+      { name:'KRAS', count:35, pct:51 }, { name:'TP53', count:25, pct:37 },
+      { name:'SMAD4', count:15, pct:22 }, { name:'CDKN2A', count:12, pct:18 },
+      { name:'GNAS', count:8, pct:12 }
+    ],
+    spectrum: { 'C>T':34, 'C>A':12, 'C>G':6, 'T>A':10, 'T>C':21, 'T>G':4 }
+  },
+  adrenal: {
+    name: 'Adrenal Gland', germ: 'Mesoderm / Ectoderm', germClass: 'ecto',
+    icon: 'fa-kidney',
+    position: { top: '36%', left: '66%' }, labelPos: { top: '-6px', left: '26px' },
+    color: '#2196f3',
+    donors: 68, samples: 68, snvCount: 3800, indelCount: 620, svCount: 140,
+    desc: 'Adrenal gland has dual embryonic origin: cortex from mesoderm, medulla from neural crest (ectoderm). This unique developmental origin results in a composite mutation landscape.',
+    topGenes: [
+      { name:'CTNNB1', count:15, pct:22 }, { name:'TP53', count:12, pct:18 },
+      { name:'PRKAR1A', count:8, pct:12 }, { name:'ARMC5', count:6, pct:9 },
+      { name:'MEN1', count:5, pct:7 }
+    ],
+    spectrum: { 'C>T':36, 'C>A':10, 'C>G':5, 'T>A':9, 'T>C':24, 'T>G':3 }
+  },
+  muscle: {
+    name: 'Muscle', germ: 'Mesoderm', germClass: 'meso',
+    icon: 'fa-dumbbell',
+    position: { top: '52%', left: '26%' }, labelPos: { top: '-6px', right: '26px' },
+    color: '#e91e63',
+    donors: 68, samples: 68, snvCount: 2800, indelCount: 420, svCount: 95,
+    desc: 'Skeletal muscle is a largely post-mitotic mesoderm-derived tissue. It has one of the lowest somatic mutation burdens among surveyed tissues, consistent with limited cell division.',
+    topGenes: [
+      { name:'TTN', count:18, pct:26 }, { name:'RYR1', count:8, pct:12 },
+      { name:'DMD', count:6, pct:9 }, { name:'LMNA', count:5, pct:7 },
+      { name:'DES', count:4, pct:6 }
+    ],
+    spectrum: { 'C>T':40, 'C>A':8, 'C>G':4, 'T>A':7, 'T>C':25, 'T>G':2 }
+  },
+  blood: {
+    name: 'Whole Blood', germ: 'Mesoderm', germClass: 'meso',
+    icon: 'fa-droplet',
+    position: { top: '48%', left: '72%' }, labelPos: { top: '-6px', left: '26px' },
+    color: '#e65100',
+    donors: 68, samples: 68, snvCount: 6500, indelCount: 980, svCount: 210,
+    desc: 'Peripheral blood reflects clonal hematopoiesis of indeterminate potential (CHIP). Blood somatic mutations are age-associated and often involve epigenetic regulators.',
+    topGenes: [
+      { name:'DNMT3A', count:45, pct:66 }, { name:'TET2', count:38, pct:56 },
+      { name:'ASXL1', count:22, pct:32 }, { name:'JAK2', count:12, pct:18 },
+      { name:'SF3B1', count:8, pct:12 }
+    ],
+    spectrum: { 'C>T':38, 'C>A':10, 'C>G':5, 'T>A':8, 'T>C':22, 'T>G':4 }
+  }
+};
+
+// ==================== BUILD HOTSPOTS ====================
+function buildHotspots() {
+  const diagram = document.getElementById('bodyDiagram');
+  Object.entries(TISSUE_DATA).forEach(([key, t]) => {
+    const el = document.createElement('div');
+    el.className = 'tissue-hotspot';
+    el.dataset.tissue = key;
+    el.style.top = t.position.top;
+    el.style.left = t.position.left;
+    el.style.color = t.color;
+
+    el.innerHTML = `
+      <div class="hotspot-dot" style="background:${t.color};"></div>
+      <div class="hotspot-label" style="${Object.entries(t.labelPos).map(([k,v])=>k+':'+v).join(';')}">${t.name}</div>
+    `;
+
+    el.addEventListener('click', () => selectTissue(key));
+    diagram.appendChild(el);
+  });
+}
+buildHotspots();
+
+// ==================== SELECT TISSUE ====================
+let activeTissue = null;
+
+function selectTissue(key) {
+  const t = TISSUE_DATA[key];
+  if (!t) return;
+
+  // Update hotspot states
+  document.querySelectorAll('.tissue-hotspot').forEach(h => {
+    h.classList.toggle('active', h.dataset.tissue === key);
+  });
+
+  activeTissue = key;
+
+  // Hide placeholder, show content
+  document.getElementById('tissuePlaceholder').style.display = 'none';
+  const content = document.getElementById('tissueDetailContent');
+  content.classList.add('active');
+
+  const totalMut = t.snvCount + t.indelCount + t.svCount;
+  const spectrumMax = Math.max(...Object.values(t.spectrum));
+
+  const spectrumColors = {
+    'C>T': '#3498db', 'C>A': '#e74c3c', 'C>G': '#f39c12',
+    'T>A': '#9b59b6', 'T>C': '#2ecc71', 'T>G': '#e67e22'
+  };
+
+  content.innerHTML = `
+    <div class="td-header-card ${t.germClass}">
+      <div class="td-header-top">
+        <div class="td-header-icon ${t.germClass}"><i class="fas ${t.icon}"></i></div>
+        <div class="td-header-info">
+          <h2>${t.name}</h2>
+          <span class="td-germ-tag ${t.germClass}">${t.germ}</span>
+        </div>
+      </div>
+      <p class="td-description">${t.desc}</p>
+    </div>
+
+    <div class="td-stats-row">
+      <div class="td-stat-card">
+        <div class="td-stat-value">${totalMut.toLocaleString()}</div>
+        <div class="td-stat-label">Total Mutations</div>
+      </div>
+      <div class="td-stat-card">
+        <div class="td-stat-value">${t.snvCount.toLocaleString()}</div>
+        <div class="td-stat-label">SNVs</div>
+      </div>
+      <div class="td-stat-card">
+        <div class="td-stat-value">${t.indelCount.toLocaleString()}</div>
+        <div class="td-stat-label">InDels</div>
+      </div>
+      <div class="td-stat-card">
+        <div class="td-stat-value">${t.svCount.toLocaleString()}</div>
+        <div class="td-stat-label">SVs</div>
+      </div>
+    </div>
+
+    <div class="td-section-card">
+      <div class="td-section-title"><i class="fas fa-chart-bar"></i> Mutation Spectrum (SBS)</div>
+      <div class="mutation-spectrum">
+        ${Object.entries(t.spectrum).map(([k,v]) => {
+          const h = Math.max((v / spectrumMax) * 110, 8);
+          return `<div class="spectrum-bar-group">
+            <div class="spectrum-bar" style="height:${h}px; background:${spectrumColors[k] || '#999'};">
+              <div class="spectrum-bar-tooltip">${k}: ${v}%</div>
+            </div>
+            <div class="spectrum-label">${k}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="td-section-card">
+      <div class="td-section-title"><i class="fas fa-dna"></i> Top Mutated Genes</div>
+      <div class="td-gene-list">
+        ${t.topGenes.map((g, i) => `
+          <div class="td-gene-item" onclick="quickSearch('${g.name}')">
+            <div class="td-gene-rank">${i + 1}</div>
+            <div class="td-gene-name">${g.name}</div>
+            <div class="td-gene-bar-track"><div class="td-gene-bar-fill" style="width:${g.pct}%"></div></div>
+            <div class="td-gene-count">${g.count} / 68</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="td-section-card">
+      <div class="td-section-title"><i class="fas fa-flask"></i> Sample Information</div>
+      <div class="td-info-table">
+        <div class="td-info-row"><span class="td-info-label">Donors</span><span class="td-info-value">${t.donors}</span></div>
+        <div class="td-info-row"><span class="td-info-label">Samples</span><span class="td-info-value">${t.samples}</span></div>
+        <div class="td-info-row"><span class="td-info-label">WGS Coverage</span><span class="td-info-value mono">300x</span></div>
+        <div class="td-info-row"><span class="td-info-label">HiFi Coverage</span><span class="td-info-value mono">40x</span></div>
+        <div class="td-info-row"><span class="td-info-label">RNA-seq</span><span class="td-info-value">Available</span></div>
+        <div class="td-info-row"><span class="td-info-label">Reference</span><span class="td-info-value mono">GRCh38 + DSA</span></div>
+      </div>
+    </div>
+
+    <div class="td-actions">
+      <button class="td-action-btn primary" onclick="quickSearch('${t.name}')"><i class="fas fa-search"></i> Search Mutations</button>
+      <button class="td-action-btn secondary"><i class="fas fa-download"></i> Download VCF</button>
+    </div>
+  `;
+
+  // Smooth scroll on mobile
+  if (window.innerWidth < 1100) {
+    setTimeout(() => content.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+}
+
+function filterGerm(germ) {
+  const items = document.querySelectorAll('.germ-legend-item');
+  items.forEach(i => i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  document.querySelectorAll('.tissue-hotspot').forEach(h => {
+    const t = TISSUE_DATA[h.dataset.tissue];
+    if (t) {
+      const match = t.germClass === germ || germ === 'all';
+      h.style.opacity = match ? '1' : '0.2';
+      h.style.pointerEvents = match ? 'all' : 'none';
+    }
+  });
+}
+
+// ==================== MOCK SEARCH DATA ====================
+const GENES = [
+  { name:'TP53', chr:'chr17', start:7668402, end:7687538, desc:'Tumor protein p53' },
+  { name:'DNMT3A', chr:'chr2', start:25234373, end:25250285, desc:'DNA methyltransferase 3 alpha' },
+  { name:'ASXL1', chr:'chr20', start:32354066, end:32440095, desc:'ASXL transcriptional regulator 1' },
+  { name:'TET2', chr:'chr4', start:105145826, end:105279784, desc:'Tet methylcytosine dioxygenase 2' },
+  { name:'JAK2', chr:'chr9', start:4985245, end:5128183, desc:'Janus kinase 2' },
+  { name:'KRAS', chr:'chr12', start:25204789, end:25250936, desc:'KRAS proto-oncogene' },
+  { name:'PIK3CA', chr:'chr3', start:179148114, end:179240093, desc:'PI3K catalytic subunit alpha' },
+  { name:'BRAF', chr:'chr7', start:140713328, end:140924929, desc:'B-Raf proto-oncogene' },
+  { name:'IDH1', chr:'chr2', start:208236227, end:208255071, desc:'Isocitrate dehydrogenase 1' },
+  { name:'EGFR', chr:'chr7', start:55019017, end:55211628, desc:'Epidermal growth factor receptor' },
+  { name:'NOTCH1', chr:'chr9', start:136494433, end:136545786, desc:'Notch receptor 1' },
+  { name:'TTN', chr:'chr2', start:178525989, end:178807423, desc:'Titin' },
+  { name:'BRCA1', chr:'chr17', start:43044295, end:43170245, desc:'BRCA1 DNA repair associated' },
+  { name:'PTEN', chr:'chr10', start:87863438, end:87971930, desc:'Phosphatase and tensin homolog' },
+  { name:'APC', chr:'chr5', start:112707498, end:112846239, desc:'APC WNT signaling regulator' },
+];
+const TISSUES_LIST = Object.values(TISSUE_DATA).map(t => ({ name: t.name, germ: t.germ, germClass: t.germClass, icon: t.icon }));
+const VARIANT_TYPES = ['SNV','InDel','SV'];
+const BASES = ['A','T','C','G'];
+const EFFECTS = ['Missense','Nonsense','Frameshift','Splice site','Synonymous','Intronic','UTR'];
+
+const MOCK_DATA = [];
+function generateMockData() {
+  for (let i = 0; i < 200; i++) {
+    const gene = GENES[Math.floor(Math.random()*GENES.length)];
+    const tissue = TISSUES_LIST[Math.floor(Math.random()*TISSUES_LIST.length)];
+    const vtype = VARIANT_TYPES[Math.floor(Math.random()*VARIANT_TYPES.length)];
+    const pos = gene.start + Math.floor(Math.random()*(gene.end - gene.start));
+    const ref = BASES[Math.floor(Math.random()*4)];
+    let alt = BASES[Math.floor(Math.random()*4)];
+    while(alt===ref) alt = BASES[Math.floor(Math.random()*4)];
+    const vaf = +(Math.random()*0.35+0.01).toFixed(4);
+    const donors = Math.floor(Math.random()*15)+1;
+    const effect = EFFECTS[Math.floor(Math.random()*EFFECTS.length)];
+    const nT = Math.floor(Math.random()*5)+1;
+    const aff = [];
+    const used = new Set();
+    for(let t=0;t<nT;t++){ let idx=Math.floor(Math.random()*TISSUES_LIST.length); while(used.has(idx)) idx=Math.floor(Math.random()*TISSUES_LIST.length); used.add(idx);
+      aff.push({name:TISSUES_LIST[idx].name,germClass:TISSUES_LIST[idx].germClass,vaf:+(Math.random()*0.3+0.01).toFixed(4)});
+    }
+    if(!aff.find(t=>t.name===tissue.name)) aff[0]={name:tissue.name,germClass:tissue.germClass,vaf};
+    MOCK_DATA.push({ id:'SM_'+String(i+1).padStart(6,'0'), gene:gene.name, geneDesc:gene.desc, chr:gene.chr, position:pos, ref, alt, tissue:tissue.name, tissueGermClass:tissue.germClass, type:vtype, vaf, donors, effect, affectedTissues:aff, crossTissue:aff.length>1 });
+  }
+}
+generateMockData();
+
+// ==================== SEARCH ====================
+let currentFilter='all', currentResults=[], currentPage=1, sortField=null, sortDir=1, currentView='table';
+const PAGE_SIZE=15;
+let selectedAcIdx=-1, acItems=[];
+
+function setSearchFilter(btn,f) {
+  document.querySelectorAll('.filter-tag').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); currentFilter=f;
+  document.getElementById('searchType').value=f;
+  handleAutocomplete(document.getElementById('searchInput').value);
+}
+function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+function handleAutocomplete(q) {
+  const dd=document.getElementById('autocompleteDropdown');
+  q=q.trim().toLowerCase();
+  if(q.length<1){dd.classList.remove('open');return;}
+  acItems=[]; let html=''; const f=currentFilter;
+  if(f==='all'||f==='gene'){
+    const m=GENES.filter(g=>g.name.toLowerCase().includes(q)||g.desc.toLowerCase().includes(q)).slice(0,5);
+    if(m.length){html+='<div class="autocomplete-group-label">Genes</div>';
+      m.forEach(g=>{const h=g.name.replace(new RegExp('('+escRe(q)+')','gi'),'<span class="match">$1</span>');
+        html+=`<div class="autocomplete-item" onclick="selectAc('${g.name}','gene')"><div class="autocomplete-item-icon gene"><i class="fas fa-dna"></i></div><div class="autocomplete-item-info"><div class="autocomplete-item-name">${h}</div><div class="autocomplete-item-meta">${g.chr}:${g.start.toLocaleString()}-${g.end.toLocaleString()} | ${g.desc}</div></div><span class="autocomplete-item-tag gene-tag">Gene</span></div>`;
+        acItems.push({type:'gene',value:g.name});});}}
+  if(f==='all'||f==='tissue'){
+    const m=TISSUES_LIST.filter(t=>t.name.toLowerCase().includes(q)||t.germ.toLowerCase().includes(q)).slice(0,5);
+    if(m.length){html+='<div class="autocomplete-group-label">Tissues</div>';
+      m.forEach(t=>{const h=t.name.replace(new RegExp('('+escRe(q)+')','gi'),'<span class="match">$1</span>');
+        html+=`<div class="autocomplete-item" onclick="selectAc('${t.name}','tissue')"><div class="autocomplete-item-icon tissue"><i class="fas ${t.icon}"></i></div><div class="autocomplete-item-info"><div class="autocomplete-item-name">${h}</div><div class="autocomplete-item-meta">${t.germ}</div></div><span class="autocomplete-item-tag tissue-tag">Tissue</span></div>`;
+        acItems.push({type:'tissue',value:t.name});});}}
+  if(f==='all'||f==='region'){if(/^chr\d+/i.test(q)){
+    html+='<div class="autocomplete-group-label">Region</div>';
+    html+=`<div class="autocomplete-item" onclick="selectAc('${q}','region')"><div class="autocomplete-item-icon region" style="background:#fff3e0;color:#e65100;"><i class="fas fa-map-marker-alt"></i></div><div class="autocomplete-item-info"><div class="autocomplete-item-name">${q}</div><div class="autocomplete-item-meta">Search mutations in region</div></div></div>`;
+    acItems.push({type:'region',value:q});}}
+  if(html){dd.innerHTML=html;dd.classList.add('open');}else{dd.classList.remove('open');}
+  selectedAcIdx=-1;
+}
+function selectAc(v,t){document.getElementById('searchInput').value=v;document.getElementById('autocompleteDropdown').classList.remove('open');document.getElementById('searchType').value=t;executeSearch();}
+function handleSearchKeydown(e){
+  const dd=document.getElementById('autocompleteDropdown'),items=dd.querySelectorAll('.autocomplete-item');
+  if(e.key==='ArrowDown'){e.preventDefault();selectedAcIdx=Math.min(selectedAcIdx+1,items.length-1);items.forEach((it,i)=>it.classList.toggle('selected',i===selectedAcIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();selectedAcIdx=Math.max(selectedAcIdx-1,0);items.forEach((it,i)=>it.classList.toggle('selected',i===selectedAcIdx));}
+  else if(e.key==='Enter'){e.preventDefault();if(selectedAcIdx>=0&&acItems[selectedAcIdx])selectAc(acItems[selectedAcIdx].value,acItems[selectedAcIdx].type);else executeSearch();}
+  else if(e.key==='Escape')dd.classList.remove('open');
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-main-box'))document.getElementById('autocompleteDropdown').classList.remove('open');});
+
+function quickSearch(term){document.getElementById('searchInput').value=term;executeSearch();setTimeout(()=>document.getElementById('search').scrollIntoView({behavior:'smooth'}),100);}
+
+function executeSearch(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  const t=document.getElementById('searchType').value;
+  document.getElementById('autocompleteDropdown').classList.remove('open');
+  if(!q)return;
+  currentResults=MOCK_DATA.filter(d=>{
+    if(t==='gene'||t==='all'){if(d.gene.toLowerCase().includes(q))return true;}
+    if(t==='tissue'||t==='all'){if(d.tissue.toLowerCase().includes(q))return true;if(d.affectedTissues.some(x=>x.name.toLowerCase().includes(q)))return true;}
+    if(t==='region'||t==='all'){const m=q.match(/^(chr\w+):(\d+)-(\d+)$/i);if(m){if(d.chr.toLowerCase()===m[1].toLowerCase()&&d.position>=+m[2]&&d.position<=+m[3])return true;}else if(d.chr.toLowerCase().includes(q))return true;}
+    if(t==='all'){if(d.geneDesc.toLowerCase().includes(q)||d.effect.toLowerCase().includes(q)||d.type.toLowerCase().includes(q))return true;}
+    return false;
+  });
+  currentPage=1;sortField=null;renderResults();
+}
+function renderResults(){
+  const c=document.getElementById('searchResults');c.classList.add('visible');
+  document.getElementById('resultsCount').innerHTML=`Found <strong>${currentResults.length}</strong> somatic mutation${currentResults.length!==1?'s':''} matching your query`;
+  const s=(currentPage-1)*PAGE_SIZE,pd=currentResults.slice(s,s+PAGE_SIZE);
+  document.getElementById('resultsTableBody').innerHTML=pd.map((d,i)=>{
+    const vp=Math.min(d.vaf*100/0.35*100,100);
+    return `<tr onclick="showDetail(${s+i})"><td><span class="gene-name-badge">${d.gene}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.chr}</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.position.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${d.ref}/${d.alt}</td><td><span class="tissue-badge ${d.tissueGermClass}">${d.tissue}</span></td><td><span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span></td><td><div class="vaf-bar"><div class="vaf-bar-track"><div class="vaf-bar-fill" style="width:${vp}%"></div></div><span class="vaf-value">${(d.vaf*100).toFixed(2)}%</span></div></td><td style="font-weight:600;">${d.donors}</td></tr>`;
+  }).join('');
+  document.getElementById('resultsCardView').innerHTML=pd.map((d,i)=>`<div class="result-card" onclick="showDetail(${s+i})"><div class="result-card-header"><span class="result-card-gene">${d.gene}</span><span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span></div><div class="result-card-body"><div class="result-card-row"><span class="result-card-label">Position</span><span class="result-card-value mono">${d.chr}:${d.position.toLocaleString()}</span></div><div class="result-card-row"><span class="result-card-label">Tissue</span><span class="tissue-badge ${d.tissueGermClass}">${d.tissue}</span></div><div class="result-card-row"><span class="result-card-label">VAF</span><span class="result-card-value">${(d.vaf*100).toFixed(2)}%</span></div><div class="result-card-row"><span class="result-card-label">Donors</span><span class="result-card-value">${d.donors}/68</span></div></div></div>`).join('');
+  renderPagination();
+}
+function renderPagination(){
+  const t=Math.ceil(currentResults.length/PAGE_SIZE),p=document.getElementById('pagination');
+  if(t<=1){p.innerHTML='';return;}
+  let h=`<button ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})"><i class="fas fa-chevron-left"></i></button>`;
+  for(let i=1;i<=t;i++){if(t>7&&i>2&&i<t-1&&Math.abs(i-currentPage)>1){if(i===3||i===t-2)h+='<button disabled>...</button>';continue;}h+=`<button class="${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;}
+  h+=`<button ${currentPage===t?'disabled':''} onclick="goPage(${currentPage+1})"><i class="fas fa-chevron-right"></i></button>`;p.innerHTML=h;
+}
+function goPage(p){currentPage=p;renderResults();document.getElementById('searchResults').scrollIntoView({behavior:'smooth',block:'start'});}
+function setResultView(v){currentView=v;document.getElementById('tableViewBtn').classList.toggle('active',v==='table');document.getElementById('cardViewBtn').classList.toggle('active',v==='card');document.getElementById('resultsTableView').style.display=v==='table'?'block':'none';document.getElementById('resultsCardView').classList.toggle('active',v==='card');}
+function sortResults(f){if(sortField===f)sortDir*=-1;else{sortField=f;sortDir=1;}currentResults.sort((a,b)=>{let va=a[f],vb=b[f];if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}return va<vb?-1*sortDir:va>vb?1*sortDir:0;});currentPage=1;renderResults();}
+
+// Detail Panel
+function showDetail(idx){
+  const d=currentResults[idx]; if(!d)return;
+  document.getElementById('detailTitle').textContent=d.gene+' \u2014 '+d.id;
+  let h=`<div class="detail-section"><div class="detail-section-title"><i class="fas fa-info-circle"></i> Basic Information</div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Gene</span><span class="detail-field-value" style="color:var(--primary);font-weight:700;">${d.gene}</span></div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Description</span><span class="detail-field-value">${d.geneDesc}</span></div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Position</span><span class="detail-field-value mono">${d.chr}:${d.position.toLocaleString()}</span></div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Ref / Alt</span><span class="detail-field-value mono">${d.ref} / ${d.alt}</span></div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Type</span><span class="detail-field-value"><span class="mut-type-badge ${d.type.toLowerCase()}">${d.type}</span></span></div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Effect</span><span class="detail-field-value">${d.effect}</span></div>`;
+  h+=`<div class="detail-field"><span class="detail-field-label">Donors</span><span class="detail-field-value">${d.donors} / 68</span></div></div>`;
+  h+=`<div class="detail-section"><div class="detail-section-title"><i class="fas fa-lungs"></i> Tissue Distribution (${d.affectedTissues.length})</div>`;
+  h+=`<div class="detail-tissue-list">${d.affectedTissues.map(t=>`<div class="detail-tissue-chip"><span class="chip-dot ${t.germClass}"></span>${t.name}</div>`).join('')}</div></div>`;
+  h+=`<div class="detail-section"><div class="detail-section-title"><i class="fas fa-chart-bar"></i> VAF Across Tissues</div><div class="detail-vaf-chart">`;
+  d.affectedTissues.forEach(t=>{const p=Math.min(t.vaf*100/0.35*100,100);const c=t.vaf<0.05?'low':t.vaf<0.15?'mid':'high';
+    h+=`<div class="detail-vaf-row"><span class="detail-vaf-label">${t.name}</span><div class="detail-vaf-track"><div class="detail-vaf-fill ${c}" style="width:${p}%"></div></div><span class="detail-vaf-val">${(t.vaf*100).toFixed(2)}%</span></div>`;});
+  h+=`</div></div>`;
+  document.getElementById('detailBody').innerHTML=h;
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('detailOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDetail(){document.getElementById('detailPanel').classList.remove('open');document.getElementById('detailOverlay').classList.remove('open');document.body.style.overflow='';}
+
+// ==================== UI UTILS ====================
+function scrollToTop(e){e.preventDefault();window.scrollTo({top:0,behavior:'smooth'});}
+function toggleMobileNav(){const n=document.getElementById('navLinks'),i=document.getElementById('navToggleIcon');n.classList.toggle('open');i.className=n.classList.contains('open')?'fas fa-times':'fas fa-bars';}
+window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20);document.getElementById('backToTop').classList.toggle('visible',window.scrollY>400);});
+const sections=document.querySelectorAll('section[id]'),navAll=document.querySelectorAll('.nav-links a');
+window.addEventListener('scroll',()=>{let c='';sections.forEach(s=>{if(window.scrollY>=s.offsetTop-100)c=s.id;});navAll.forEach(a=>{a.classList.remove('active');if(a.getAttribute('href')==='#'+c)a.classList.add('active');});});
+navAll.forEach(a=>a.addEventListener('click',()=>{document.getElementById('navLinks').classList.remove('open');document.getElementById('navToggleIcon').className='fas fa-bars';}));
+const fadeEls=document.querySelectorAll('.fade-in');
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:0.15});
+fadeEls.forEach(e=>obs.observe(e));
+(function(){const c=document.getElementById('heroParticles');for(let i=0;i<25;i++){const p=document.createElement('div');p.className='hero-particle';p.style.left=Math.random()*100+'%';p.style.top=(60+Math.random()*40)+'%';const s=(2+Math.random()*4)+'px';p.style.width=s;p.style.height=s;p.style.animationDuration=(6+Math.random()*10)+'s';p.style.animationDelay=(Math.random()*8)+'s';c.appendChild(p);}})();
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail();});
+</script>
+</body>
+</html>

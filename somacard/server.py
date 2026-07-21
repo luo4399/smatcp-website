@@ -24,19 +24,25 @@ import sys
 import time
 from datetime import datetime
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 TMP_DIR = os.path.join(os.path.expanduser("~"), "tmp", "somacard")
 DEFAULT_ANNOTATION_SCRIPT = os.path.join(SCRIPT_DIR, "mutation_annotation.py")
 
 annotation_script_path = DEFAULT_ANNOTATION_SCRIPT
 
 os.makedirs(TMP_DIR, exist_ok=True)
+
+
+@app.route("/", methods=["GET"])
+def root_index():
+    return send_from_directory(ROOT_DIR, "index.html")
 
 
 @app.route("/api/health", methods=["GET"])

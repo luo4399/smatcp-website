@@ -79,11 +79,30 @@ def annotate():
     # return a simple mocked result suitable for quick deployments.
     demo_mode = os.environ.get("SOMACARD_DEMO", "0").lower() in ("1", "true", "yes")
     if demo_mode:
-        # produce a minimal TSV-like string as demo output
-        lines = ["tissue\tmutation_input\tannotation"]
-        for i, ln in enumerate(mutations.splitlines(), start=1):
-            tissue_val = ",".join(tissues) if tissues else "demo_tissue"
-            lines.append(f"{tissue_val}\t{ln}\tDEMO_ANNOT_{i}")
+        tissue_val = ",".join(tissues) if tissues else "demo_tissue"
+        if file_type == "vcf":
+            lines = ["tissue\tCHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tannotation"]
+            row_index = 1
+            for ln in mutations.splitlines():
+                if not ln or ln.startswith("##"):
+                    continue
+                if ln.startswith("#CHROM"):
+                    continue
+                parts = ln.split("\t")
+                if len(parts) < 5:
+                    continue
+                chrom, pos, id_, ref, alt = parts[:5]
+                qual = parts[5] if len(parts) > 5 else "."
+                filt = parts[6] if len(parts) > 6 else "."
+                info = parts[7] if len(parts) > 7 else "."
+                lines.append(f"{tissue_val}\t{chrom}\t{pos}\t{id_}\t{ref}\t{alt}\t{qual}\t{filt}\t{info}\tDEMO_ANNOT_{row_index}")
+                row_index += 1
+            if len(lines) == 1:
+                lines.append(f"{tissue_val}\tchr1\t123456\ttest_1\tA\tT\t.\tPASS\t.\tDEMO_ANNOT_1")
+        else:
+            lines = ["tissue\tmutation_input\tannotation"]
+            for i, ln in enumerate(mutations.splitlines(), start=1):
+                lines.append(f"{tissue_val}\t{ln}\tDEMO_ANNOT_{i}")
         results = "\n".join(lines) + "\n"
         return jsonify({
             "results": results,

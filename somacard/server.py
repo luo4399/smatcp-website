@@ -157,6 +157,14 @@ def annotate():
         return jsonify({"error": str(exc)}), 500
 
 
+@app.route("/<path:path>", methods=["GET"])
+def serve_static(path):
+    file_path = os.path.join(ROOT_DIR, path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return send_from_directory(ROOT_DIR, path)
+    return send_from_directory(ROOT_DIR, "index.html")
+
+
 def main():
     parser = argparse.ArgumentParser(description="SomaCard Annotation API")
     parser.add_argument("--port", type=int, default=5502)

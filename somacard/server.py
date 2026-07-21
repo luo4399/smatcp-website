@@ -69,6 +69,23 @@ def annotate():
     file_type = data.get("file_type", "txt")
     tissues = data.get("tissues") or []
 
+    # Demo mode: if SOMACARD_DEMO is set, skip heavy external calls and
+    # return a simple mocked result suitable for quick deployments.
+    demo_mode = os.environ.get("SOMACARD_DEMO", "0").lower() in ("1", "true", "yes")
+    if demo_mode:
+        # produce a minimal TSV-like string as demo output
+        lines = ["tissue\tmutation_input\tannotation"]
+        for i, ln in enumerate(mutations.splitlines(), start=1):
+            tissue_val = ",".join(tissues) if tissues else "demo_tissue"
+            lines.append(f"{tissue_val}\t{ln}\tDEMO_ANNOT_{i}")
+        results = "\n".join(lines) + "\n"
+        return jsonify({
+            "results": results,
+            "input_file": None,
+            "output_file": None,
+            "demo": True,
+        })
+
     if not mutations:
         return jsonify({"error": "Mutation list is empty"}), 400
     if not tissues:

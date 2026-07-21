@@ -1,0 +1,8 @@
+##fileformat=VCFv4.2
+##fileDate=20260720
+##reference=GRCh38
+##contig=<ID=chr1,length=248956422>
+##INFO=<ID=TISSUE,Number=1,Type=String,Description="Tissue label">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr4	77179210	test_chr4_77179210_C/T	C	T	.	PASS
+chr1	1158636	test_chr1_1158636_A_G	A	G	.	PASS

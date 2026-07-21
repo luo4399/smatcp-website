@@ -1,0 +1,2 @@
+chrom	pos	ref	alt
+chr1	1158636	A	G

@@ -1,0 +1,11 @@
+tissue	mutation_key	regulatory_gene	tss_distance	cCRE	cCRE_type	TFBS	TF_motif	TF_footprint	in_ATAC	in_CTCF	in_DNase	link_3D-Chromatin	link_ABC	link_rE2G	link_EPIraction	link_GraphRegLR	link_CRISPR	tissue_enriched_gene	pLI	score_priority
+Adrenal_Gland	chr12_25398284_C_T	.	.	.	.							0	0	0	0	0	0	False	.	0
+Muscle	chr12_25398284_C_T	.	.	.	.							0	0	0	0	0	0	False	.	0
+Adrenal_Gland	chr17_7673803_C_T	.	.	.	.							0	0	0	0	0	0	False	.	0
+Muscle	chr17_7673803_C_T	.	.	.	.							0	0	0	0	0	0	False	.	0
+Adrenal_Gland	chr1_1158636_A_G	.	.	.	.							0	0	0	0	0	0	False	.	0
+Muscle	chr1_1158636_A_G	.	.	.	.							0	0	0	0	0	0	False	.	0
+Adrenal_Gland	chr2_12345_C_T	.	.	.	.							0	0	0	0	0	0	False	.	0
+Muscle	chr2_12345_C_T	.	.	.	.							0	0	0	0	0	0	False	.	0
+Adrenal_Gland	chr7_55249071_G_A	.	.	.	.							0	0	0	0	0	0	False	.	0
+Muscle	chr7_55249071_G_A	.	.	.	.							0	0	0	0	0	0	False	.	0

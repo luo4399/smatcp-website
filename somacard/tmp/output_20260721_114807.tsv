@@ -1,0 +1,3 @@
+tissue	mutation_key	regulatory_gene	tss_distance	cCRE	cCRE_type	TFBS	TF_motif	TF_footprint	in_ATAC	in_CTCF	in_DNase	link_3D-Chromatin	link_ABC	link_rE2G	link_EPIraction	link_GraphRegLR	link_CRISPR	tissue_enriched_gene	pLI	score_priority
+Adrenal_Gland	chr1_1158636_A_G	.	.	.	.							0	0	0	0	0	0	False	.	0
+Muscle	chr1_1158636_A_G	.	.	.	.							0	0	0	0	0	0	False	.	0

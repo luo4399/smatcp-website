@@ -2280,6 +2280,377 @@
         justify-content: center;
       }
     }
+
+    /* ===== SOMACARD ANNOTATION ===== */
+    .somacard-section {
+      background: var(--bg);
+    }
+
+    .somacard-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .somacard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .somacard-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .somacard-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .somacard-card h3 i {
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+
+    .somacard-card .card-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .somacard-format-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    .somacard-format-toggle button {
+      padding: 8px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: none;
+      background: var(--bg-alt);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+
+    .somacard-format-toggle button.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .somacard-format-toggle button:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+
+    .somacard-textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 14px;
+      font-size: 0.82rem;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      resize: vertical;
+      transition: var(--transition);
+      line-height: 1.5;
+    }
+
+    .somacard-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(74, 158, 206, 0.12);
+    }
+
+    .somacard-file-upload {
+      margin-bottom: 16px;
+    }
+
+    .somacard-file-upload label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-ghost);
+      border: 1.5px dashed var(--primary-lighter);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .somacard-file-upload label:hover {
+      background: var(--primary-pale);
+      border-color: var(--primary);
+    }
+
+    .somacard-file-upload input[type="file"] {
+      display: none;
+    }
+
+    .somacard-file-name {
+      display: inline-block;
+      margin-left: 10px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .somacard-tissue-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 20px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .somacard-tissue-grid::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .somacard-tissue-grid::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .somacard-tissue-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 9px;
+      background: var(--bg-alt);
+      border: 1.5px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .somacard-tissue-item:hover {
+      border-color: var(--accent);
+      background: var(--primary-ghost);
+    }
+
+    .somacard-tissue-item.checked {
+      background: var(--primary-ghost);
+      border-color: var(--accent);
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+
+    .somacard-tissue-item input {
+      display: none;
+    }
+
+    .somacard-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .somacard-submit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 28px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+
+    .somacard-submit-btn:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .somacard-submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .somacard-submit-btn .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .somacard-submit-btn.loading .spinner {
+      display: inline-block;
+    }
+
+    .somacard-submit-btn.loading .btn-text {
+      display: none;
+    }
+
+    .somacard-examples {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .somacard-examples button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      margin: 0 4px;
+    }
+
+    .somacard-examples button:hover {
+      color: var(--primary);
+    }
+
+    .somacard-results {
+      margin-top: 32px;
+    }
+
+    .somacard-results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .somacard-results-count {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .somacard-download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--success);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+
+    .somacard-download-btn:hover {
+      filter: brightness(0.9);
+    }
+
+    .somacard-table-wrapper {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .somacard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .somacard-table thead {
+      background: var(--primary-ghost);
+    }
+
+    .somacard-table th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--primary-dark);
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--primary-ghost);
+    }
+
+    .somacard-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text);
+    }
+
+    .somacard-table tbody tr:hover {
+      background: var(--primary-ghost);
+    }
+
+    .somacard-table .score-cell {
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .somacard-table .bool-true {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .somacard-table .bool-false {
+      color: var(--text-muted);
+    }
+
+    .somacard-error {
+      padding: 14px 18px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      color: #b91c1c;
+      font-size: 0.84rem;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .somacard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .somacard-tissue-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-height: 240px;
+      }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -2732,6 +3103,80 @@
       </table>
     </div>
   </section> -->
+
+  <!-- ========== SOMACARD ANNOTATION SECTION ========== -->
+  <section class="section somacard-section" id="somacard">
+    <div class="section-header">
+      <!-- <div class="section-tag"><i class="fas fa-flask"></i> SomaCard Annotation</div> -->
+      <h2 class="section-title">SomaCard Annotation</h2>
+      <p class="section-desc">Annotate somatic mutations with regulatory evidence — cCRE, TF binding, chromatin
+        interactions, and tissue-enriched gene scores across selected tissues.</p>
+    </div>
+
+    <div class="somacard-container">
+      <div class="somacard-grid">
+        <!-- Left: Input -->
+        <div class="somacard-card">
+          <h3><i class="fas fa-edit"></i> Input Mutations</h3>
+          <p class="card-desc">Paste mutation list or upload a file (TXT / VCF format).</p>
+
+          <div class="somacard-format-toggle" id="somacardFormatToggle">
+            <button class="active" data-format="txt" onclick="setSomacardFormat('txt')">TXT Format</button>
+            <button data-format="vcf" onclick="setSomacardFormat('vcf')">VCF Format</button>
+          </div>
+
+          <textarea class="somacard-textarea" id="somacardInput"
+            placeholder="chrom&#9;pos&#9;ref&#9;alt&#10;chr1&#9;1158636&#9;A&#9;G&#10;chr2&#9;12345&#9;C&#9;T&#10;chr7&#9;55249071&#9;G&#9;A"></textarea>
+
+          <div class="somacard-file-upload">
+            <label><i class="fas fa-upload"></i> Upload File<input type="file" id="somacardFileInput"
+                onchange="handleSomacardFile(event)" accept=".txt,.vcf,.vcf.gz"></label>
+            <span class="somacard-file-name" id="somacardFileName"></span>
+          </div>
+
+          <div class="somacard-examples">
+            <i class="fas fa-lightbulb"></i> Examples:
+            <button onclick="loadSomacardExample('txt')">TXT</button>
+            <button onclick="loadSomacardExample('vcf')">VCF</button>
+          </div>
+        </div>
+
+        <!-- Right: Tissues & Submit -->
+        <div class="somacard-card">
+          <h3><i class="fas fa-microscope"></i> Select Tissues</h3>
+          <p class="card-desc">Choose one or more tissues for annotation.</p>
+
+          <div class="somacard-tissue-grid" id="somacardTissueGrid">
+          </div>
+
+          <div class="somacard-actions">
+            <button type="button" class="somacard-submit-btn" id="somacardSubmitBtn" onclick="submitSomacardAnnotation()">
+              <span class="spinner"></span>
+              <span class="btn-text"><i class="fas fa-play"></i> Run Annotation</span>
+            </button>
+          </div>
+
+          <div class="somacard-error" id="somacardError" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="somacard-results" id="somacardResults" style="display:none;">
+        <div class="somacard-results-header">
+          <span class="somacard-results-count" id="somacardResultsCount"></span>
+          <button class="somacard-download-btn" onclick="downloadSomacardTSV()">
+            <i class="fas fa-download"></i> Download TSV
+          </button>
+        </div>
+        <div class="somacard-table-wrapper">
+          <table class="somacard-table">
+            <thead id="somacardTableHead"></thead>
+            <tbody id="somacardTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- FOOTER -->
   <footer class="footer">
@@ -3390,6 +3835,191 @@
         initializeDefaultSearch();
       }
     });
+
+    // ===================== SOMACARD ANNOTATION =====================
+    const SOMACARD_TISSUES = [
+      "Adipose", "Adrenal_Gland", "Aortic_Arch", "Colon",
+      "Common_Iliac_Artery", "Diaphragm", "Esophagus", "Gallbladder",
+      "Heart_Left_Atrium", "Heart_Left_Ventricle", "Heart_Mitral_Valve",
+      "Heart_Right_Atrium", "Heart_Right_Ventricle", "Heart_Tricuspid_valve",
+      "Liver", "Lung_Apex", "Lung_Base", "Muscle",
+      "Ovary", "Pancreas_Body", "Pancreas_Head", "Pancreas_Tail",
+      "Skin", "Small_Intestine", "Spleen", "Stomach",
+      "Thoracic_Aorta", "Trachea", "Uterus", "Whole_Blood"
+    ];
+
+    const SOMACARD_API = "http://127.0.0.1:5502";
+
+    let somacardFormat = "txt";
+    let somacardResultsTSV = "";
+
+    function initSomacardTissues() {
+      const grid = document.getElementById("somacardTissueGrid");
+      SOMACARD_TISSUES.forEach(t => {
+        const label = document.createElement("label");
+        label.className = "somacard-tissue-item";
+        label.innerHTML = `<input type="checkbox" value="${t}" onchange="this.parentElement.classList.toggle('checked', this.checked)">${t.replace(/_/g, " ")}`;
+        grid.appendChild(label);
+      });
+      // 默认加载TXT示例
+      loadSomacardExample("txt");
+    }
+
+    function setSomacardFormat(fmt) {
+      somacardFormat = fmt;
+      document.querySelectorAll("#somacardFormatToggle button").forEach(b => {
+        b.classList.toggle("active", b.dataset.format === fmt);
+      });
+    }
+
+    async function loadSomacardExample(fmt) {
+      setSomacardFormat(fmt);
+      try {
+        const resp = await fetch(SOMACARD_API + "/api/example/" + fmt);
+        if (resp.ok) {
+          const data = await resp.json();
+          document.getElementById("somacardInput").value = data.content;
+        }
+      } catch (_) {
+        // 静默失败，保留 textarea 当前内容
+      }
+      // 自动选中示例组织：Adrenal_Gland, Muscle
+      document.querySelectorAll("#somacardTissueGrid input[type=checkbox]").forEach(cb => {
+        const check = cb.value === "Adrenal_Gland" || cb.value === "Muscle";
+        cb.checked = check;
+        cb.parentElement.classList.toggle("checked", check);
+      });
+    }
+
+    function handleSomacardFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById("somacardFileName").textContent = file.name;
+
+      const ext = file.name.replace(/\.gz$/, "").split(".").pop().toLowerCase();
+      if (ext === "vcf") setSomacardFormat("vcf");
+      else setSomacardFormat("txt");
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById("somacardInput").value = e.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    function getSelectedTissues() {
+      const checked = document.querySelectorAll("#somacardTissueGrid input[type=checkbox]:checked");
+      return Array.from(checked).map(cb => cb.value);
+    }
+
+    async function submitSomacardAnnotation() {
+      const btn = document.getElementById("somacardSubmitBtn");
+      const errDiv = document.getElementById("somacardError");
+      const resultsDiv = document.getElementById("somacardResults");
+      const mutations = document.getElementById("somacardInput").value.trim();
+      const tissues = getSelectedTissues();
+
+      errDiv.style.display = "none";
+      resultsDiv.style.display = "none";
+
+      if (!mutations) {
+        errDiv.textContent = "Please enter mutation data.";
+        errDiv.style.display = "block";
+        return;
+      }
+      if (tissues.length === 0) {
+        errDiv.textContent = "Please select at least one tissue.";
+        errDiv.style.display = "block";
+        return;
+      }
+
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch(SOMACARD_API + "/api/annotate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mutations: mutations,
+            file_type: somacardFormat,
+            tissues: tissues
+          })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          throw new Error(data.error + (data.detail ? ": " + data.detail : ""));
+        }
+
+        somacardResultsTSV = data.results;
+        renderSomacardResults(data.results);
+        document.getElementById("somacard").scrollIntoView({ behavior: "smooth" });
+      } catch (err) {
+        errDiv.textContent = "Error: " + err.message;
+        errDiv.style.display = "block";
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    function renderSomacardResults(tsv) {
+      const lines = tsv.trim().split("\n");
+      if (lines.length < 2) {
+        document.getElementById("somacardError").textContent = "No results returned.";
+        document.getElementById("somacardError").style.display = "block";
+        return;
+      }
+
+      const headers = lines[0].split("\t");
+      const rows = lines.slice(1).map(line => line.split("\t"));
+
+      // Table head
+      const thead = document.getElementById("somacardTableHead");
+      thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+
+      // Table body
+      const tbody = document.getElementById("somacardTableBody");
+      tbody.innerHTML = rows.map(row =>
+        "<tr>" + row.map((cell, i) => {
+          let cls = "";
+          let val = cell;
+          if (headers[i] === "score_priority") {
+            cls = "score-cell";
+          } else if (cell === "True") {
+            cls = "bool-true";
+          } else if (cell === "False" || cell === ".") {
+            cls = cell === "False" ? "bool-false" : "";
+          }
+          if (val.length > 50) {
+            val = '<span title="' + val.replace(/"/g, "&quot;") + '">' + val.substring(0, 47) + "...</span>";
+          }
+          return `<td class="${cls}">${val}</td>`;
+        }).join("") + "</tr>"
+      ).join("");
+
+      document.getElementById("somacardResultsCount").textContent =
+        rows.length + " result" + (rows.length !== 1 ? "s" : "") + " (" + getSelectedTissues().length + " tissue" + (getSelectedTissues().length !== 1 ? "s" : "") + ")";
+      document.getElementById("somacardResults").style.display = "block";
+      document.getElementById("somacardError").style.display = "none";
+    }
+
+    function downloadSomacardTSV() {
+      if (!somacardResultsTSV) return;
+      const blob = new Blob([somacardResultsTSV], { type: "text/tab-separated-values" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "somacard_annotation.tsv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener("DOMContentLoaded", initSomacardTissues);
   </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"45c2bf8136a245cd97f1c2e9a96c0730","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"45c2bf8136a245cd97f1c2e9a96c0730","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>

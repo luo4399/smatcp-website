@@ -19,6 +19,7 @@ tissues to build the landscape of body-wide somatic mosaicism in Chinese individ
 │   └── somacard.html               # SomaCard 突变注释（调 server/ 的后端 API）
 ├── assets/                         # 静态资源（CSS / 图片 / 图标 / 字体）
 │   ├── site.css                    # 全站共享设计系统
+│   ├── col-resize.js               # 表头列宽拖拽（首页搜索表 + Data Portal 共用）
 │   ├── hero-bg.jpg                 # 首页英雄区背景图
 │   ├── cells-bg.jpg                # 浅色区块底纹（被 site.css 引用）
 │   ├── donors-banner.svg           # 供体页侧脸剪影横幅（由脚本生成）
@@ -69,17 +70,23 @@ tissues to build the landscape of body-wide somatic mosaicism in Chinese individ
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| Individuals | 160 | 与 Data Portal 的 160 供体一致 |
+| Individuals | 68 | 2026-09-24 由 160 改为 68，见下方口径说明 |
 | Tissues | 33 | 与 Data Portal 的 33 组织一致 |
 | Short-read WGS | 300x | |
 | PacBio HiFi WGS | 40x | 原标签是 `Long-read`，2026-09-24 改为 `WGS` |
 | Somatic variants | 107,852 | 由 `data/variants_data.js` 的实际行数注入（`#statVariants`） |
 
-> ⚠️ **口径说明**：搜索用的变异数据（`data/variants_data.js`）只覆盖 **68 供体 / 30 组织 / 107,852 条**，
-> 与统计条和 Data Portal 的 160 / 33 **不是同一批样本**（前者是「有体细胞变异检出」的样本，
-> 后者是全部测序样本）。2026-09-24 luo 明确：**搜索就以
-> `…/2026.07.15_website/variants_website.csv` 这一张表为准**（本地副本与其逐字节相同），
-> 不再从其它表拼接字段。所以这里的 68/30 是**预期值**，不是待修的 bug。
+> ⚠️ **Individuals 为什么是 68（2026-09-24 luo 明确）**
+>
+> 首页搜索用的变异数据（`data/variants_data.js`）覆盖 **68 供体 / 30 组织 / 107,852 条**，
+> 而 Data Portal 的文件清单是 **160 个测序样本编号 / 33 组织 / 7,249 个文件** —— 两者不是同一批
+> （前者是「有体细胞变异检出」的样本，后者是全部测序样本）。
+>
+> 统计条原先写 160，与**同一页正文**里的 “30 normal tissues from 68 post-mortem donors”
+> 以及流水线图上的 “68 Individuals” 自相矛盾。现统一按首页数据的口径显示 **68**。
+>
+> 另：搜索数据以 `…/2026.07.15_website/variants_website.csv` 这一张表为准（本地副本与其逐字节相同），
+> 不再从其它表拼接字段。所以 68/30 是**预期值**，不是待修的 bug。
 
 ### 变异数据（data/variants_data.js）
 
@@ -252,9 +259,35 @@ COSMIC Signature | CADD | Regulatory Score | Visualization`
   `Tissue Shared` `Infiltration` `COSMIC Signature`。
   语义与其他页一致：**组内 OR、组间 AND、一个都不勾 = 不筛**，
   选项旁的计数是 faceted count（统计满足「其它生效筛选」的行数），计数为 0 的选项不显示
-- `Download` 导出的 CSV/TSV **列名与取值与源表完全一致**（`contig`/`pos`/…/`regulatory_score`），
+- `Download` 导出的 CSV **列名与取值与源表完全一致**（`contig`/`pos`/…/`regulatory_score`），
   可直接和 `variants_website.csv` 对回去
 - 表格 `min-width: 2180px`，窄屏横向滚动（`.table-wrap` 本来就是 `overflow-x:auto`）
+- **空值统一显示成 `--`**（2026-09-24 由 `NA` 改）。改的时候三处必须同步：
+  `COLS` 里各字段的 `empty`、`cellHtml()` 的兜底、`showDetail()` 详情侧栏的兜底
+- **表头列宽可拖拽**：拖动表头右边缘的细线即可改列宽，双击手柄恢复默认，
+  调整结果记在 `localStorage` 的 `gtop.cols.search`。详见「列宽拖拽」一节
+- **`Regulatory Score` 列显示成迷你柱状图**（2026-09-24 改）：柱子按「值 ÷ 满格刻度」取宽，
+  满格刻度是 **5**（p99）而不是数据里的最大值 11 —— 该列 p50=1、p90=2、p99=5，99% 的值
+  都落在 0~5，若按 11 归一化，「1」只有 9% 宽，肉眼分不出高低。6~11 的 645 行（0.6%）
+  统一显示满格，真实数值仍写在柱子右边。刻度写在 `COLS` 的 `bar` 字段里。
+  排序、导出、详情侧栏走的都是 `cellPlain()`，不受柱状图影响
+- **柱子整体可点，点开这一行的覆盖度图**（2026-09-24 追加）：跟最后一列那个 `Plot`
+  按钮是同一个弹窗。没有对应覆盖度图时退回详情侧栏，与 `btn-muted` 的 Plot 按钮行为一致。
+  实现在 `cellHtml(r, c, idx)` 的 `bar` 分支（`idx` 只在 `render()` 里传）+
+  全局的 `onBarClick(ev, el)`。`click` 仍要 `stopPropagation`：行本身虽然不再可点
+  （见下一条），但保留它成本为零，将来若给行加回别的点击行为不会被误触发
+  - 柱子高度 `7px → 12px`（同一天 luo：「柱子再粗一点」）。7px 在 12.5px 的行高里太细，
+    值 1 和值 2 的柱子几乎看不出差别
+  - 可点区域用 `margin: -3px -5px; padding: 3px 5px` 向外扩，悬停高亮不紧贴柱子；
+    外扩的 5px 仍在 td 的 `padding` 里，不会被 `overflow: hidden` 裁掉
+- **结果行不再整行可点**（2026-09-24 luo：「表格不需要点击行在右侧显示信息」）。
+  原来 `<tr class="data-row" onclick="showDetail(idx)">` + `tr.data-row{cursor:pointer}`，
+  点行内任何位置都会弹右侧详情栏 —— 想选中单元格文字、或拖拽松手时都会误触。
+  现在 `<tr>` 上**没有** `onclick`，光标恢复 `cursor: default`。
+  详情栏（`#detailPanel` / `#detailOverlay`）本身还在，只由两个**明确**的入口触发：
+  ① 没有覆盖度图时那个灰色 `Plot` 按钮；② 点 Regulatory Score 柱子但该行没有覆盖度图时。
+  > 改这里时注意：`td.col-plot` 上的 `onclick="event.stopPropagation()"` 也一并删了 ——
+  > 它本来是为了挡住行的 `showDetail`，行不可点之后它就没意义了
 - **不再有 `Age` / `Sex` 两列** —— 它们来自 `select_sample.xlsx`，不属于这张 CSV，已移除
 
 **表头筛选**：结果表的 `Type` / `Tissue` / `Donor` 三列表头各有一个漏斗按钮，点开是勾选面板。
@@ -270,9 +303,11 @@ Donor 列表里每个供体还剩多少条一目了然：
 - 关闭方式：再点按钮、点面板外、按 `Esc`
 - `Reset Filters` 会连同三列筛选一起清空
 
-**下载结果**：`Reset Filters` 左边的 `Download` 按钮提供 CSV / TSV 两种格式，导出的是
-**当前搜索 + 筛选后的全部结果**（不只是当前这一页）。列名与取值**与源表完全一致**，
-就是 `variants_website.csv` 的 21 列：
+**下载结果**：`Reset Filters` 左边的 `Download` 按钮**直接下载 CSV**（2026-09-24 去掉 TSV：
+原先是个 CSV / TSV 二选一的下拉菜单，只剩一个选项的菜单没有意义，改成按钮直接下载，
+`toggleDownload()` / `closeDownload()` 与 `.dl-menu` 样式一并移除）。
+导出的是**当前搜索 + 筛选后的全部结果**（不只是当前这一页）。
+列名与取值**与源表完全一致**，就是 `variants_website.csv` 的 21 列：
 `contig / pos / ref / alt / depth / vaf / mutation_type / TiTv / trinucleotide / gene_symbol /
 region / sample / donor / tissue / ref_origin / tissue_shared / infiltration_pp / infiltration /
 cosmic_signature / CADD_PHRED / regulatory_score`，
@@ -282,6 +317,116 @@ cosmic_signature / CADD_PHRED / regulatory_score`，
 顺带修了一个老问题：表头排序箭头以前在 HTML 里写死成 `fa-sort`、JS 从不更新，
 现在会随排序列和方向变成 `fa-sort-up` / `fa-sort-down` 并染成主色。
 
+### 列宽拖拽
+
+首页搜索表和 Data Portal 文件列表的**表头右边缘都能拖**：鼠标移上去出现一条细竖线，
+拖动即改列宽，双击手柄恢复该列默认宽度，调整结果记在 `localStorage`
+（`gtop.cols.search` / `gtop.cols.data`），刷新后仍在。
+实现只有一份 `assets/col-resize.js`，两个页面各引一次、在页面底部调 `initColResize()`。
+
+**交互行为**
+
+- **拖谁只改谁，绝不联动别的列。** 表格总宽 = 各列之和，拖宽一列表格就变宽、
+  `.table-wrap` 横向滚动；右边的列整体平移、宽度不变。
+  双击手柄恢复**该列**的默认宽度，不是恢复全部。
+- **每列有自己的下限** = `max(minWidth, 该列表头文字宽 + 28px)`，且不超过该列默认宽度。
+  所以一列最少能拖到「刚好放得下自己的列名（含排序图标和筛选按钮）」。
+
+> ⚠️ **「从右邻列借宽度」已于 2026-09-24 移除，不要改回去。**
+> 用户反馈：「列的宽度基本固定吧，不要随意乱跳，我筛选之后根本不知道了」。
+> 旧行为是拖 A 列时从右邻列借 —— 听起来合理（表格总宽不变、右边不留白），
+> 实际很糟：拖 Gene 列 +200px，右邻的 Region 从 **264px 被挤到 64px**，
+> 而 Region 是允许折行的列，`Upstream;Promoter;Open chromatin` 于是变成竖排的
+> `Upstr / eam;P / romot / er;Op / en; / chrom / atin`，**行高从 50px 涨到 200px+**，
+> 整张表没法看。而且「拖一列动两列」不符合任何表格的直觉 ——
+> Excel / AG Grid / TanStack Table 全都是只改被拖的那一列。
+
+**几个实现要点**（改之前先读 `assets/col-resize.js` 的文件头注释）
+
+- **必须 `table-layout: fixed`。** auto 布局下给 `th` 写 `width` 只是「建议值」，
+  浏览器仍按内容重算，拖起来会跳。所以初始化时先量一遍实测列宽、写成 px，再切成 fixed ——
+  这样默认观感和加这个功能之前完全一致
+- **表格宽度写死成 `<各列之和>px`，并且 `min-width` 一起钉成同一个值。**
+  不能用 `max(<各列之和>px, 100%)`：`table-layout: fixed` 下只要「表格实际宽度 >
+  各列之和」，浏览器就会把余量**按比例摊给每一列** —— 你拖出来的宽度不是实际宽度，
+  而且余量一变 22 列一起动。两个会触发它的口子现在都堵上了：
+  ① `max(..., 100%)`；② `site.css` 里 `table.data-table { min-width: 2180px }`
+  （用户把各列拖窄到总和不足 2180px 时会被它顶住）
+- **量「表头需要多宽」时，元素节点要用 `getBoundingClientRect()`，不能用 Range。**
+  `Range.selectNodeContents(el)` 拿不到 ① 元素自身的内边距（`.th-filter` 的
+  `padding: 1px 5px`，实测少 14px）② `::before` 伪元素（Font Awesome 图标就是靠它
+  画的，实测直接返回 **0**）。实测 Type 列表头：Range 只量到 47px，真实需要 71px ——
+  差了整整一个筛选按钮，拖到下限时按钮会压到右邻列
+- 手柄上的 `click` 必须 `stopPropagation`，否则会误触发表头的排序
+- 手柄绝对定位在 `th` 右边缘（`right: -3px`，宽 7px），所以 `th` 需要 `position: relative`。
+  它会让 `th.scrollWidth` 恒比 `clientWidth` 大 3px —— 写断言时要先把它 `display:none`，
+  否则会拿到假阳性
+
+**拖窄之后文字不能压到邻列**（2026-09-24 luo 反馈「列的拖拽好奇怪呀，不正常」）
+
+切到 `table-layout: fixed` 之后列宽就写死成 px 了，于是有两种情况会让文字溢出到右边
+一列、两列的字叠在一起：
+
+1. 用户把某列往窄里拖（拖 Chr 列 -60px，Chr 的值会溢出 174px）
+2. **没拖过也一样** —— 列宽是按「第 1 页那 10 行」量的，翻到别的页遇到更长的值就溢出。
+   实测第 3 页的 Gene（`ENSG00000123456`）压在 Region 上，看起来像 `ENSG00000Intron;NC`
+
+两处都靠 `table.data-table tbody td { overflow: hidden; text-overflow: ellipsis }` 兜住：
+溢出被裁掉、再换成 `…`。Data Portal 的 `table.data-list tbody td` 同样加了这两条。
+
+> ⚠️ **写死的 `max-width` 是这类 bug 的元凶，改列宽时一定要一起看。**
+>
+> 修完上面两条之后 Gene 列**还是**显示成 `ENSG00000…`。查 DOM 才发现问题不在 `td`：
+> `td.clientWidth = 150`（列宽已经正常了）而单元格里那个 `<span>` 只有 **92px** ——
+> 因为 `site.css` 里有一条 `td.col-gene span { max-width: 92px }`，那是 Gene 列还只有
+> 75px 宽时定的上限。列宽后来改成按全量数据定（150px），这个 92px 却把 span 卡死了，
+> **用户把列拖宽文字也不会变长** —— 这才是「拖拽好奇怪」的真正原因。
+>
+> 已改成 `max-width: 100%`，span 跟着单元格走，超出部分由 `td` 的省略号兜底。
+> 同一类问题在 Data Portal 的 `td.cell-file { max-width: 200px }` 上也存在（File 列
+> 拖到 200px 以上文字就不跟着长了），已收进 `table.data-list:not(.col-resizable)`。
+>
+> 规律：**凡是写死 px 的 `max-width`，在列宽可变的表里都是定时炸弹。**
+> 要么改成百分比，要么用 `:not(.col-resizable)` 限定它只在「量列宽阶段」生效。
+> 目前 `site.css` 里还留着的写死 px 上限只有 `td.col-region`（264px，故意的）和
+> 布局容器那几个，都在可接受范围内。
+
+**默认列宽按「全量数据」定，不是按当前这一页**（2026-09-24）
+
+只加省略号的话，翻页时 Gene 列会大片显示成 `…`（第 3~8 页每页 10~15 格）—— 治标。
+根因是 `initColResize()` 量到的是「当前这一屏」的列宽：初始化时 tbody 里只有第 1 页
+那 10 行，Gene 只量到 75px（放得下 8 个字符），而全量 107,852 行里 **90% 的 Gene 值
+是 15 个字符**（约 135px）。
+
+所以 `index.html` 里多了一个 `idealColWidths()`，按全量数据算一遍「每列至少要放得下多宽」，
+通过 `minColWidths` 传给 `initColResize()`（取「实测值」和「它」里较大的那个）。
+
+- **取 p95 而不是最大值**：Chr 列 95% 的值不超过 5 个字符，但偶发 27 字符的未定位
+  contig（`AK231-DMSO.hap1.h1tg000003l`）。为那不到 1% 把 Chr 撑到 200px 不值得，
+  交给省略号 + 悬停 `title` 兜底
+- **例外是小字典列**（值域 ≤128 个）：像 Tissue 只有 30 个值，按 p95（13 字符）定宽会
+  漏掉 `Heart Tricuspid Valve`（21 字符），每页总有 1 格显示成 `Heart Tricuspid V…`。
+  这种列直接按最大值定宽
+- **成本控制**：不逐行格式化（21 列 × 107,852 行 = 226 万次 `toFixed`/`toLocaleString`，
+  要一两秒）。dict 列逐个量字典值（最多的是 gene 的 2.2 万项，全量 measureText 约 40ms），
+  数值列利用「定点格式下字符串长度随数值单调递增」取全量最大值格式化一次。**实测 ~55ms**
+  - 别改回「按字符数分桶、只量桶里第一个值」—— 试过，不准：同为 15 个字符的基因名
+    宽度能差 3~4px（`ENSG00000272438` 要 122.9px），取到的代表值偏窄，算出来的列宽
+    就比实际需要少 1px，于是整列 Gene 全变成 `ENSG00000…`
+  - `PAD` 是 `24 + 2`：除了左右内边距各 12px，再留 2px 余量。不留的话会卡在
+    「内容盒刚好比文字少 0.1px」这种边界上，同样是整列省略号
+- 效果：表格总宽 2483 → 2620px（+137px），翻页时被裁的单元格从每页 10~15 格降到 0~1 格
+  （只剩 Ref 列那不到 1% 的 49 字符长序列）
+
+顺带把 `td.col-region` 的 `min-width/max-width: 264px` 收进
+`table.data-table:not(.col-resizable)` —— 这两个值只在「表格还是 auto、JS 量列宽」
+那一瞬间有用；表格切到 fixed 后留着它们会把 td 的盒子卡在 264px，用户把 Region 列拖宽
+之后单元格不跟着撑开（实测拖到 414px 时 td 仍是 264px，中间留一条空白）。
+
+> 验证：`/tmp/drag_verify.mjs` 逐列拖窄 -60px 断言「压到邻列 = 0」；
+> `/tmp/width_verify.mjs` 翻 10 页断言「被裁单元格 ≤1 格/页」；
+> `/tmp/regress.mjs` 5 页 × 5 宽度全过（压到邻列 0、行高恒定、无控制台错误）。
+
 ### Browse by Tissue
 30 个组织卡片（图标 + 名称）：Esophagus, Trachea, Lung Apex, Lung Base,
 Diaphragm, Liver, Gallbladder, Adrenal Gland, Muscle, Stomach,
@@ -290,6 +435,30 @@ Heart Right/Left Atrium/Ventricle, Heart Mitral/Tricuspid Valve,
 Spleen, Skin, Ovary, Uterus, Adipose, Common Iliac Artery, Whole Blood.
 
 点击卡片跳转搜索该组织的所有突变。
+
+### Our Donors（donors.html）
+
+致谢页：一张侧脸剪影群像横幅（`assets/donors-banner.svg`）+ 致谢正文 + 手写体签名。
+
+横幅由 `scripts/build_donors_banner.py` **程序化生成**（固定 `random.seed(20260923)`，
+所以每次重跑结果完全一致），不是设计稿导出的位图。生成后 SVG 只有 8.7 KB。
+
+> ⚠️ **横幅不要留底部空白**（2026-09-24 luo 反馈「留白太多了」）。
+>
+> 生成脚本里原先 `BAND_H = 214` 而画布 `H = 258`，也就是画布底部空着 **44px**
+> （44/258 = 17.1%），在页面上就是横幅下沿一条明显的空白带。
+>
+> 侧脸轮廓本身是从头顶（局部 y≈4）一路画到躯干底（局部 y=200）的完整半身像，
+> 214 的裁剪线落在胸口，把躯干整段切掉了。**现已把 `BAND_H` 改为 `H`（=258）**，
+> 剪影自然铺满整幅，底部空白归零（实测墨迹覆盖率 68.9% → 80.5%）。
+>
+> `BAND_H` 不参与 `random` 调用，所以改它不会移动随机序列 —— 重新生成出来的
+> 21 组剪影与旧版**逐字节一致**，只有 `clipPath` 那一处 `214 → 258`。
+> 验证方式：`diff` 确认只差 2 个字符；再在 1600/1440/1280/1024/768/640 六档宽度下
+> 逐行扫描截图，断言「底部空白 = 0px、标题不出框」。
+
+横幅容器是 `.donor-banner`（`min-height: 258px`，≤640px 视口降到 190px），
+底图 `<img>` 用 `object-fit: cover` 铺满，窄屏靠裁掉左右两端来保持高度。
 
 ## Data Portal（somatic-data.html）
 
@@ -352,7 +521,13 @@ window.GDATA_STATS = { files, donors, tissues, totalMB, generated };
 「The table below lists the … files … released for these samples.」两段），改用 GTOP 官方口径：
 354 个 PCR-free bulk WGS 样本（30 个正常组织类型）；PacBio HiFi 全血 68 供体；
 RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 files and 623.8 TB of data`；
-数据托管在 `https://cloud.smart-nbc.org.cn/`（访问受控，需申请）。
+数据托管在 [cloud environment](https://cloud.smart-nbc.org.cn/)（访问受控，需申请）。
+
+> **链接不要直接显示网址**（2026-09-24 luo 明确）：正文里写的是
+> `<a href="https://cloud.smart-nbc.org.cn/" target="_blank" rel="noopener">cloud environment</a>`，
+> 页面上显示成蓝色的 `cloud environment` 三个词，悬停才看到网址 —— 而不是把
+> `(https://cloud.smart-nbc.org.cn/)` 原样铺在句子里。样式来自 `site.css` 的 `.page-desc a`。
+> README 里为可读性用了 Markdown 链接写法，页面上不出现裸网址。
 
 这些数字都跟源 CSV 核对过：
 
@@ -428,34 +603,50 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
 Format | Size | UUID`。
 
 - 组织名展示时把下划线换成空格（`Whole_Blood` → `Whole Blood`），供体去掉 `GTOP-` 前缀。
-- **文件名完整显示、不截断**（`.with-uuid td.cell-file a` 改成 `white-space: normal` +
-  `word-break: break-all`），点击跳到云平台 `https://cloud.smart-nbc.org.cn/`（新标签页）。
+- **文件名单行 + 尾部省略号**（`.with-uuid td.cell-file a` 用 `text-overflow: ellipsis`；
+  完整文件名留在 `<a title>` 里，悬停可见），点击跳到云平台（`href` 指向
+  `https://cloud.smart-nbc.org.cn/`，新标签页；页面上不显示裸网址）。
 - `UUID` 列在最后一列，36 字符在等宽字体下单行显示。
 - `Size` 按 MB/GB/TB 自动换算（≥1024 MB 显示 GB，≥1024 GB 显示 TB）。
 - 除 Lock 列外每列都可点击排序（首次升序、再点降序，表头箭头同步）。
+  **可排序表头是 `cursor: pointer`**（2026-09-24 补）：首页搜索表一直有这条
+  （`table.data-table thead th.sortable`），Data Portal 的 `table.data-list` 漏了，
+  于是鼠标移到 File / Donor 这些表头上仍是默认箭头，看起来像不可点。现在两张表一致
+  （含悬停底色 `#eef2fa`）。表头右边缘那 7px 是列宽拖拽手柄，它自己的
+  `cursor: col-resize` 优先级更高，两者不冲突
 
-**列宽怎么定的（2026-09-24 修）**：这张表是 `table-layout: fixed` + `width: 100%`，
+**列宽怎么定的（2026-09-24，先后修了两次）**：这张表是 `table-layout: fixed` + `width: 100%`，
 **没写宽度的列会把全部剩余空间独吞**。原先只有 `File` 列没写宽度，于是它拿到 422px
 （内容最长只要 288px），而 `UUID` 明明需要 248px 却只剩 134px，被迫折成两行。
 
-修法是把 9 列都改成百分比（合计 100%），按「全量 7,249 行里每列最长文本 + 内边距」分配：
+修法是把 9 列都写成百分比（合计 100%）。**第二次修**把 `File` 从 26% 收到 17.3%：
+全量 7,249 个文件名里 **91% 不超过 23 字符**（p90=23），只有 5.6% 是 36~40 字符的
+`*.liftover.chain`。为这 5.6% 让整列保持 290px，代价是其余 94% 的行右侧都空出约 120px ——
+看起来就是「这列怎么这么宽」。现在按 p90 定宽、超出的尾部用省略号（完整名在 `<a title>` 里，
+悬停可见，点进云端也能看到）；`Lock` 列则因为「锁图标 + Lock」实测要 63px 而补到 6.1%：
 
 | 列 | Lock | File | Donor | Tissue | Assay | Platform | Format | Size | UUID |
 |---|---|---|---|---|---|---|---|---|---|
-| 百分比 | 4.1% | 26% | 5.4% | 13% | 6.4% | 11.8% | 4.5% | 6.6% | 22.2% |
-| 1440 下实测 px | 46 | 290 | 60 | 145 | 71 | 132 | 50 | 74 | 248 |
+| 百分比 | 6.1% | 17.3% | 6% | 14.4% | 7.1% | 13.1% | 5% | 7.3% | 23.7% |
+| 1440 下实测 px | 66 | 193 | 67 | 161 | 79 | 146 | 56 | 81 | 265 |
 
-同时把单元格横向内边距从 10px 收到 8px（9 列共腾出 36px）。9 列「永不折行」的总需求
-原本是 1125px，而表格可用宽度只有 1116px，差的 9px 本来必须由某一列折行来消化；
-收到 8px 后总需求降到 1089px，每列都留出 2~6px 余量。
+单元格横向内边距在第一次修时已从 10px 收到 8px（9 列共腾出 36px）。
 
-配套把 `table.data-list` 的 `min-width` 从 880px 提到 **1112px**（略小于可用宽度 1116px，
-所以最宽布局下刚好填满、不出滚动条）。视口更窄时**不再压缩列宽**（那会让 File / UUID 折行、
-每行从 41px 撑到 59px），而是让 `.table-wrap` 横向滚动 —— 与首页搜索表 `min-width:2180px`
+配套把 `table.data-list` 的 `min-width` 定为 **1060px**（略小于可用宽度 1116px，
+所以最宽布局下刚好填满、不出滚动条）。视口更窄时**不再压缩列宽**（那会让 UUID 折行、
+每行从 41px 撑到 53px），而是让 `.table-wrap` 横向滚动 —— 与首页搜索表 `min-width:2180px`
 的做法一致。
 
+> ⚠️ **min-width 和表头那组百分比是互相咬合的**：各列百分比 × 1060px 必须不小于该列
+> 「不折行 / 不溢出」所需的最小宽度 —— 当前 `Lock` 64.7（需 63.2）、`UUID` 251.2（需 248）。
+> 2026-09-24 一度把下限从 1112 降到 1045 却没同步校准，结果 1280 / 1120 / 980 三个宽度下
+> `UUID` 折行、行高 41→53px。**改任何一边都要把另一边重算一遍。**
+
 验证方式：headless Chrome 逐页翻完 **145 页 / 7,249 行**，断言「行高恒为 41px」（单一值
-即无任何单元格折行）；1600 / 1440 / 1280 / 1120 / 980 五种宽度下均通过。
+即无任何单元格折行）；1600 / 1440 / 1280 / 1120 / 980 五种宽度下均通过，
+并逐格量过「文字有没有越过自己的右边界」—— 全为 0。
+
+> 列宽现在还能在页面上直接拖，见「列宽拖拽」一节；上面这些百分比只是**初始值**。
 
 **分组标题里的数字**（2026-09-24 修）：`Tissue (33)` 括号里的数字以前取的是固定的
 选项总数 `g.opts.length`，不随筛选变化。于是勾了 `Tissue = Abdominal aorta` 之后，
@@ -494,14 +685,12 @@ Donor 组下面只剩 1 个人、标题却还写着 `Donor (160)`，标题和列
 
 起因是 Data Portal 的 `File` 列太窄（1200px 容器下只有约 200px），长文件名被压得很难看。
 放宽后表格区变宽，但 `File` 列又反过来独吞了全部余量（422px），2026-09-24 用上面那套
-百分比方案收敛到 290px。当前实测：
+百分比方案收敛到 **193px**。当前实测（1600 / 1440 / 1280 / 1120 / 980 五档走查）：
 
-| 视口 | 容器 | 首页表格 | Data Portal 表格区 | File 列 | UUID 列 |
-|---|---|---|---|---|---|
-| 1920 | 1440 | 1374 | 1116 | 290 | 248 |
-| 1440 | 1431 | 1365 | 1116 | 290 | 248 |
-| 1280 | 1272 | 1206 | 1112（横向滚动） | 289 | 247 |
-| 1280 | 1271 | 1221 | 963 | 269 |
+| 视口 | Data Portal 表格区 | File 列 | UUID 列 |
+|---|---|---|---|
+| 1600 / 1440 | 1116（刚好填满，不出滚动条） | 193 | 265 |
+| 1280 / 1120 / 980 | 1063（横向滚动） | 183 | 251 |
 
 `≤1248px` 的视口不受影响（`1200 + 24×2` 都没到，容器本来就是流式的）。
 `.container-wide` 同步抬到 1560px，保持「wide > 默认」的语义（该 class 目前无人使用）。
@@ -609,7 +798,10 @@ curl -X POST http://127.0.0.1:5502/api/annotate \
 未命中 → 描边弱化的按钮，点击改为弹出该变异的详情侧栏，并提示
 `No coverage plot available for this variant.`
 
-详情侧栏（点击表格任意一行打开）底部同样有 **View coverage plot** 入口，走同一个弹窗。
+详情侧栏底部同样有 **View coverage plot** 入口，走同一个弹窗。
+> 打开侧栏的入口 2026-09-24 改过一次：原来点表格任意一行即可打开，现在只保留
+> 「无图时的 `Plot` 按钮」和「点 Regulatory Score 柱子但没图」两个明确入口 ——
+> 原因见「Search the Atlas」一节里「结果行不再整行可点」那条。
 
 #### 弹窗（Plot modal）的几点实现说明
 

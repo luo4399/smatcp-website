@@ -91,8 +91,8 @@
           33 tissue types, comprising a total of <span id="statFiles">7,249</span> files and
           <span id="statSize">623.8 TB</span> of data. Together, these datasets offer a multidimensional resource for
           characterizing somatic mosaicism, germline variations, tissue-specific transcription, and their relationships
-          across individuals and tissues. The data are hosted in a secure, access-controlled cloud environment
-          (<a href="https://cloud.smart-nbc.org.cn/" target="_blank" rel="noopener">https://cloud.smart-nbc.org.cn/</a>)
+          across individuals and tissues. The data are hosted in a secure, access-controlled
+          <a href="https://cloud.smart-nbc.org.cn/" target="_blank" rel="noopener">cloud environment</a>
           that supports dataset discovery and approved research use while safeguarding participant privacy.
         </p>
       </div>
@@ -128,32 +128,41 @@
             没有写宽度的列会独吞全部剩余空间。以前只有 File 列没写宽度，
             于是它拿到 422px（内容最长只要 288px），而 UUID 明明要 248px
             却只剩 134px，被迫折成两行。
-            下面的百分比按「全量 7249 行里每列最长文本 + 内边距」分配，
-            合计 100%，每列都留了 2~6px 余量，一列都不用折行：
-              File   26.0% ← AJ221-DMSO.hap1.hg38ToDSA.liftover.chain(40 字符) 单行放得下
-              UUID   22.2% ← 36 字符 UUID 单行放得下，不再折行
-              Tissue 13.0% ← Heart Tricuspid Valve 单行放得下
-            改列宽时请保持合计 100%，否则 fixed 布局又会把余量倾斜给某一列。
+            下面的百分比合计 100%，改的时候请保持合计 100%，
+            否则 fixed 布局又会把余量倾斜给某一列。
+
+            File 列 18%（约 201px，放得下 27 个字符）：全量 7,249 个文件名里
+            91% 不超过 23 字符（p90=23），只有 5.6% 是 36~40 字符的
+            *.liftover.chain。早先为了这 5.6% 把 File 撑到 26%（290px），
+            结果其余 94% 的行右侧都空着 120px 左右 —— 看起来就是「这列怎么这么宽」。
+            现在按 p90 定宽，超出的尾部省略号（完整名在 <a title> 里，悬停可见，
+            点进云端也能看到）。其余各列按「不折行所需 + 少量余量」分配：
+              Lock     6.1%  ← 内容盒 49.8px，装得下「锁图标 + Lock」的 47.2px
+              UUID     23.7% ← 36 字符 UUID 单行放得下（×1060px 下 251px，需要 248px）
+              Tissue   14.4% ← Heart Tricuspid Valve 单行放得下
+              Platform 13.1% ← 最长平台名单行放得下
+            这张表的列宽也可以在页面上直接拖（见 assets/col-resize.js），
+            上面这些百分比只是「初始值」，拖过之后以 localStorage 里的为准。
           -->
           <table class="data-list with-uuid">
             <thead>
               <tr>
-                <th style="width:4.1%"><i class="fa-solid fa-lock"></i></th>
-                <th class="sortable" data-sort="file" style="width:26%" onclick="sortList('file')">File <i
+                <th style="width:6.1%"><i class="fa-solid fa-lock"></i></th>
+                <th class="sortable" data-sort="file" style="width:17.3%" onclick="sortList('file')">File <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="donor" style="width:5.4%" onclick="sortList('donor')">Donor <i
+                <th class="sortable" data-sort="donor" style="width:6%" onclick="sortList('donor')">Donor <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="tissue" style="width:13%" onclick="sortList('tissue')">Tissue <i
+                <th class="sortable" data-sort="tissue" style="width:14.4%" onclick="sortList('tissue')">Tissue <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="assay" style="width:6.4%" onclick="sortList('assay')">Assay <i
+                <th class="sortable" data-sort="assay" style="width:7.1%" onclick="sortList('assay')">Assay <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="platform" style="width:11.8%" onclick="sortList('platform')">Platform <i
+                <th class="sortable" data-sort="platform" style="width:13.1%" onclick="sortList('platform')">Platform <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="format" style="width:4.5%" onclick="sortList('format')">Format <i
+                <th class="sortable" data-sort="format" style="width:5%" onclick="sortList('format')">Format <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="size" style="width:6.6%" onclick="sortList('size')">Size <i
+                <th class="sortable" data-sort="size" style="width:7.3%" onclick="sortList('size')">Size <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="uuid" style="width:22.2%" onclick="sortList('uuid')">UUID <i
+                <th class="sortable" data-sort="uuid" style="width:23.7%" onclick="sortList('uuid')">UUID <i
                     class="fa-solid fa-sort sort-i"></i></th>
               </tr>
             </thead>
@@ -231,6 +240,7 @@
 
   <!-- 真实数据：由 build_genome_data.py 从 tissue_genome_data.csv 生成 -->
   <script src="../data/genome_data.js"></script>
+  <script src="../assets/col-resize.js"></script>
   <script>
     // ============ 数据 ============
     // ROWS 每行 = [供体下标, 实验下标, 平台下标, 组织下标, 格式下标, 大小MB, 文件名, UUID]
@@ -657,6 +667,16 @@
 
     renderFilters();
     renderList();
+
+    // 表头列宽可拖拽（拖动改宽度，双击手柄恢复默认，记在 localStorage）。
+    // 必须在 renderList() 之后：初始化时要量一遍各列的实际宽度作为默认值，
+    // 表格还没渲染时量出来的是空的。
+    // minWidth 64：Donor 列里最短的内容是 "AJ221" 这类 5 字符编号，
+    // 12.5px 字体下约 35px，加上左右各 8px 内边距要 51px —— 留到 64 才不会一拖窄就溢出。
+    initColResize(document.querySelector('table.data-list'), {
+      storageKey: 'gtop.cols.data',
+      minWidth: 64
+    });
   </script>
 </body>
 

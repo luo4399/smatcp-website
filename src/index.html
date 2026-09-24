@@ -101,7 +101,7 @@
     <div class="container" data-page-node-id="jHX5JkMK98niNA1EAYJZAQ">
       <div class="stats-card" data-page-node-id="gOF7x0Efo0X5PzeZvsr41K">
         <div class="stat" data-page-node-id="WFKQ65s5xdxvI1cYpuzbrl">
-          <div class="stat-num" data-page-node-id="KgNgABC7capzPHNKBl3cod">160</div>
+          <div class="stat-num" data-page-node-id="KgNgABC7capzPHNKBl3cod">68</div>
           <div class="stat-label" data-page-node-id="h7yRmqFcWRztIno1sEgu1V">Individuals</div>
         </div>
         <div class="stat" data-page-node-id="3UijOtzCxTwMpxWsdmffqh">
@@ -246,20 +246,12 @@
       <div class="results-bar" data-page-node-id="D3Lq9khqzdt7EiIVnMNfcJ">
         <div class="results-count" id="resultsCount" data-page-node-id="9kxvhcWhJm0IJx5IXTw4km"></div>
         <div class="results-actions">
-          <div class="dl-wrap">
-            <button class="btn-link" type="button" id="dlBtn" onclick="toggleDownload(event)"
-              aria-haspopup="true" aria-expanded="false" title="Download the filtered results">
-              <i class="fa-solid fa-download" data-page-node-id="cNYHkX8pXR3FQWzPegVdob"></i> Download
-            </button>
-            <div class="dl-menu" id="dlMenu" role="menu" aria-label="Download results">
-              <button type="button" role="menuitem" onclick="downloadResults('csv')">
-                <span>CSV</span><span class="dl-note">comma separated</span>
-              </button>
-              <button type="button" role="menuitem" onclick="downloadResults('tsv')">
-                <span>TSV</span><span class="dl-note">tab separated</span>
-              </button>
-            </div>
-          </div>
+          <!-- 2026-09-24：原先是个 CSV / TSV 二选一的下拉菜单，现在只导 CSV，
+               只剩一个选项的菜单没有意义，改成按钮直接下载（少一次点击）。 -->
+          <button class="btn-link" type="button" id="dlBtn" onclick="downloadResults()"
+            title="Download the filtered results as CSV">
+            <i class="fa-solid fa-download" data-page-node-id="cNYHkX8pXR3FQWzPegVdob"></i> Download
+          </button>
           <button class="btn-link" onclick="resetFilters()" data-page-node-id="F7URCCQ7oO2M5xTjKqgtJd"><i class="fa-solid fa-rotate"></i> Reset Filters</button>
         </div>
       </div>
@@ -465,6 +457,7 @@
 
   <script src="../data/variants_data.js"></script>
   <script src="../data/plots_index.js"></script>
+  <script src="../assets/col-resize.js"></script>
   <script>
     // ============================ 数据 ============================
     // 数据源只有一张表：variants_website.csv（21 列全量）。
@@ -505,8 +498,10 @@
       { k: 'mutation_type', label: 'Type', kind: 'dict', filter: true },
       { k: 'TiTv', label: 'Ti/Tv', kind: 'dict', filter: true },
       { k: 'trinucleotide', label: 'Trinucleotide', kind: 'dict', cls: 'col-mono' },
-      { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: 'NA' },
-      { k: 'region', label: 'Region', kind: 'dict', cls: 'col-region', empty: 'NA' },
+      // 空值统一显示成 '--'（原来是 'NA'）。三处必须一致：
+      //   这里每个字段的 empty、cellHtml() 里的兜底、showDetail() 侧栏的兜底。
+      { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: '--' },
+      { k: 'region', label: 'Region', kind: 'dict', cls: 'col-region', empty: '--' },
       { k: 'sample', label: 'Sample', kind: 'dict', cls: 'col-mono' },
       { k: 'donor', label: 'Donor', kind: 'dict', cls: 'col-donor', filter: true },
       { k: 'tissue', label: 'Tissue', kind: 'dict', filter: true },
@@ -514,9 +509,13 @@
       { k: 'tissue_shared', label: 'Tissue Shared', kind: 'bool', filter: true },
       { k: 'infiltration_pp', label: 'Infiltration PP', kind: 'num', fmt: 'num4', cls: 'col-num' },
       { k: 'infiltration', label: 'Infiltration', kind: 'bool', filter: true },
-      { k: 'cosmic_signature', label: 'COSMIC Signature', kind: 'dict', filter: true, empty: 'NA' },
-      { k: 'CADD_PHRED', label: 'CADD', kind: 'num', fmt: 'cadd', cls: 'col-cadd', empty: 'NA' },
-      { k: 'regulatory_score', label: 'Regulatory Score', kind: 'num', fmt: 'int', cls: 'col-num', empty: 'NA' },
+      { k: 'cosmic_signature', label: 'COSMIC Signature', kind: 'dict', filter: true, empty: '--' },
+      { k: 'CADD_PHRED', label: 'CADD', kind: 'num', fmt: 'cadd', cls: 'col-cadd', empty: '--' },
+      // bar: 满格刻度 —— 单元格里画迷你柱状图时用它做分母。
+      // Regulatory Score 全量是 0~11，但 p50=1、p90=2、p99=5，99% 的值都在 0~5；
+      // 若按最大值 11 归一化，「1」只有 9% 宽，肉眼分不出来。取 5 当满格，
+      // 6~11 的 645 行（0.6%）统一显示满格，真实数值仍写在柱子右边。
+      { k: 'regulatory_score', label: 'Regulatory Score', kind: 'num', fmt: 'int', cls: 'col-bar', empty: '--', bar: 5 },
     ];
     const COL_BY_KEY = {};
     COLS.forEach(c => { c.idx = idxOf(c.k); COL_BY_KEY[c.k] = c; });
@@ -543,14 +542,48 @@
     }
 
     // 表格单元格 HTML
-    function cellHtml(r, c) {
+    // idx 只在 render() 里传（表格行需要它来定位数据和覆盖度图）；详情侧栏等处
+    // 不传，柱状图就退化成不可点的纯展示。
+    function cellHtml(r, c, idx) {
       const s = cellPlain(r, c);
-      const txt = s === '' ? (c.empty || 'NA') : s;
+      const txt = s === '' ? (c.empty || '--') : s;
       if (c.k === 'mutation_type') {
         return `<span class="badge${txt === 'INDEL' ? ' badge-indel' : ''}">${escapeHtml(txt)}</span>`;
       }
       if (c.k === 'gene_symbol') return `<span title="${escapeHtml(s)}">${escapeHtml(txt)}</span>`;
+
+      // Regulatory Score：迷你柱状图 + 数值。满格刻度是 c.bar（见 COLS 里的说明）。
+      // 排序、导出、详情侧栏走的都是 cellPlain()，不受这里影响。
+      //
+      // 2026-09-24（luo）：柱子本身也可以点 —— 点开这一行的覆盖度图，跟最后一列
+      // 那个 Plot 按钮同一个弹窗。没有对应覆盖度图时退回详情侧栏，行为与那个
+      // btn-muted 的 Plot 按钮保持一致。click 必须 stopPropagation，
+      // 否则行的 onclick（showDetail）会跟着一起触发，两个弹层同时冒出来。
+      if (c.bar) {
+        const v = Number(r[c.idx]) || 0;
+        const pct = Math.max(0, Math.min(100, v / c.bar * 100));
+        const url = idx != null ? plotUrl(r) : null;
+        const clickable = idx != null;
+        const attrs = !clickable ? '' :
+          ` data-i="${idx}" data-u="${url ? escapeHtml(url) : ''}"` +
+          (url ? ` data-k="${escapeHtml(plotKey(r))}" data-t="${escapeHtml(plotTitle(r))}"`
+               + ` data-s="${escapeHtml(plotSubtitle(r))}"` : '');
+        const hint = !clickable ? '' : (url ? ' · 点击查看覆盖度图' : ' · 点击查看详情');
+        return `<span class="bar-cell${clickable ? ' bar-cell-click' : ''}"${attrs}`
+          + (clickable ? ' role="button" tabindex="0" onclick="onBarClick(event, this)"' : '')
+          + ` title="${escapeHtml(c.label)}: ${escapeHtml(txt)}${hint}">`
+          + `<span class="bar-track"><i style="width:${pct.toFixed(1)}%"></i></span>`
+          + `<span class="bar-num">${escapeHtml(txt)}</span></span>`;
+      }
+
       return escapeHtml(txt);
+    }
+
+    // 点 Regulatory Score 的柱子：有覆盖度图就弹图，没有就打开详情侧栏。
+    function onBarClick(ev, el) {
+      ev.stopPropagation();
+      if (el.dataset.u) openPlot(el.dataset.u, el.dataset.t, el.dataset.s, el.dataset.k);
+      else showDetail(Number(el.dataset.i));
     }
 
     // 导出用：与源 CSV 完全一致的原始值（组织保留下划线、布尔写 TRUE/FALSE）
@@ -985,13 +1018,10 @@
       const pop = document.getElementById('thFilterPop');
       if (pop && pop.classList.contains('open')
         && !pop.contains(e.target) && !e.target.closest('.th-filter')) closeFilter();
-      const menu = document.getElementById('dlMenu');
-      if (menu && menu.classList.contains('open')
-        && !menu.contains(e.target) && !e.target.closest('#dlBtn')) closeDownload();
     });
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { closeFilter(); closeDownload(); }
+      if (e.key === 'Escape') closeFilter();
     });
 
     window.addEventListener('scroll', positionFilter, { passive: true });
@@ -1007,40 +1037,24 @@
       return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
     }
 
-    function downloadResults(fmt) {
-      closeDownload();
+    // 只导 CSV（2026-09-24 去掉 TSV 选项）。带 UTF-8 BOM，Excel 直接打开不乱码。
+    function downloadResults() {
       if (!state.results.length) return;
-      const sep = fmt === 'tsv' ? '\t' : ',';
       const quote = v => {
         const s = String(v == null ? '' : v);
-        return (s.includes(sep) || /["\n\r]/.test(s)) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const lines = [DL_COLS.map(c => c[0]).join(sep)];
-      for (const r of state.results) lines.push(DL_COLS.map(c => quote(c[1](r))).join(sep));
-      const blob = new Blob(['\ufeff' + lines.join('\r\n')],
-        { type: (fmt === 'tsv' ? 'text/tab-separated-values' : 'text/csv') + ';charset=utf-8' });
+      const lines = [DL_COLS.map(c => c[0]).join(',')];
+      for (const r of state.results) lines.push(DL_COLS.map(c => quote(c[1](r))).join(','));
+      const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `GTOP_somatic_mutations_${dlStamp()}.${fmt}`;
+      a.download = `GTOP_somatic_mutations_${dlStamp()}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
-    }
-
-    function toggleDownload(e) {
-      if (e) e.stopPropagation();
-      const menu = document.getElementById('dlMenu');
-      const open = menu.classList.toggle('open');
-      document.getElementById('dlBtn').setAttribute('aria-expanded', String(open));
-    }
-
-    function closeDownload() {
-      const menu = document.getElementById('dlMenu');
-      if (!menu) return;
-      menu.classList.remove('open');
-      document.getElementById('dlBtn').setAttribute('aria-expanded', 'false');
     }
 
     // ============================ 排序 ============================
@@ -1121,10 +1135,16 @@
                   <i class="fa-solid fa-chart-simple"></i> Plot</button>`
             : `<button class="btn btn-sm btn-muted" type="button" title="该变异暂无覆盖度图"
                   onclick="showDetail(${idx})"><i class="fa-solid fa-chart-simple"></i> Plot</button>`;
-          const cells = COLS.map(c => `<td class="${c.cls || ''}">${cellHtml(r, c)}</td>`).join('');
-          return `<tr class="data-row" onclick="showDetail(${idx})">
+          const cells = COLS.map(c => `<td class="${c.cls || ''}">${cellHtml(r, c, idx)}</td>`).join('');
+          // 行上**不挂** onclick（2026-09-24 luo：表格不需要点击行在右侧显示信息）。
+          // 原来是 onclick="showDetail(idx)" 整行可点开右侧详情栏；去掉了。
+          // 详情栏本身还留着，只由两个「明确的」入口触发：
+          //   ① 没有覆盖度图时那个灰色 Plot 按钮；
+          //   ② 点 Regulatory Score 柱子但该行没有覆盖度图时。
+          // 两者都是用户主动点某个具体控件，不会像整行可点那样误触。
+          return `<tr class="data-row">
             ${cells}
-            <td class="col-plot" onclick="event.stopPropagation()">${plotCell}</td>
+            <td class="col-plot">${plotCell}</td>
           </tr>`;
         }).join('');
       }
@@ -1190,7 +1210,7 @@
       // 详情 = 这张表的全部 21 列
       const rows = COLS.map(c => {
         const s = cellPlain(r, c);
-        return [c.label, s === '' ? 'NA' : s];
+        return [c.label, s === '' ? '--' : s];
       });
       document.getElementById('detailBody').innerHTML = rows.map(
         ([k, v]) => `<div class="detail-row"><span class="k">${k}</span><span class="v">${escapeHtml(v)}</span></div>`
@@ -1225,6 +1245,117 @@
       document.getElementById('backToTop').classList.toggle('show', window.scrollY > 600);
     });
 
+    // ============ 列宽：按「全量数据」而不是「当前这一页」定 ============
+    // 为什么需要这个：加了列宽拖拽之后表格是 table-layout: fixed，列宽在初始化时
+    // 就写死成 px。而 initColResize 量到的是「当前这一屏」的列宽 —— 初始化时 tbody
+    // 里只有第 1 页那 10 行，于是 Gene 列只量到 75px（放得下 8 个字符）。可全量
+    // 107,852 行里 90% 的 Gene 值是 15 个字符（"ENSG00000123456"，约 135px），
+    // 翻到第 3 页就压到 Region 列上，看起来像 "ENSG00000Intron;NC" ——
+    // 就是 luo 说的「拖拽好奇怪呀，不正常」。
+    //
+    // 这里按全量数据算一遍「每列至少要放得下多宽」，交给 initColResize 当默认值
+    // （它取「实测值」和「这个值」里较大的那个）。
+    //
+    // 取 p95 而不是最大值：Chr 列 95% 的值不超过 5 个字符，但偶发 27 字符的未定位
+    // contig（"AK231-DMSO.hap1.h1tg000003l"）。为那不到 1% 把 Chr 撑到 200px 不值得，
+    // 那 1% 交给省略号兜底（鼠标悬停看完整值）。
+    //
+    // 例外是「小字典」列：像 Tissue 只有 30 个值，按 p95（13 字符）定宽会漏掉
+    // "Heart Tricuspid Valve"（21 字符），每页总有 1 格显示成 "Heart Tricuspid V…"。
+    // 这种列直接按最大值定宽，多出来的宽度很有限（Tissue 才 +35px）。
+    // 阈值 128 就是「值域小到可以按最大值来」的界线，实测只有 Tissue 受影响。
+    //
+    // 成本控制：不逐行格式化（21 列 × 107,852 行 = 226 万次 toFixed/toLocaleString，
+    // 要一两秒）。按列的类型分别走捷径，实测总共 ~55ms：
+    //   dict 列 → 值域就是字典本身，逐个量字典值（最多的是 gene 的 2.2 万项），
+    //            再用频次累积出 p95 宽度
+    //   数值列 → 定点格式下字符串长度随数值单调递增，取全量最大值格式化一次即可
+    //   bool 列 → 只有 TRUE / FALSE
+    //   Region（折行）和 Regulatory Score（柱状图）按设计定宽，跳过
+    function idealColWidths(table) {
+      // td 左右内边距各 12px，再留 2px 余量 —— 不留的话会卡在「内容盒刚好比文字
+      // 少 0.1px」这种边界上，整列全变成省略号（Gene 列就是这么被坑过一次）。
+      const PAD = 24 + 2;
+      const out = new Array(COLS.length).fill(0);
+      const firstRow = table.querySelector('tbody tr.data-row');
+      if (!firstRow) return out;
+
+      const cv = document.createElement('canvas');
+      const ctx = cv.getContext('2d');
+
+      // 用该列真实 td 的字体来量：Sample / Trinucleotide 是等宽字体，不能混用
+      const fontOf = i => {
+        const td = firstRow.children[i];
+        if (!td) return null;
+        const cs = getComputedStyle(td);
+        return cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      };
+      const wOf = (s, font) => { ctx.font = font; return ctx.measureText(s).width; };
+
+      COLS.forEach((c, i) => {
+        if (c.cls === 'col-region' || c.bar) return;   // 按设计定宽，不参与
+        const font = fontOf(i);
+        if (!font) return;
+
+        let sample = null;
+        let need = 0;               // 直接给出所需宽度时用它（dict 列走这条）
+
+        if (c.kind === 'dict') {
+          const dict = DICTS[c.k] || [];
+          const freq = new Int32Array(dict.length);
+          for (let n = 0; n < ROWS.length; n++) freq[ROWS[n][c.idx]]++;
+
+          // 把用到的每个值都真量一遍宽度（全量约 2.5 万次 measureText ≈ 40ms），
+          // 按宽度排序后用频次累积到 95%。
+          //
+          // ⚠️ 别改回「按字符数分桶、只量桶里第一个值」—— 试过，不准：
+          // 同为 15 个字符的基因名宽度能差 3~4px（"ENSG00000272438" 要 122.9px），
+          // 取到的代表值偏窄，算出来的列宽就比实际需要少 1px，于是恰好卡在
+          // 内容盒 122px vs 文字 122.9px 上，整列 Gene 全变成 "ENSG00000…"。
+          const items = [];
+          let total = 0;
+          for (let d = 0; d < dict.length; d++) {
+            const f = freq[d];
+            if (!f) continue;
+            const s = c.k === 'tissue' ? tissueLabel(dict[d]) : String(dict[d]);
+            items.push([wOf(s, font), f]);
+            total += f;
+          }
+          items.sort((a, b) => a[0] - b[0]);
+          // 小字典（≤128 个值）直接按最宽的值定 —— 像 Tissue 只有 30 个值，
+          // 按 p95 会漏掉 "Heart Tricuspid Valve"（21 字符），每页总有 1 格被截
+          let pick = items.length ? items[items.length - 1][0] : 0;
+          if (dict.length > 128 && items.length) {
+            let acc = 0;
+            const target = total * 0.95;
+            for (const [w, f] of items) { acc += f; if (acc >= target) { pick = w; break; } }
+          }
+          need = pick;
+        } else if (c.kind === 'bool') {
+          sample = 'FALSE';
+        } else if (c.kind === 'int' || c.kind === 'num') {
+          // 定点格式下字符串长度随数值单调递增，取全量最大值格式化一次就够
+          let mx = null;
+          for (let n = 0; n < ROWS.length; n++) {
+            const v = ROWS[n][c.idx];
+            if (v == null) continue;
+            if (mx == null || Math.abs(v) > Math.abs(mx)) mx = v;
+          }
+          if (mx == null) return;
+          const fake = [];
+          fake[c.idx] = mx;
+          sample = cellPlain(fake, c);
+        } else {
+          return;   // raw 列（Ref / Alt）p95 只有 1 个字符，保持实测值即可
+        }
+
+        const w = need || (sample ? wOf(sample, font) : 0);
+        if (w) out[i] = Math.ceil(w + PAD);
+      });
+
+      return out;
+    }
+
     // 用真实数据刷新统计条上的变异总数
     (function init() {
       const el = document.getElementById('statVariants');
@@ -1241,6 +1372,18 @@
       } else {
         render();
       }
+
+      // 表头列宽可拖拽（拖动改宽度，双击手柄恢复默认，记在 localStorage）
+      // 必须放在 render() 之后：这张表是 table-layout: auto，列宽由内容算出来，
+      // tbody 填好之前量到的宽度不是最终值。
+      // minColWidths 见上面 idealColWidths() 的注释 —— 它保证默认列宽是按全量
+      // 107,852 行定的，翻页不会因为第 1 页碰巧值短而溢出。
+      const tbl = document.querySelector('table.data-table');
+      initColResize(tbl, {
+        storageKey: 'gtop.cols.search',
+        minWidth: 44,
+        minColWidths: idealColWidths(tbl)
+      });
     })();
   </script>
 </body>

@@ -884,6 +884,18 @@ table.data-table tbody td {
   border-bottom: 1px solid var(--border-2);
   color: var(--text-2);
   white-space: nowrap;
+  /* 内容比列宽长时，尾部省略号，绝不压到邻列。
+     为什么必须有这两条（2026-09-24 luo 反馈「列的拖拽好奇怪呀，不正常」）：
+     加了列宽拖拽之后表格是 table-layout: fixed，列宽在初始化时就写死成 px。
+     于是有两种情况会让文字溢出到右边一列、两列的字叠在一起：
+       ① 用户把某列往窄里拖（拖 Chr 列 -60px，Chr 的值会溢出 174px）；
+       ② 没拖过也一样 —— 列宽是按「第 1 页那 10 行」量的，翻到别的页遇到更长的值
+          就溢出了。实测第 3 页的 Gene（"ENSG00000123456"）压在 Region 上，
+          看起来像 "ENSG00000Intron;NC"。
+     加了 overflow: hidden 之后溢出被裁掉，text-overflow 再把裁掉的部分换成 "…"。
+     配合下面「列宽按全量数据定」，默认状态下几乎不会真的出现省略号。 */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 table.data-table tbody tr:last-child td {
@@ -909,9 +921,42 @@ td.col-mono {
   font-size: 12.5px;
 }
 
-/* 复合值列（Region 常是 "Intergenic;Enhancer;Open chromatin" 这种） */
-td.col-region {
-  max-width: 240px;
+/* 复合值列（Region 常是 "Intergenic;Enhancer;Open chromatin" 这种，最长 71 字符）
+   选择器必须带 table.data-table tbody 前缀，不能只写 td.col-region：
+   下面那条 `table.data-table tbody td { white-space: nowrap }` 的特异性是
+   (0,1,3)，而 `td.col-region` 只有 (0,1,1) —— 之前就是被它压掉了 normal。
+   后果是超过内容盒宽度（240px 减左右各 12px 内边距 = 216px，约 34 个字符）
+   的 Region 值不折行、直接溢出到相邻列，看起来像两列的文字叠在一起。
+   全量 107,852 行里约 10% 的 Region 值超过 34 字符，最长的
+   "Missense;Splice region;Promoter;Enhancer;Open chromatin;TF;CTCF binding"
+   有 71 字符，溢出尤其明显。
+
+   还要写死 width：这张表是 table-layout: auto，一旦内容允许折行，浏览器就按
+   「最长单词宽度」（min-content）给列宽 —— 实测会塌到 81px，于是每行 Region
+   都被折成 8 行、行高从 50px 涨到 128px。写死 240px 后，约 90% 的值（≤34 字符）
+   单行放下，超长的折 2~3 行，行高最多到 ~75px。
+
+   ⚠️ 这两条只作用于「表格还是 table-layout: auto」的阶段，也就是 JS 初始化时
+   量列宽的那一次（见 assets/col-resize.js）。一旦表格切到 fixed（带上
+   .col-resizable），列宽就由表头的 px 宽度决定，这里必须撤掉 —— 否则 td 的盒子
+   会被 max-width 卡在 264px，用户把 Region 列拖宽之后单元格不跟着撑开，
+   中间留一条空白。 */
+table.data-table:not(.col-resizable) tbody td.col-region {
+  /* min-width 才是真正生效的那个：table-layout: auto 下 width 只是建议值，
+     实测只写 width:240px 会拿到 200px。上下都钉成同一个值，等于定宽。
+
+     为什么是 264px 而不是原来的 240px：264 - 24（左右各 12px 内边距）
+     = 240px 内容盒，正好放得下 35 个字符 —— 覆盖 90% 的 Region 值（p90=35）。
+     原来 240px 的盒子只有 216px 内容宽，连最常见的
+     "Upstream;Promoter;Open chromatin"（实测 219.6px）都差 3.6px，
+     而当时又被 nowrap 压着不能折行，于是文字直接溢出到相邻列 —— 就是
+     「内容太长重叠了」那个现象。现在放宽到 264px 后，90% 的值单行放下，
+     其余 10% 折 2~3 行（最长 71 字符 → 3 行，行高约 75px）。 */
+  min-width: 264px;
+  max-width: 264px;
+}
+
+table.data-table tbody td.col-region {
   white-space: normal;
   word-break: break-word;
   line-height: 1.35;
@@ -922,6 +967,70 @@ td.col-donor {
   font-weight: 600;
 }
 
+/* Regulatory Score 列：迷你柱状图 + 数值（2026-09-24 改）。
+   满格刻度是 5（p99），不是数据里的最大值 11 —— 具体原因见 index.html 里 COLS
+   那条注释。柱子按「值 / 满格刻度」线性取宽，6 以上封顶。 */
+td.col-bar {
+  color: var(--navy);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+td.col-bar .bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 柱子整体可点（点开这一行的覆盖度图，见 index.html 的 onBarClick）。
+   负外边距把可点区域向外扩一点、盖住单元格内边距，悬停高亮才不会紧贴柱子；
+   外扩的 5px 仍在 td 的 padding 里，不会被 td 的 overflow: hidden 裁掉。 */
+td.col-bar .bar-cell-click {
+  cursor: pointer;
+  margin: -3px -5px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: background .12s;
+}
+
+td.col-bar .bar-cell-click:hover {
+  background: #eef3fa;
+}
+
+td.col-bar .bar-cell-click:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+/* 轨道给一个浅底，这样 0 值也能看出「这里有个刻度」而不是一片空白。
+   高度 7px → 12px（2026-09-24 luo：柱子再粗一点）—— 7px 在 12.5px 的行高里
+   太细，值 1 和值 2 的柱子几乎看不出差别。 */
+td.col-bar .bar-track {
+  flex: 1 1 auto;
+  min-width: 30px;
+  height: 12px;
+  border-radius: 999px;
+  background: #eaeff8;
+  overflow: hidden;
+}
+
+td.col-bar .bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7fb0ee, #2f6fd0);
+}
+
+td.col-bar .bar-cell-click:hover .bar-track i {
+  background: linear-gradient(90deg, #6ba4ea, #245fc0);
+}
+
+td.col-bar .bar-num {
+  flex: 0 0 auto;
+  min-width: 14px;
+  text-align: right;
+}
+
 /* Gene 列：基因名长短差很多，超长时省略号 + title 提示 */
 td.col-gene {
   color: var(--text-2);
@@ -929,7 +1038,14 @@ td.col-gene {
 
 td.col-gene span {
   display: inline-block;
-  max-width: 92px;
+  /* ⚠️ 必须写 100%，不能写死 px。
+     原来写的是 max-width: 92px —— 那是 Gene 列还只有 75px 宽时定的上限。
+     后来列宽改成按全量数据定（150px），这个 92px 却把 span 卡死了：
+     DOM 上 td.clientWidth=150 而 span 只有 92px，文字照样显示成 "ENSG00000…"，
+     用户把列拖宽也没用 —— 就是 luo 说的「列的拖拽好奇怪呀，不正常」。
+     改成 100% 之后 span 跟着单元格走，超出部分由 td 自己的
+     overflow: hidden + text-overflow: ellipsis 兜底。 */
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1116,56 +1232,9 @@ th.has-filter {
   flex-wrap: wrap;
 }
 
-.dl-wrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.dl-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 120;
-  display: none;
-  min-width: 168px;
-  padding: 5px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-pop);
-}
-
-.dl-menu.open {
-  display: block;
-}
-
-.dl-menu button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  width: 100%;
-  padding: 7px 10px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  background: none;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.dl-menu button:hover {
-  background: var(--soft);
-}
-
-.dl-note {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted-2);
-}
+/* 下载菜单的样式（.dl-wrap / .dl-menu / .dl-note）已于 2026-09-24 删除：
+   首页的 Download 只导 CSV 之后改成了「按钮直接下载」，
+   原先那个 CSV / TSV 二选一的下拉菜单连同 toggleDownload()/closeDownload() 一起移除。 */
 
 /* 分页 */
 .pagination {
@@ -1508,12 +1577,19 @@ table.data-list {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
-  /* 1112px = 9 列「永不折行」所需的总宽（含内边距），比最宽布局的可用宽度
-     （1440 版心下 .table-wrap 内宽 1116px）小 4px，所以最宽时刚好填满、不出滚动条；
-     视口更窄时不再压缩列宽（那会让 File / UUID 折行、每行从 41px 撑到 59px），
+  /* 1060px = 9 列的最小可读宽度，比最宽布局的可用宽度
+     （1440 版心下 .table-wrap 内宽 1116px）小 56px，所以最宽时表格撑满、不出滚动条；
+     视口更窄时不再压缩列宽（那会让 UUID 折行、每行从 41px 撑到 53px），
      而是让 .table-wrap 横向滚动 —— 与首页搜索表 min-width:2180px 的做法一致。
-     改列宽百分比时，这个下限要跟着一起复核。 */
-  min-width: 1112px;
+     这个下限比上一版的 1112px 少了 52px：File 列从 26% 收到 17.3%（尾部省略号兜底），
+     不再需要为 40 字符的 *.liftover.chain 预留整列宽度。
+
+     ⚠️ 这个下限和表头那组百分比是**互相咬合**的：各列百分比 × 1060px 必须
+     不小于该列「不折行 / 不溢出」所需的最小宽度，否则窄屏下会溢出。
+     当前（×1060px）：Lock 64.7（需 63.2）· UUID 251.2（需 248，折行会撑高行高）。
+     改任何一边都要把另一边重算一遍 —— 2026-09-24 就是把下限从 1112 降到 1045
+     却没同步校准，结果 1280/1120/980 三个宽度下 UUID 折行、行高 41→53px。 */
+  min-width: 1060px;
   table-layout: fixed;
 }
 
@@ -1537,6 +1613,21 @@ table.data-list thead th .sort-i {
   color: #98a4bd;
 }
 
+/* 可排序表头的鼠标指针 + 悬停底色。
+   2026-09-24 补：首页搜索表（table.data-table）一直有这两条，
+   Data Portal 的 table.data-list 漏了 —— 于是鼠标移到 File / Donor 这些表头上
+   仍是默认箭头，看起来像不可点。两张表的可排序表头现在行为一致。
+   （顺带说明：表头右边缘那 7px 是列宽拖拽手柄，它自己有 cursor: col-resize，
+   优先级更高，不会跟这里的 pointer 打架。） */
+table.data-list thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+table.data-list thead th.sortable:hover {
+  background: #eef2fa;
+}
+
 table.data-list tbody td {
   /* 同上：横向内边距收到 8px，给 9 列留出足够的不折行余量 */
   padding: 11px 8px;
@@ -1544,13 +1635,21 @@ table.data-list tbody td {
   color: var(--text-2);
   vertical-align: middle;
   line-height: 1.42;
+  /* 与首页搜索表一致：拖窄某列时内容裁掉 + 尾部省略号，不要压到邻列。
+     （File 列本来就有自己的省略号规则，见下面的 .with-uuid td.cell-file a） */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 table.data-list tbody tr:hover td {
   background: #fafbfe;
 }
 
-td.cell-file {
+/* 这个 200px 上限只在「表格还没切到 fixed」时有意义（量列宽用）。
+   表格一旦带上 .col-resizable 就是 table-layout: fixed，列宽由表头的 px 决定，
+   再留着 max-width 就会像 Gene 列那样把单元格卡死 —— 用户把 File 列拖宽，
+   文字却不跟着长。见上面 td.col-gene span 那条注释。 */
+table.data-list:not(.col-resizable) td.cell-file {
   max-width: 200px;
 }
 
@@ -1748,17 +1847,23 @@ td.cell-size {
   background: #fff;
 }
 
-/* 文件名：完整显示，不再截断 */
+/* 文件名：单行 + 尾部省略号
+   为什么从「完整显示」改回截断：全量 7,249 个文件名里 91% 不超过 23 字符
+   （p90=23），只有 5.6% 是 36~40 字符的 *.liftover.chain。为了这 5.6%
+   让整列保持 290px，代价是其余 94% 的行右侧都空出 120px 左右 —— 看起来
+   就是「这列怎么这么宽」。现在 File 列收到 18%（约 201px，放得下 27 个字符），
+   超出的部分尾部省略；完整文件名仍在 <a title> 里（悬停可见），
+   点击进云端也能看到。
+   注意：改这条之前先看表头那组列宽百分比 —— File 列一宽，别的列就要跟着缩。 */
 table.data-list.with-uuid td.cell-file {
   max-width: none;
 }
 
 table.data-list.with-uuid td.cell-file a {
   display: block;
-  overflow: visible;
-  white-space: normal;
-  word-break: break-all;
-  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* UUID 列：36 字符放不下，按连字符折成两行 */
@@ -2229,9 +2334,14 @@ table.dm-table thead th.dm-colhead.dm-on {
   border-color: #c6cee6;
 }
 
-/* 整行可点击查看详情 */
+/* 结果行不再整行可点（2026-09-24 luo：表格不需要点击行在右侧显示信息）。
+   原来这里写的是 cursor: pointer + <tr onclick="showDetail(...)">，整行点哪儿
+   都会弹出右侧详情栏 —— 想选中单元格里的文字、或者拖到一半松手，都会误触。
+   现在光标恢复默认，行上也没有 onclick。
+   注意：这里只删掉了「行」这个入口，右侧详情栏（.detail-drawer）本身还在，
+   仍由「没有覆盖度图时的 Plot 按钮」和「点柱子但没图」两个明确入口触发。 */
 tr.data-row {
-  cursor: pointer;
+  cursor: default;
 }
 
 td.col-plot {
@@ -2552,4 +2662,56 @@ td.col-plot {
   .donor-banner {
     min-height: 190px;
   }
+}
+
+/* ============================== 列宽拖拽 ==============================
+   配合 assets/col-resize.js。手柄绝对定位在表头右边缘，平时不可见，
+   鼠标移上去才显示一条竖线 —— 避免在密集的表头里增加视觉噪音。
+   表格一旦带上 .col-resizable 就是 table-layout: fixed（拖拽稳定性的前提），
+   具体原因见 col-resize.js 文件头。 */
+.col-resizable {
+  table-layout: fixed;
+}
+
+th.th-resizable {
+  position: relative;
+}
+
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 4;
+  user-select: none;
+  touch-action: none;
+}
+
+/* 手柄的可见部分：一条细竖线，默认透明 */
+.col-resizer::after {
+  content: '';
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: 3px;
+  width: 1px;
+  background: transparent;
+  transition: background .12s;
+}
+
+.col-resizer:hover::after,
+body.col-resizing .col-resizer:hover::after {
+  background: var(--blue);
+}
+
+/* 拖拽过程中：整页保持 col-resize 光标，并禁掉文字选中 */
+body.col-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.col-resizing * {
+  cursor: col-resize !important;
 }

@@ -620,6 +620,29 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
 （`dmOpen` 的声明必须早于 `renderFilters()`，否则踩 TDZ）；重画前记下
 `.dm-scroll` 的 `scrollTop/scrollLeft` 并在画完后还原。
 
+**列宽**（2026-09-25 修，luo：「data matrix 的第一列是不是太宽了」）：是。实测第一列
+**570px**，而它最长的一条内容（`Heart Tricuspid Valve`）只要 130.8px，421px 是纯浪费。
+
+原因在 **auto 布局的分配规则**：`table.dm-table { width: 100% }`（1116px）、4 列，
+多余空间按各列 **max-content 的比例**摊给各列。第一列的 max-content 是 168px（行头文字），
+另外三列各约 45px —— 比例约 3.7 : 1 : 1 : 1，于是第一列独吞了 570px。
+给它单加 `max-width` 没用（auto 布局下 td/th 的 `max-width` 不可靠），
+只能换成 **`table-layout: fixed`**、把第一列的宽度写死。
+
+- `table.dm-table` 加 `table-layout: fixed`；`.dm-corner` / `.dm-rowhead` 写死
+  `width: 168px`（原本就有 `min-width: 168px`，但 auto 布局不认它，现在才真正生效）
+- fixed 布局下**没给出宽度的列平分剩下的空间**，所以后三列自动变成
+  `(1116 − 168) / 3 = 316px`，三列等宽
+- 表格仍然 `width: 100%`、仍然填满面板 —— 试过「按内容收缩」（表格 433px，右半边空一大片）
+  和「限宽 720px 居中 / 左对齐」（居中和面板标题 `Data Matrix` 对不齐；左对齐右边留白 396px），
+  都不如填满
+- `.dm-rowhead button` 补了 `max-width: 100% + text-overflow: ellipsis` 兜底：
+  fixed 布局下列宽不会自己撑开，万一将来出现更长的组织名就截断，而不是溢出压到热力格上。
+  当前 33 个组织名最长 118.8px、列内可用 156px，用不到这条
+
+实测（视口 1600 / 1440 / 1280 / 1024）：第一列恒为 168px、余量 37.2px、无截断；
+后三列随面板宽度平分（316 / 316 / 268 / 185px）；行高恒为 25.4px × 33 行；矩阵内无横向滚动。
+
 **表格列**（9 列，`table-layout: fixed`）：`Lock | File | Donor | Tissue | Assay | Platform |
 Format | Size | UUID`。
 

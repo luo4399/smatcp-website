@@ -1969,6 +1969,22 @@ table.dm-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 11.5px;
+  /* ⚠️ 必须 table-layout: fixed，别删。
+     2026-09-25 luo：「data matrix 的第一列是不是太宽了」—— 是的，实测第一列 570px，
+     而它最长的一条内容（"Heart Tricuspid Valve"）只要 130.8px，421px 是纯浪费。
+
+     原因在 auto 布局的分配规则：table 宽 100%（1116px）、4 列，多余空间按各列
+     **max-content 的比例**摊。第一列的 max-content 是 168px（行头文字），
+     另外三列各约 45px —— 比例 3.7 : 1 : 1 : 1，于是第一列独吞了 570px。
+     光给它加 max-width 没用（auto 布局下 td/th 的 max-width 不可靠），
+     只能换成 fixed 布局、把列宽写死。
+
+     fixed 下：第一行（thead）给出宽度的列按写死的值，**没给出宽度的列平分剩下的**。
+     所以这里只需要给第一列 168px，后面三列自动平分 (1116 − 168) / 3 = 316px。
+     表格仍然 100% 宽、仍然填满面板 —— 试过「按内容收缩」（表格 433px）和
+     「限宽 720px 居中/左对齐」，前者右半边空一大片，后者和面板标题「Data Matrix」
+     对不齐或右边留白，都不如填满。 */
+  table-layout: fixed;
 }
 
 table.dm-table th,
@@ -1990,7 +2006,13 @@ table.dm-table thead th {
   font-weight: 700;
 }
 
+/* 第一列（行头）：按内容定宽。
+   实测最长的一条是 "Heart Tricuspid Valve" = 118.8px，加左右各 6px 内边距 = 130.8px；
+   表头角格 "Tissue ↓ · Assay →" = 109.2 + 12 = 121.2px。所以 168px 有 37px 余量。
+   这个 168px 原本就是这里声明的 min-width，只是 auto 布局不认它（见 table.dm-table
+   上面那段），列宽被撑到 570px。现在配合 table-layout: fixed 才真正生效。 */
 .dm-corner {
+  width: 168px;
   min-width: 168px;
   text-align: left !important;
 }
@@ -2003,6 +2025,7 @@ table.dm-table thead th {
   position: sticky;
   left: 0;
   z-index: 1;
+  width: 168px;
   min-width: 168px;
   background: #fff;
   font-weight: 500;
@@ -2020,6 +2043,15 @@ table.dm-table thead .dm-corner {
   background: none;
   border: none;
   cursor: pointer;
+  /* 兜底：fixed 布局下列宽不会自己撑开，万一将来出现比 "Heart Tricuspid Valve"
+     更长的组织名，截断加省略号，而不是溢出压到右边的热力格上。
+     （当前 33 个组织名最长 118.8px，列内可用 156px，用不到这条。）
+     保持 inline-block（不加 display: block）—— 那样按钮会铺满整格，
+     悬停下划线变成整格宽，跟现在只有文字下划线的观感不一样。 */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dm-rowhead button:hover {

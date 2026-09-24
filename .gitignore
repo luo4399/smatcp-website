@@ -33,14 +33,21 @@ somacard/tmp/
 design/*.png
 design/*.jpg
 
-# ---------- 构建产物：data/*.js ----------
-# 这三个文件都由 scripts/ 下的脚本从 data_source/ 的源表一键重建，
-# 体积大（variants_data.js 8.3 MB）且每次重建都会整体变化，
-# 入库只会让 diff 失真、clone 变慢。源表才是要长期保存的东西。
+# ---------- 构建产物：data/*.js（必须入库！）----------
+# 这三个文件由 scripts/ 下的脚本从 data_source/ 的源表重建，
 #   data/variants_data.js  ← scripts/build_variants_data.py
 #   data/genome_data.js    ← scripts/build_genome_data.py
 #   data/plots_index.js    ← scripts/build_plots_index.py
-data/*.js
+#
+# 曾经把它们当「生成物」忽略掉，结果部署直接坏掉：Render 那条链
+# （Procfile → gunicorn server.server:app）是**从 git 拉代码**的，
+# clone 出来根本没有 data/ 目录，首页搜索表和 Data Portal 全都没数据。
+# 更坑的是 /data/variants_data.js 会命中 serve_static 的回落逻辑，
+# 返回 200 但内容是 index.html —— 只看状态码发现不了。
+#
+# 所以：**不要忽略它们**。改了源表就重新生成并一起提交。
+# 代价是每次数据更新都会往 git 历史里加一个 8.3 MB 的 blob。
+# 自查方式：git clone 到临时目录，跑 check_refs.py，应为 0 断链。
 
 # ---------- 发布用快照目录 ----------
 # publish/ 是给「发布为应用」用的纯净副本：只放站点公开文件，

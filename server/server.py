@@ -180,9 +180,13 @@ def annotate():
 
 @app.route("/<path:path>", methods=["GET"])
 def serve_static(path):
-    file_path = os.path.join(PROJECT_DIR, path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return send_from_directory(PROJECT_DIR, path)
+    # 页面在 src/，静态资源（assets/、data/）在项目根 —— 两个位置都要找。
+    # 以前只从项目根找，页面挪进 src/ 之后 /somatic-data.html 这类地址就找不到文件、
+    # 直接回落到首页，表现为「导航点哪个链接都只回到首页」。
+    # send_from_directory 自身会挡掉越权路径（.. 之类），这里不用额外校验。
+    for base in (PROJECT_DIR, SRC_DIR):
+        if os.path.isfile(os.path.join(base, path)):
+            return send_from_directory(base, path)
     return send_from_directory(SRC_DIR, "index.html")
 
 

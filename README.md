@@ -129,6 +129,23 @@ journalctl --user -u somacard-api -f                 # 查看日志
 systemctl --user restart somacard-api                 # 重启 API
 ```
 
+### Flask 应用同时托管静态站点时的路径规则
+
+`server/server.py` 除了 `/api/*`，还兜底提供整个站点（`Procfile` 里的
+`gunicorn server.server:app` 就是这种「一个端口既跑 API 又发页面」的部署方式，
+Render 的 demo 部署用的是这个）。它的静态目录有两个：
+
+- **项目根** `PROJECT_DIR` —— 放 `assets/`、`data/`
+- **页面目录** `SRC_DIR = PROJECT_DIR/src` —— 放 5 个 `.html`
+
+`serve_static()` 会**先查项目根、再查 `src/`**，两处都没有才回落到 `src/index.html`。
+
+> ⚠️ **重构时必须同步改这里。** 2026-09-24 把页面从仓库根挪进 `src/` 之后，
+> 这个函数一度只查项目根，于是 `/somatic-data.html` 之类的地址找不到文件、直接回落首页
+> —— 表现是「导航点哪个链接都只回到首页」，而且 HTTP 状态码仍是 200，光看状态码发现不了。
+> 验证方式：`curl -s <host>/somatic-data.html | grep -o '<title>[^<]*'`，
+> 标题必须是 `Somatic Mosaicism Data Portal — GTOP` 而不是首页标题。
+
 ## 发布为公开链接
 
 站点可以发布成一个公开链接（用「发布为应用」）。发布对象是 **`publish/` 这个纯净快照目录**，

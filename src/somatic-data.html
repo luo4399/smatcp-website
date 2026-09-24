@@ -283,6 +283,9 @@
     const expandedDonors = new Set();   // 展开了组织列表的供体
     const searches = {};                // 组内搜索词，重建面板后要还原
     let page = 1;
+    // Data Matrix 是否展开。声明放在这里而不是矩阵那一节，是因为
+    // renderFilters() 里要根据它决定要不要重画矩阵 —— 声明晚于调用会踩到 TDZ。
+    let dmOpen = false;
 
     // faceted count：某组某个值的文件数 = 满足「其它所有生效筛选」的行数。
     // 这样勾了 Tissue 之后，Donor 列表里还剩多少人一目了然；
@@ -378,6 +381,9 @@
         if (b) b.scrollTop = top;
       });
       GROUPS.forEach(g => { if (searches[g.key]) searchOptions(g.key, searches[g.key]); });
+
+      // 矩阵的计数受筛选影响，筛选一变就得重画；收起时没必要画（33×2 格 + 33 行，白算）
+      if (dmOpen) renderMatrix();
     }
 
     function toggleGroup(key) {
@@ -540,7 +546,6 @@
     }
 
     // ============ Data matrix（Tissue × Assay 文件数热图）============
-    let dmOpen = false;
 
     function toggleMatrix() {
       dmOpen = !dmOpen;
@@ -550,44 +555,81 @@
       if (dmOpen) renderMatrix();
     }
 
+    // 矩阵计数用的行：应用「除 Tissue / Assay 之外」的生效筛选。
+    // 为什么把这两轴排除掉：矩阵本身就是 Tissue × Assay 的格子图，若把 Tissue 筛选也算进去，
+    // 勾一个组织之后矩阵就只剩一行 —— 既看不出别的组织还剩多少，也没法换着点。
+    // 这与左侧筛选面板的 faceted count 是同一套口径（某组的计数只受「其它组」影响）。
+    function matrixBase() {
+      const act = GROUPS.filter(g => sel[g.key].size && g.key !== 'tissue' && g.key !== 'assay');
+      const rows = act.length ? ROWS.filter(r => act.every(g => sel[g.key].has(r[g.idx]))) : ROWS;
+      return { rows, labels: act.map(g => g.label) };
+    }
+
     function renderMatrix() {
+      const { rows: base, labels } = matrixBase();
       const grid = TISSUES.map(() => ASSAYS.map(() => 0));
-      for (const r of ROWS) grid[r[3]][r[1]]++;
+      for (const r of base) grid[r[3]][r[1]]++;
       const colMax = ASSAYS.map((_, ai) => Math.max(1, ...TISSUES.map((__, ti) => grid[ti][ai])));
       const cellCls = (v, max) => (v ? `dm-cell dm-${Math.min(4, Math.max(1, Math.ceil(v / max * 4)))}` : 'dm-cell dm-0');
       const colTotal = ai => TISSUES.reduce((s, __, ti) => s + grid[ti][ai], 0);
+      const rowTotal = ti => ASSAYS.reduce((s, __, ai) => s + grid[ti][ai], 0);
+
+      const tOn = sel.tissue, aOn = sel.assay;
+
+      // 重建会丢滚动位置，先记下来（矩阵 33 行 × 420px 高，滚到中间被重置很烦）
+      const old = document.querySelector('.dm-scroll');
+      const keepTop = old ? old.scrollTop : 0;
+      const keepLeft = old ? old.scrollLeft : 0;
+
+      // 把「这些数字是在什么口径下算的」说清楚，否则很容易以为矩阵坏了
+      const notes = [];
+      if (labels.length) {
+        notes.push(`Counts cover <strong>${fmtN(base.length)}</strong> of ${fmtN(ROWS.length)} files, `
+          + `narrowed by ${labels.map(escapeHtml).join(', ')}.`);
+      }
+      if (tOn.size || aOn.size) {
+        notes.push('Tissue / Assay selections are highlighted but not applied to these counts — '
+          + 'click any cell to switch.');
+      }
 
       document.getElementById('dmBody').innerHTML = `
+        ${notes.length ? `<div class="dm-note">${notes.join(' ')}</div>` : ''}
         <div class="dm-scroll">
           <table class="dm-table">
             <thead>
               <tr>
                 <th class="dm-corner">Tissue <span class="dm-axis">↓</span> · Assay <span class="dm-axis">→</span></th>
-                ${ASSAYS.map(a => `<th class="dm-colhead">${escapeHtml(a)}</th>`).join('')}
+                ${ASSAYS.map((a, ai) => `<th class="dm-colhead${aOn.has(ai) ? ' dm-on' : ''}">${escapeHtml(a)}</th>`).join('')}
                 <th class="dm-total dm-colhead">Total</th>
               </tr>
             </thead>
             <tbody>
-              ${TISSUES.map((t, ti) => `
+              ${TISSUES.map((t, ti) => {
+                const rt = rowTotal(ti);
+                return `
                 <tr>
-                  <th class="dm-rowhead"><button type="button" onclick="matrixPick(null, ${ti})"
+                  <th class="dm-rowhead${tOn.has(ti) ? ' dm-on' : ''}${rt === 0 ? ' dm-off' : ''}"><button type="button" onclick="matrixPick(null, ${ti})"
                       title="只看 ${escapeHtml(pretty(t))}">${escapeHtml(pretty(t))}</button></th>
                   ${ASSAYS.map((a, ai) => `<td class="${cellCls(grid[ti][ai], colMax[ai])}">
                       <button type="button" onclick="matrixPick(${ai}, ${ti})"
                         title="${escapeHtml(pretty(t))} × ${escapeHtml(a)}：${fmtN(grid[ti][ai])} files"
                         >${fmtN(grid[ti][ai])}</button></td>`).join('')}
-                  <td class="dm-total">${fmtN(ASSAYS.reduce((s, __, ai) => s + grid[ti][ai], 0))}</td>
-                </tr>`).join('')}
+                  <td class="dm-total">${fmtN(rt)}</td>
+                </tr>`;
+              }).join('')}
             </tbody>
             <tfoot>
               <tr>
                 <th class="dm-rowhead">Total</th>
                 ${ASSAYS.map((a, ai) => `<td class="dm-total">${fmtN(colTotal(ai))}</td>`).join('')}
-                <td class="dm-total">${fmtN(ROWS.length)}</td>
+                <td class="dm-total">${fmtN(base.length)}</td>
               </tr>
             </tfoot>
           </table>
         </div>`;
+
+      const now = document.querySelector('.dm-scroll');
+      if (now) { now.scrollTop = keepTop; now.scrollLeft = keepLeft; }
     }
 
     function matrixPick(ai, ti) {

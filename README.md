@@ -399,6 +399,31 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
    （33 行 × 2 列，含行列合计），格子底色按列内最大值分 4 档深浅，
    点行名只看该组织、点格子只看「组织 × assay」。默认收起。
 
+**Data Matrix 与左侧筛选的联动**（2026-09-24 加）：
+
+矩阵的计数会跟随左侧筛选，但**只跟随「Tissue / Assay 之外」的筛选**（Donor / Platform / Format）。
+口径与筛选面板的 faceted count 完全一致：某组自己的计数不受该组的筛选影响。
+
+- 勾 `Donor = AJ141` → 矩阵合计从 7,249 收到 21，没有数据的组织行整行压暗
+- 勾 `Tissue = Adipose` → 矩阵合计**不变**，只是把 Adipose 那一行高亮
+
+为什么把这两轴排除掉：矩阵本身就是 Tissue × Assay 的格子图。若把 Tissue 筛选也算进计数，
+勾一个组织之后矩阵就只剩一行——既看不出别的组织还剩多少，也没法换着点。
+排除之后，矩阵始终是一张可用的「导航图」：无论当前选中了什么，都能直接点另一个格子切过去。
+
+界面上对应三处：
+
+- 面板内多一条提示条，写明「Counts cover 21 of 7,249 files, narrowed by Donor.」，
+  以及「Tissue / Assay selections are highlighted but not applied to these counts」
+- 选中的组织行 / assay 列：行头列头加浅蓝底 + 主色条 + 加粗
+  （**只加在行头列头，不动格子底色**——格子深浅是热图本身的信息量）
+- 当前口径下没有数据的组织行：整行压暗
+
+实现要点：`matrixBase()` 返回「除 Tissue / Assay 外生效筛选」命中的行；
+`renderFilters()` 末尾在 `dmOpen` 为真时调 `renderMatrix()` 重画
+（`dmOpen` 的声明必须早于 `renderFilters()`，否则踩 TDZ）；重画前记下
+`.dm-scroll` 的 `scrollTop/scrollLeft` 并在画完后还原。
+
 **表格列**（9 列，`table-layout: fixed`）：`Lock | File | Donor | Tissue | Assay | Platform |
 Format | Size | UUID`。
 

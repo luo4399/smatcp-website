@@ -1938,6 +1938,49 @@ tfoot .dm-rowhead {
   font-weight: 700;
 }
 
+/* ---- 矩阵与左侧筛选的联动 ---- */
+
+/* 提示条：说明格子里的数字是在什么口径下算出来的。
+   矩阵只跟随「Tissue / Assay 之外」的筛选，不写清楚很容易被当成算错了。 */
+.dm-note {
+  padding: 8px 12px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+  background: var(--soft);
+  border-bottom: 1px solid var(--border-2);
+}
+
+.dm-note strong {
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 当前其它筛选下没有数据的组织行：整行压暗。
+   必须排在 .dm-on 之前 —— 同一行既被选中又没数据时，选中态要赢。 */
+.dm-rowhead.dm-off,
+.dm-rowhead.dm-off button {
+  color: var(--muted-2);
+  font-weight: 400;
+}
+
+/* 左侧选中的组织行 / assay 列：主色条 + 加粗。
+   只加在行头列头上，不动格子底色 —— 格子深浅是热图本身的信息量，不能被盖掉。 */
+.dm-rowhead.dm-on {
+  background: #eaf2fd;
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.dm-rowhead.dm-on button {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+table.dm-table thead th.dm-colhead.dm-on {
+  background: #eaf2fd;
+  box-shadow: inset 0 -3px 0 var(--blue);
+}
+
 /* 数据表有 7 千多行，滚下去以后筛选栏会看不见，双栏布局下让它吸顶 */
 @media (min-width: 981px) {
   .filter-layout > aside {

@@ -152,7 +152,15 @@
                     class="fa-solid fa-sort sort-i"></i></th>
                 <th class="sortable" data-sort="donor" style="width:6%" onclick="sortList('donor')">Donor <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="tissue" style="width:14.4%" onclick="sortList('tissue')">Tissue <i
+                <!-- 列宽百分比与 assets/site.css 里 table.data-list 的 min-width:1116px
+                     是**互相咬合**的，改一边必须重算另一边，说明见 site.css。
+                     2026-09-24 第二轮：Tissue 14.4% → 12.1%（它是 9 列里余量最大的
+                     一列，实测最长值 "Pancreas Head" 只要 104px，原来占了 161px），
+                     让出来的 2.3% 给 UUID 23.7% → 26% —— UUID 字号从等宽 10.5px
+                     改成正文 12.5px 后，36 个字符从 227.6px 涨到 266.5px，
+                     23.7%（≈265px）装不下，会折成两行、行高 41 → 58.5px。
+                     26% 下 UUID 列 ≈ 290px，可用 274px，留 8px 余量。 -->
+                <th class="sortable" data-sort="tissue" style="width:12.1%" onclick="sortList('tissue')">Tissue <i
                     class="fa-solid fa-sort sort-i"></i></th>
                 <th class="sortable" data-sort="assay" style="width:7.1%" onclick="sortList('assay')">Assay <i
                     class="fa-solid fa-sort sort-i"></i></th>
@@ -162,7 +170,7 @@
                     class="fa-solid fa-sort sort-i"></i></th>
                 <th class="sortable" data-sort="size" style="width:7.3%" onclick="sortList('size')">Size <i
                     class="fa-solid fa-sort sort-i"></i></th>
-                <th class="sortable" data-sort="uuid" style="width:23.7%" onclick="sortList('uuid')">UUID <i
+                <th class="sortable" data-sort="uuid" style="width:26%" onclick="sortList('uuid')">UUID <i
                     class="fa-solid fa-sort sort-i"></i></th>
               </tr>
             </thead>

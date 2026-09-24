@@ -1577,19 +1577,31 @@ table.data-list {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
-  /* 1060px = 9 列的最小可读宽度，比最宽布局的可用宽度
-     （1440 版心下 .table-wrap 内宽 1116px）小 56px，所以最宽时表格撑满、不出滚动条；
-     视口更窄时不再压缩列宽（那会让 UUID 折行、每行从 41px 撑到 53px），
-     而是让 .table-wrap 横向滚动 —— 与首页搜索表 min-width:2180px 的做法一致。
-     这个下限比上一版的 1112px 少了 52px：File 列从 26% 收到 17.3%（尾部省略号兜底），
-     不再需要为 40 字符的 *.liftover.chain 预留整列宽度。
+  /* 1116px = 最宽布局的可用宽度（1440 版心下 .table-wrap 内宽）。
+     取「正好等于可用宽度」而不是更小，是为了让 UUID 列在最窄的情况下也放得下
+     36 个字符 —— 见下面那条咬合说明。
+     最宽时表格正好撑满、不出滚动条；视口更窄时不再压缩列宽，而是让 .table-wrap
+     横向滚动 —— 与首页搜索表 min-width:2180px 的做法一致。
 
-     ⚠️ 这个下限和表头那组百分比是**互相咬合**的：各列百分比 × 1060px 必须
-     不小于该列「不折行 / 不溢出」所需的最小宽度，否则窄屏下会溢出。
-     当前（×1060px）：Lock 64.7（需 63.2）· UUID 251.2（需 248，折行会撑高行高）。
-     改任何一边都要把另一边重算一遍 —— 2026-09-24 就是把下限从 1112 降到 1045
-     却没同步校准，结果 1280/1120/980 三个宽度下 UUID 折行、行高 41→53px。 */
-  min-width: 1060px;
+     ⚠️ 这个下限和表头那组百分比是**互相咬合**的：各列百分比 × 1116px 必须
+     不小于该列「不折行 / 不溢出」所需的最小宽度，否则窄屏下会溢出或折行。
+     当前（×1116px，实测值）：
+       Lock 68.1（需 43.8）· File 193.1（需 176，尾部省略号兜底）· Donor 67.0（需 52.4）
+       · Tissue 135.0（需 104.1）· Assay 79.2（需 68.6）· Platform 146.2（需 128.5）
+       · Format 55.8（表头文字 54.1，最紧的一列）· Size 81.5（需 61.1）
+       · UUID 290.2（需 282.5 —— 12.5px 正文下 36 字符实测 266.5 + 左右内边距 16）
+     改任何一边都要把另一边重算一遍 —— 2026-09-24 就把下限从 1112 降到 1045
+     却没同步校准，结果 1280/1120/980 三个宽度下 UUID 折行、行高 41→53px。
+
+     2026-09-24 第二轮：1060 → 1116px。UUID 列字号从等宽 10.5px 改成正文
+     12.5px 后，同样 36 个字符从 227.6px 涨到 266.5px，1060px 下只剩 251px 装不下。
+     同时把表头百分比里的 Tissue 14.4% → 12.1%、UUID 23.7% → 26%
+     （Tissue 是 9 列里余量最大的一列：实测最长值 "Pancreas Head" 只要 104.1px，
+      而它原来有 160.7px；让出来的 2.3% ≈ 25.7px 正好给 UUID）。
+     ⚠️ 第一版只让了 1.6%（UUID 25.3%）不够：那样 UUID 列 282px、可用 266px，
+     而实测最长的那条 UUID 文字要 266.5px —— 差 0.5px，照样折行（行高 40.8 → 58.5）。
+     所以别卡在边界上，按「需要的文字宽 + 8px 余量」倒推百分比。 */
+  min-width: 1116px;
   table-layout: fixed;
 }
 
@@ -1667,7 +1679,11 @@ td.cell-file a:hover {
 }
 
 td.cell-lock {
-  color: var(--muted);
+  /* 这里原来还有一条 color: var(--muted)，**从来没生效过** —— 被
+     `table.data-list tbody td { color: var(--text-2) }` 盖掉（优先级 (0,1,3) > (0,1,1)，
+     跟书写顺序无关）。也就是说「把这列调淡一点」这个意图一直没实现，
+     删掉它像素级不变。详见 td.cell-uuid 上面那段说明。
+     font-size: 12.5px 是多余的（表格本体就是这个字号），留着无害。 */
   font-size: 12.5px;
   white-space: nowrap;
 }
@@ -1724,7 +1740,7 @@ td.cell-lock i {
 }
 
 td.cell-size {
-  color: var(--muted);
+  /* 同 td.cell-lock：原来那条 color: var(--muted) 从来没生效过，已删。 */
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1866,12 +1882,24 @@ table.data-list.with-uuid td.cell-file a {
   white-space: nowrap;
 }
 
-/* UUID 列：36 字符放不下，按连字符折成两行 */
+/* UUID 列：与表内其它列**同样的字体字号**（2026-09-24 第二轮 luo：「与其它列一致」）。
+   原来是 ui-monospace / 10.5px，比表内其它列（"Source Sans 3" / 12.5px）小两号，
+   一眼就能看出「这列的字不一样」。现在不再覆盖 font-family / font-size，
+   直接继承 table.data-list 的 12.5px 正文字体。
+
+   ⚠️ 这里删掉过两条**从来没生效过**的声明，别再写回来：
+     · color: var(--muted)   → 被 `table.data-list tbody td { color: var(--text-2) }`
+       盖掉（优先级 (0,1,3) > (0,1,1)，**跟书写顺序无关**）。也就是说这一列的颜色
+       一直就是和其它列一样的 #4b5563，「调淡一点」这个意图从来没实现过。
+     · line-height: 1.35     → 同样被 `table.data-list tbody td { line-height: 1.42 }` 盖掉。
+   （font-size 之所以能生效，是因为表格那条是 `table.data-list{font-size:12.5px}`
+   属于**继承**，继承值永远输给直接写在 td 上的规则。）
+   结论：改这一列的 color / line-height，选择器必须写成
+   `table.data-list tbody td.cell-uuid` 才有效。
+
+   word-break: break-all 留着当兜底：列宽足够时（见 table.data-list 的 min-width
+   说明）36 字符不折行；万一被拖窄，断在任意位置也比溢出好看。 */
 td.cell-uuid {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10.5px;
-  line-height: 1.35;
-  color: var(--muted);
   word-break: break-all;
 }
 
@@ -2220,107 +2248,18 @@ table.dm-table thead th.dm-colhead.dm-on {
   background: var(--blue);
 }
 
-/* 详情侧栏 */
-.detail-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(12, 39, 82, 0.42);
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.28s;
-  z-index: 300;
-}
+/* 右侧「Variant Detail」详情栏的样式已整体移除
+   （2026-09-24 第二轮 luo：「右侧详情栏不需要」）。
+   原来是 .detail-overlay / .detail-panel / .detail-head / .detail-body /
+   .detail-row / .detail-plot / .detail-note 七组规则。
+   要找回它看 git 的 be6f0ba 提交。 */
 
-.detail-overlay.open {
-  opacity: 1;
-  visibility: visible;
-}
-
-.detail-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 430px;
-  max-width: 92vw;
-  height: 100%;
-  background: #fff;
-  box-shadow: -8px 0 32px rgba(12, 39, 82, 0.16);
-  transform: translateX(100%);
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 310;
-  display: flex;
-  flex-direction: column;
-}
-
-.detail-panel.open {
-  transform: translateX(0);
-}
-
-.detail-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-}
-
-.detail-head h3 {
-  font-size: 16px;
-  color: var(--navy);
-}
-
-.detail-head button {
-  color: var(--muted);
-  font-size: 17px;
-}
-
-.detail-body {
-  padding: 20px 22px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--border-2);
-  font-size: 13.5px;
-}
-
-.detail-row .k {
-  color: var(--muted);
-}
-
-.detail-row .v {
-  color: var(--navy);
-  font-weight: 600;
-  text-align: right;
-  word-break: break-word;
-}
-
-/* 详情面板底部的覆盖度图入口 */
-.detail-plot {
-  padding: 0 22px 22px;
-  border-top: 1px solid var(--border-2);
-  padding-top: 16px;
-  margin-top: auto;
-}
-
-.detail-plot .btn {
-  width: 100%;
-  justify-content: center;
-}
-
-.detail-note {
-  display: block;
-  font-size: 12.5px;
-  color: var(--muted);
-  text-align: center;
-}
-
-/* 暂无覆盖度图的 Plot 按钮：弱化显示但保留可点击（查看变异详情） */
+/* 暂无覆盖度图的 Plot 按钮：弱化显示 + **禁用**。
+   2026-09-24 第二轮之前它是可点的，点开右侧详情栏；详情栏删掉后它只剩
+   「本行没有覆盖度图」这个提示作用，所以加 disabled —— 一个点了没反应的按钮
+   比一个灰掉的按钮更让人困惑。
+   hover 规则加了 :not(:disabled)：禁用元素在 CSS 里仍然会匹配 :hover，
+   不排除掉的话鼠标划过还是会变色，看起来像能点。 */
 .btn.btn-muted {
   background: #fff;
   color: #8d99b0;
@@ -2328,18 +2267,23 @@ table.dm-table thead th.dm-colhead.dm-on {
   box-shadow: none;
 }
 
-.btn.btn-muted:hover {
+.btn.btn-muted:not(:disabled):hover {
   background: var(--blue-soft);
   color: var(--blue);
   border-color: #c6cee6;
+}
+
+.btn.btn-muted:disabled {
+  cursor: default;
 }
 
 /* 结果行不再整行可点（2026-09-24 luo：表格不需要点击行在右侧显示信息）。
    原来这里写的是 cursor: pointer + <tr onclick="showDetail(...)">，整行点哪儿
    都会弹出右侧详情栏 —— 想选中单元格里的文字、或者拖到一半松手，都会误触。
    现在光标恢复默认，行上也没有 onclick。
-   注意：这里只删掉了「行」这个入口，右侧详情栏（.detail-drawer）本身还在，
-   仍由「没有覆盖度图时的 Plot 按钮」和「点柱子但没图」两个明确入口触发。 */
+   2026-09-24 第二轮：详情栏本身也删掉了（luo：「右侧详情栏不需要」），
+   所以表格里已经没有任何「打开右侧面板」的入口 —— 行内可点的只剩
+   Visualization 列的 Plot 按钮和 Regulatory Score 的柱子，两者都指向覆盖度图弹窗。 */
 tr.data-row {
   cursor: default;
 }

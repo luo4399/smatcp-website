@@ -262,20 +262,28 @@ COSMIC Signature | CADD | Regulatory Score | Visualization`
 - `Download` 导出的 CSV **列名与取值与源表完全一致**（`contig`/`pos`/…/`regulatory_score`），
   可直接和 `variants_website.csv` 对回去
 - 表格 `min-width: 2180px`，窄屏横向滚动（`.table-wrap` 本来就是 `overflow-x:auto`）
-- **空值统一显示成 `--`**（2026-09-24 由 `NA` 改）。改的时候三处必须同步：
-  `COLS` 里各字段的 `empty`、`cellHtml()` 的兜底、`showDetail()` 详情侧栏的兜底
+- **空值统一显示成 `--`**（2026-09-24 由 `NA` 改）。改的时候两处必须同步：
+  `COLS` 里各字段的 `empty`、`cellHtml()` 的兜底
+  （原来还有第三处 `showDetail()` 详情侧栏的兜底，详情栏已移除，见下文）
 - **表头列宽可拖拽**：拖动表头右边缘的细线即可改列宽，双击手柄恢复默认，
   调整结果记在 `localStorage` 的 `gtop.cols.search`。详见「列宽拖拽」一节
 - **`Regulatory Score` 列显示成迷你柱状图**（2026-09-24 改）：柱子按「值 ÷ 满格刻度」取宽，
   满格刻度是 **5**（p99）而不是数据里的最大值 11 —— 该列 p50=1、p90=2、p99=5，99% 的值
   都落在 0~5，若按 11 归一化，「1」只有 9% 宽，肉眼分不出高低。6~11 的 645 行（0.6%）
   统一显示满格，真实数值仍写在柱子右边。刻度写在 `COLS` 的 `bar` 字段里。
-  排序、导出、详情侧栏走的都是 `cellPlain()`，不受柱状图影响
-- **柱子整体可点，点开这一行的覆盖度图**（2026-09-24 追加）：跟最后一列那个 `Plot`
-  按钮是同一个弹窗。没有对应覆盖度图时退回详情侧栏，与 `btn-muted` 的 Plot 按钮行为一致。
+  排序、导出走的是 `cellPlain()`，不受柱状图影响
+- **柱子可点，但只在该行真有覆盖度图时可点**（2026-09-24 改，当天第二轮收紧）：
+  点柱子 = 打开这一行的覆盖度图，跟最后一列那个 `Plot` 按钮是同一个弹窗。
   实现在 `cellHtml(r, c, idx)` 的 `bar` 分支（`idx` 只在 `render()` 里传）+
-  全局的 `onBarClick(ev, el)`。`click` 仍要 `stopPropagation`：行本身虽然不再可点
-  （见下一条），但保留它成本为零，将来若给行加回别的点击行为不会被误触发
+  全局的 `onBarClick(ev, el)`。
+  - **没有覆盖度图的行，柱子是纯展示** —— 没有手型光标、没有 `role=button`/`tabindex`、
+    没有 `onclick`，`title` 也不提「点击」（只有 `Regulatory Score: 6`）。
+    全量 107,852 行里只有 8 行有图，所以绝大多数行的柱子都不可点，
+    覆盖度图的入口回到 `Visualization` 列那个 `Plot` 按钮上。
+    这么改是为了「看起来能点的东西一定点得动」
+  - 早先（同一天第一版）是**无条件可点**：没图时退回打开右侧详情栏。那条路径随详情栏一起删了
+  - `click` 仍要 `stopPropagation`：行本身虽然不再可点（见下一条），但保留它成本为零，
+    将来若给行加回别的点击行为不会被误触发
   - 柱子高度 `7px → 12px`（同一天 luo：「柱子再粗一点」）。7px 在 12.5px 的行高里太细，
     值 1 和值 2 的柱子几乎看不出差别
   - 可点区域用 `margin: -3px -5px; padding: 3px 5px` 向外扩，悬停高亮不紧贴柱子；
@@ -284,10 +292,23 @@ COSMIC Signature | CADD | Regulatory Score | Visualization`
   原来 `<tr class="data-row" onclick="showDetail(idx)">` + `tr.data-row{cursor:pointer}`，
   点行内任何位置都会弹右侧详情栏 —— 想选中单元格文字、或拖拽松手时都会误触。
   现在 `<tr>` 上**没有** `onclick`，光标恢复 `cursor: default`。
-  详情栏（`#detailPanel` / `#detailOverlay`）本身还在，只由两个**明确**的入口触发：
-  ① 没有覆盖度图时那个灰色 `Plot` 按钮；② 点 Regulatory Score 柱子但该行没有覆盖度图时。
   > 改这里时注意：`td.col-plot` 上的 `onclick="event.stopPropagation()"` 也一并删了 ——
   > 它本来是为了挡住行的 `showDetail`，行不可点之后它就没意义了
+- **右侧「Variant Detail」详情栏已整体移除**（2026-09-24 第二轮 luo：「右侧详情栏不需要」）。
+  它原来由三个入口触发，现在三条路径全关：
+  ① 点表格任意一行（上一轮已去掉）；② 没有覆盖度图时那个灰色 `Plot` 按钮
+  —— 现在按钮是 `disabled` 的，`title` 只作「该变异暂无覆盖度图」的提示；
+  ③ 点 Regulatory Score 柱子但该行没图 —— 现在没图时柱子不可点。
+  **表格里因此没有任何「打开右侧面板」的入口**，行内可点的只剩
+  `Visualization` 列的 `Plot` 按钮和 `Regulatory Score` 的柱子，两者都指向覆盖度图弹窗。
+  去掉不影响信息完整性：详情栏只是把这一行的 21 列又列了一遍，而这些列本来就在表格里。
+  - 删掉的东西：`src/index.html` 的 `#detailOverlay` / `#detailPanel` 两个元素、
+    `showDetail(i)` / `closeDetail()` 两个函数；`assets/site.css` 的
+    `.detail-overlay` / `.detail-panel` / `.detail-head` / `.detail-body` /
+    `.detail-row` / `.detail-plot` / `.detail-note` 七组规则
+  - 要找回它：`git show be6f0ba` 里有完整实现
+  - `.btn.btn-muted` 的 hover 规则加了 `:not(:disabled)` —— 禁用元素在 CSS 里**仍然会匹配
+    `:hover`**，不排除掉的话鼠标划过还是会变色，看起来像能点
 - **不再有 `Age` / `Sex` 两列** —— 它们来自 `select_sample.xlsx`，不属于这张 CSV，已移除
 
 **表头筛选**：结果表的 `Type` / `Tissue` / `Donor` 三列表头各有一个漏斗按钮，点开是勾选面板。
@@ -606,7 +627,17 @@ Format | Size | UUID`。
 - **文件名单行 + 尾部省略号**（`.with-uuid td.cell-file a` 用 `text-overflow: ellipsis`；
   完整文件名留在 `<a title>` 里，悬停可见），点击跳到云平台（`href` 指向
   `https://cloud.smart-nbc.org.cn/`，新标签页；页面上不显示裸网址）。
-- `UUID` 列在最后一列，36 字符在等宽字体下单行显示。
+- `UUID` 列在最后一列，36 字符单行显示。**字体字号与表内其它列完全一致**
+  （2026-09-24 第二轮 luo：「与其它列一致」）—— 正文 `"Source Sans 3"` / 12.5px。
+  原来是 `ui-monospace` / 10.5px，比其它列小两号，一眼能看出「这列的字不一样」。
+  > 顺带删掉了 `td.cell-uuid` 上两条**从来没生效过**的声明：`color: var(--muted)` 和
+  > `line-height: 1.35`，都被 `table.data-list tbody td` 的 `color: var(--text-2)` /
+  > `line-height: 1.42` 盖掉 —— 优先级 (0,1,3) > (0,1,1)，**跟书写顺序无关**。
+  > 同样的坑还压在 `td.cell-lock` 和 `td.cell-size` 的 `color: var(--muted)` 上，
+  > 一并删了（像素级不变）。**改这几列的 color / line-height，选择器必须写成
+  > `table.data-list tbody td.cell-x` 才有效。**
+  > （`font-size` 之所以生效，是因为表格那条是 `table.data-list{font-size:12.5px}` 属于
+  > **继承**，继承值永远输给直接写在 td 上的规则。）
 - `Size` 按 MB/GB/TB 自动换算（≥1024 MB 显示 GB，≥1024 GB 显示 TB）。
 - 除 Lock 列外每列都可点击排序（首次升序、再点降序，表头箭头同步）。
   **可排序表头是 `cursor: pointer`**（2026-09-24 补）：首页搜索表一直有这条
@@ -627,20 +658,40 @@ Format | Size | UUID`。
 
 | 列 | Lock | File | Donor | Tissue | Assay | Platform | Format | Size | UUID |
 |---|---|---|---|---|---|---|---|---|---|
-| 百分比 | 6.1% | 17.3% | 6% | 14.4% | 7.1% | 13.1% | 5% | 7.3% | 23.7% |
-| 1440 下实测 px | 66 | 193 | 67 | 161 | 79 | 146 | 56 | 81 | 265 |
+| 百分比 | 6.1% | 17.3% | 6% | 12.1% | 7.1% | 13.1% | 5% | 7.3% | 26% |
+| 1440 下实测 px | 68 | 193 | 67 | 135 | 79 | 146 | 56 | 81 | 290 |
 
 单元格横向内边距在第一次修时已从 10px 收到 8px（9 列共腾出 36px）。
 
-配套把 `table.data-list` 的 `min-width` 定为 **1060px**（略小于可用宽度 1116px，
-所以最宽布局下刚好填满、不出滚动条）。视口更窄时**不再压缩列宽**（那会让 UUID 折行、
-每行从 41px 撑到 53px），而是让 `.table-wrap` 横向滚动 —— 与首页搜索表 `min-width:2180px`
-的做法一致。
+**第三次修**（2026-09-24 第二轮）：`UUID` 字号从等宽 10.5px 改成正文 12.5px 后，
+同样 36 个字符从 227.6px 涨到 **266.5px**，原来 23.7%（≈265px）装不下，会折成两行、
+行高 41 → 58.5px。于是把 `Tissue` 从 14.4% 收到 **12.1%**、`UUID` 从 23.7% 放到 **26%**。
+选 `Tissue` 是因为它是 9 列里余量最大的一列：实测最长值 `Pancreas Head` 只要 104px，
+而它原来占 161px；让出来的 2.3%（≈25.7px）正好给 `UUID`。
 
-> ⚠️ **min-width 和表头那组百分比是互相咬合的**：各列百分比 × 1060px 必须不小于该列
-> 「不折行 / 不溢出」所需的最小宽度 —— 当前 `Lock` 64.7（需 63.2）、`UUID` 251.2（需 248）。
+> ⚠️ 第一版只让了 1.6%（`UUID` 25.3%）**不够**：那样 `UUID` 列 282px、可用 266px，
+> 而实测最长的那条 UUID 文字要 266.5px —— 差 0.5px，照样折行。
+> **别卡在边界上**，按「需要的文字宽 + 8px 余量」倒推百分比。
+
+配套把 `table.data-list` 的 `min-width` 从 1060px 提到 **1116px**
+（= 最宽布局下 `.table-wrap` 的可用宽度）。取「正好等于可用宽度」是为了让 `UUID` 列
+在最窄的情况下也放得下 36 个字符：最宽布局下表格正好填满、不出滚动条，
+视口更窄时**不再压缩列宽**，而是让 `.table-wrap` 横向滚动 ——
+与首页搜索表 `min-width:2180px` 的做法一致。
+
+> ⚠️ **min-width 和表头那组百分比是互相咬合的**：各列百分比 × 1116px 必须不小于该列
+> 「不折行 / 不溢出」所需的最小宽度。当前实测（×1116px）：
+> `Lock` 68.1（需 43.8）· `File` 193.1（需 176）· `Donor` 67.0（需 52.4）·
+> `Tissue` 135.0（需 104.1）· `Assay` 79.2（需 68.6）· `Platform` 146.2（需 128.5）·
+> `Format` 55.8（表头文字 54.1，**最紧的一列**）· `Size` 81.5（需 61.1）·
+> `UUID` 290.2（需 282.5）。
 > 2026-09-24 一度把下限从 1112 降到 1045 却没同步校准，结果 1280 / 1120 / 980 三个宽度下
 > `UUID` 折行、行高 41→53px。**改任何一边都要把另一边重算一遍。**
+
+> 📌 **已知遗留（未修，改动前就有）**：`Format` 列表头文字（含排序图标）实测要 54.1px，
+> 而列宽只有 56px、内容盒 40px —— 溢出 11px，表头会挤到右邻 `Size` 列上。
+> 改动前后逐视口量过，数值完全一致（`over: 11`），不是本轮引入的。
+> 要修的话从 `Tissue` 再让 1.3%（→ 10.8%）给 `Format`（→ 6.3%）即可，同样要重算咬合。
 
 验证方式：headless Chrome 逐页翻完 **145 页 / 7,249 行**，断言「行高恒为 41px」（单一值
 即无任何单元格折行）；1600 / 1440 / 1280 / 1120 / 980 五种宽度下均通过，
@@ -795,13 +846,16 @@ curl -X POST http://127.0.0.1:5502/api/annotate \
 
 按钮行为：命中索引 → 实心蓝色按钮，**先在页内弹窗里预览覆盖度图**，弹窗右上角可再选择
 「Open in new tab」用浏览器完整阅读器打开 PDF（缩放 / 下载 / 打印）；
-未命中 → 描边弱化的按钮，点击改为弹出该变异的详情侧栏，并提示
-`No coverage plot available for this variant.`
+未命中 → 描边弱化的按钮，**`disabled`，不可点**，`title` 只提示「该变异暂无覆盖度图」。
 
-详情侧栏底部同样有 **View coverage plot** 入口，走同一个弹窗。
-> 打开侧栏的入口 2026-09-24 改过一次：原来点表格任意一行即可打开，现在只保留
-> 「无图时的 `Plot` 按钮」和「点 Regulatory Score 柱子但没图」两个明确入口 ——
-> 原因见「Search the Atlas」一节里「结果行不再整行可点」那条。
+> 2026-09-24 第二轮之前，未命中的按钮是可点的，点了打开该变异的右侧详情栏
+> （提示 `No coverage plot available for this variant.`）。详情栏整体删掉之后，
+> 这个按钮只剩「本行没有图」的提示作用，所以改成 `disabled` ——
+> 一个点了没反应的按钮比一个灰掉的按钮更让人困惑。
+
+覆盖度图在**结果表里只有一个入口**：`Visualization` 列的蓝色 `Plot` 按钮。
+（`Regulatory Score` 的柱子是同一个弹窗的快捷方式，但只在该行真有图时才可点，
+见「Search the Atlas」一节。）
 
 #### 弹窗（Plot modal）的几点实现说明
 

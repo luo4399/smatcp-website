@@ -421,16 +421,13 @@
     </div>
   </footer>
 
-  <!-- 详情侧栏 -->
-  <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()" data-page-node-id="H9I8CpuviTijKPTem3d0EK"></div>
-  <aside class="detail-panel" id="detailPanel" data-page-node-id="usCxJ7H3ngGEH7wOgNWWBn">
-    <div class="detail-head" data-page-node-id="o1zFxgWGhHZOPOsvnI3Wpt">
-      <h3 data-page-node-id="o9XpXzAh7abZo76uQ0jbAD">Variant Detail</h3>
-      <button onclick="closeDetail()" aria-label="Close" data-page-node-id="UH0EMcpkSL6mwkUFoaPcYr"><i class="fa-solid fa-xmark" data-page-node-id="bu54Y5cRBbTLjXVQdGwiIJ"></i></button>
-    </div>
-    <div class="detail-body" id="detailBody" data-page-node-id="W4ruiP1rXY7EJGUonPkCRw"></div>
-    <div class="detail-plot" id="detailPlot" data-page-node-id="JstCpID4ueOPI0jCZ9sgbC"></div>
-  </aside>
+  <!-- 右侧「Variant Detail」详情栏已整体移除（2026-09-24 第二轮 luo：「右侧详情栏不需要」）。
+       它原来由三个入口触发，现在三条路径全部关掉：
+         ① 点表格任意一行（<tr onclick="showDetail(...)">）—— 2026-09-24 第一轮已去掉；
+         ② 没有覆盖度图时那个灰色 Plot 按钮 —— 现在按钮是 disabled 的；
+         ③ 点 Regulatory Score 柱子但该行没图 —— 现在没图时柱子不可点。
+       行内能看到的全部 21 列本来就在表格里，详情栏只是把它们又列了一遍，所以去掉不影响信息完整性。
+       要找回它：git 里 be6f0ba 这个提交仍然保留完整实现（HTML/CSS/showDetail/closeDetail）。 -->
 
   <!-- 覆盖度图弹窗：先在这里预览，再决定是否新标签页打开 -->
   <div class="plot-modal" id="plotModal" onclick="closePlotModal()" role="dialog" aria-modal="true"
@@ -498,8 +495,9 @@
       { k: 'mutation_type', label: 'Type', kind: 'dict', filter: true },
       { k: 'TiTv', label: 'Ti/Tv', kind: 'dict', filter: true },
       { k: 'trinucleotide', label: 'Trinucleotide', kind: 'dict', cls: 'col-mono' },
-      // 空值统一显示成 '--'（原来是 'NA'）。三处必须一致：
-      //   这里每个字段的 empty、cellHtml() 里的兜底、showDetail() 侧栏的兜底。
+      // 空值统一显示成 '--'（原来是 'NA'）。两处必须一致：
+      //   这里每个字段的 empty、cellHtml() 里的兜底。
+      // （2026-09-24 第二轮：原来还有第三处 showDetail() 侧栏的兜底，详情栏已移除。）
       { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: '--' },
       { k: 'region', label: 'Region', kind: 'dict', cls: 'col-region', empty: '--' },
       { k: 'sample', label: 'Sample', kind: 'dict', cls: 'col-mono' },
@@ -553,22 +551,27 @@
       if (c.k === 'gene_symbol') return `<span title="${escapeHtml(s)}">${escapeHtml(txt)}</span>`;
 
       // Regulatory Score：迷你柱状图 + 数值。满格刻度是 c.bar（见 COLS 里的说明）。
-      // 排序、导出、详情侧栏走的都是 cellPlain()，不受这里影响。
+      // 排序、导出走的都是 cellPlain()，不受这里影响。
       //
-      // 2026-09-24（luo）：柱子本身也可以点 —— 点开这一行的覆盖度图，跟最后一列
-      // 那个 Plot 按钮同一个弹窗。没有对应覆盖度图时退回详情侧栏，行为与那个
-      // btn-muted 的 Plot 按钮保持一致。click 必须 stopPropagation，
-      // 否则行的 onclick（showDetail）会跟着一起触发，两个弹层同时冒出来。
+      // 2026-09-24（luo）：柱子可以点 —— 点开这一行的覆盖度图，跟最后一列那个
+      // Plot 按钮同一个弹窗。
+      // 2026-09-24 第二轮（luo：「右侧详情栏不需要」）：**改成只有该行真有覆盖度图
+      // 时柱子才可点**。原来是无条件可点、没图时退回打开右侧详情栏 —— 那条路径
+      // 连同右侧详情栏本身一起删掉了（见 render() 与 showDetail 的移除说明）。
+      // 这么改的好处是「看起来能点的东西一定点得动」：没图的行，柱子是纯展示 ——
+      // 没有手型光标、没有 role=button、tabindex，tooltip 也不提「点击」。
+      // 代价是绝大多数行（全量 107,852 行里只有 8 行有图）柱子都不可点，
+      // 覆盖度图的入口回到 Visualization 列那个 Plot 按钮上。
       if (c.bar) {
         const v = Number(r[c.idx]) || 0;
         const pct = Math.max(0, Math.min(100, v / c.bar * 100));
+        // idx 为 null = 不在表格里（理论上不会走到，留着防御），此时一律纯展示
         const url = idx != null ? plotUrl(r) : null;
-        const clickable = idx != null;
+        const clickable = !!url;
         const attrs = !clickable ? '' :
-          ` data-i="${idx}" data-u="${url ? escapeHtml(url) : ''}"` +
-          (url ? ` data-k="${escapeHtml(plotKey(r))}" data-t="${escapeHtml(plotTitle(r))}"`
-               + ` data-s="${escapeHtml(plotSubtitle(r))}"` : '');
-        const hint = !clickable ? '' : (url ? ' · 点击查看覆盖度图' : ' · 点击查看详情');
+          ` data-u="${escapeHtml(url)}" data-k="${escapeHtml(plotKey(r))}"`
+          + ` data-t="${escapeHtml(plotTitle(r))}" data-s="${escapeHtml(plotSubtitle(r))}"`;
+        const hint = clickable ? ' · 点击查看覆盖度图' : '';
         return `<span class="bar-cell${clickable ? ' bar-cell-click' : ''}"${attrs}`
           + (clickable ? ' role="button" tabindex="0" onclick="onBarClick(event, this)"' : '')
           + ` title="${escapeHtml(c.label)}: ${escapeHtml(txt)}${hint}">`
@@ -579,11 +582,13 @@
       return escapeHtml(txt);
     }
 
-    // 点 Regulatory Score 的柱子：有覆盖度图就弹图，没有就打开详情侧栏。
+    // 点 Regulatory Score 的柱子：只在该行有覆盖度图时才会走到这里（见 cellHtml 的
+    // bar 分支 —— 没图的行柱子根本没有 onclick）。
+    // 2026-09-24 第二轮（luo：「右侧详情栏不需要」）：原来的 else 分支是
+    // `showDetail(...)`，即「没图就打开右侧详情栏」，已随详情栏一起删掉。
     function onBarClick(ev, el) {
       ev.stopPropagation();
       if (el.dataset.u) openPlot(el.dataset.u, el.dataset.t, el.dataset.s, el.dataset.k);
-      else showDetail(Number(el.dataset.i));
     }
 
     // 导出用：与源 CSV 完全一致的原始值（组织保留下划线、布尔写 TRUE/FALSE）
@@ -1133,15 +1138,20 @@
                   data-s="${escapeHtml(plotSubtitle(r))}" title="预览覆盖度图"
                   onclick="openPlot(this.dataset.u, this.dataset.t, this.dataset.s, this.dataset.k)">
                   <i class="fa-solid fa-chart-simple"></i> Plot</button>`
-            : `<button class="btn btn-sm btn-muted" type="button" title="该变异暂无覆盖度图"
-                  onclick="showDetail(${idx})"><i class="fa-solid fa-chart-simple"></i> Plot</button>`;
+            // 没图的行：按钮 disabled（2026-09-24 第二轮 luo：「右侧详情栏不需要」）。
+            // 原来这个灰色按钮是 onclick="showDetail(idx)" —— 点它打开右侧详情栏，
+            // 那是详情栏仅剩的两个入口之一。详情栏整体删掉后，这里就只剩
+            // 「本行没有覆盖度图」这个提示作用，所以不再做成可点元素：
+            // 一个点了没反应的按钮比一个灰掉的按钮更让人困惑。
+            : `<button class="btn btn-sm btn-muted" type="button" disabled
+                  title="该变异暂无覆盖度图"><i class="fa-solid fa-chart-simple"></i> Plot</button>`;
           const cells = COLS.map(c => `<td class="${c.cls || ''}">${cellHtml(r, c, idx)}</td>`).join('');
           // 行上**不挂** onclick（2026-09-24 luo：表格不需要点击行在右侧显示信息）。
-          // 原来是 onclick="showDetail(idx)" 整行可点开右侧详情栏；去掉了。
-          // 详情栏本身还留着，只由两个「明确的」入口触发：
-          //   ① 没有覆盖度图时那个灰色 Plot 按钮；
-          //   ② 点 Regulatory Score 柱子但该行没有覆盖度图时。
-          // 两者都是用户主动点某个具体控件，不会像整行可点那样误触。
+          // 右侧详情栏（.detail-panel）已整体移除（2026-09-24 第二轮 luo：右侧详情栏不需要），
+          // 所以表格里现在没有任何「打开右侧面板」的入口，行内可点的只有两处，
+          // 且都指向覆盖度图这一个弹窗：
+          //   ① 有图的行 → Visualization 列的蓝色 Plot 按钮；
+          //   ② 有图的行 → Regulatory Score 的柱子（同一个 openPlot）。
           return `<tr class="data-row">
             ${cells}
             <td class="col-plot">${plotCell}</td>
@@ -1203,40 +1213,10 @@
       render();
     }
 
-    // ============================ 详情侧栏 ============================
-    function showDetail(i) {
-      const r = state.results[i];
-      if (!r) return;
-      // 详情 = 这张表的全部 21 列
-      const rows = COLS.map(c => {
-        const s = cellPlain(r, c);
-        return [c.label, s === '' ? '--' : s];
-      });
-      document.getElementById('detailBody').innerHTML = rows.map(
-        ([k, v]) => `<div class="detail-row"><span class="k">${k}</span><span class="v">${escapeHtml(v)}</span></div>`
-      ).join('');
-
-      // 覆盖度图：有图则先在弹窗里预览（弹窗内可再新标签页打开），无图则说明原因
-      const url = plotUrl(r);
-      const plotRow = document.getElementById('detailPlot');
-      plotRow.innerHTML = url
-        ? `<button class="btn btn-primary btn-sm" type="button" data-u="${url}"
-             data-k="${plotKey(r)}" data-t="${escapeHtml(plotTitle(r))}"
-             data-s="${escapeHtml(plotSubtitle(r))}"
-             onclick="openPlot(this.dataset.u, this.dataset.t, this.dataset.s, this.dataset.k)">
-             <i class="fa-solid fa-chart-simple"></i> View coverage plot</button>`
-        : `<span class="detail-note">No coverage plot available for this variant.</span>`;
-
-      document.getElementById('detailOverlay').classList.add('open');
-      document.getElementById('detailPanel').classList.add('open');
-    }
-
-    function closeDetail() {
-      document.getElementById('detailOverlay').classList.remove('open');
-      document.getElementById('detailPanel').classList.remove('open');
-    }
-
     // ============================ 其他 ============================
+    // 2026-09-24 第二轮：原来的 showDetail(i) / closeDetail() 两个函数在这里，
+    // 负责往右侧详情栏里填「这一行的 21 列」+ 覆盖度图入口。luo：「右侧详情栏不需要」，
+    // 详情栏的 HTML / CSS / JS 一起删掉了。要找回它看 git 的 be6f0ba 提交。
     function toggleNav() {
       document.getElementById('navMenu').classList.toggle('open');
     }

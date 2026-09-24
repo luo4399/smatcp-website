@@ -1,1 +1,1 @@
-web: gunicorn somacard.server:app --bind 0.0.0.0:$PORT
+web: gunicorn server.server:app --bind 0.0.0.0:$PORT

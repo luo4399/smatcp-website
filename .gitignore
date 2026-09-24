@@ -1,0 +1,49 @@
+# ---------- macOS ----------
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---------- 本地编辑备份（*.bak-YYYYmmdd_HHMMSS） ----------
+*.bak-*
+*.orig
+
+# ---------- SomaCard 后端运行时产物 ----------
+somacard/tmp/
+
+# ---------- 编辑器 / 系统 ----------
+*.swp
+*.swo
+
+# ---------- AI 工作区（绝不能入库） ----------
+# 里面有 .workbuddy-ai/memory/，记录了服务器路径、内网地址与内部笔记。
+# 一旦提交并推到远端就等于公开，务必保持忽略。
+.workbuddy-ai/
+
+# ---------- 设计稿投放目录 ----------
+# Figma 导出的 PNG 体积大且属于过程稿，默认不入库；
+# 若要连同设计稿一起归档，删掉下面这行即可。
+design/*.png
+design/*.jpg
+
+# ---------- 构建产物：data/*.js ----------
+# 这三个文件都由 scripts/ 下的脚本从 data_source/ 的源表一键重建，
+# 体积大（variants_data.js 8.3 MB）且每次重建都会整体变化，
+# 入库只会让 diff 失真、clone 变慢。源表才是要长期保存的东西。
+#   data/variants_data.js  ← scripts/build_variants_data.py
+#   data/genome_data.js    ← scripts/build_genome_data.py
+#   data/plots_index.js    ← scripts/build_plots_index.py
+data/*.js
+
+# ---------- 发布用快照目录 ----------
+# publish/ 是给「发布为应用」用的纯净副本：只放站点公开文件，
+# 不含 .workbuddy-ai/、README.md、somacard/ 后端、废弃数据等。
+# 它是生成物，不入库；重建命令见 README「发布为公开链接」一节。
+publish/

@@ -1,0 +1,6 @@
+chrom	pos	ref	alt
+chr1	1158636	A	G
+chr2	12345	C	T
+chr7	55249071	G	A
+chr12	25398284	C	T
+chr17	7673803	C	T

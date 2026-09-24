@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse by Tissue — GTOP</title>
+  <link rel="stylesheet" href="../assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+
+<body>
+
+  <!-- ============================ 页头 ============================ -->
+  <header class="site-header">
+    <div class="topbar">
+      <div class="container">
+        <div class="topbar-inner">
+          <a href="donors.html"><span>Our Donors</span></a>
+          <a href="index.html#about"><i class="fa-regular fa-circle-info"></i><span>About</span></a>
+          <a href="#"><i class="fa-regular fa-circle-question"></i><span>Help</span></a>
+          <a href="#"><i class="fa-regular fa-envelope"></i><span>Contact</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="navbar-inner">
+        <a href="index.html" class="brand" aria-label="GTOP home">
+          <span class="brand-text">
+            <span class="brand-name"><span class="bm-g">G<svg class="bm-swirl" aria-hidden="true" viewBox="0 0 20 26">
+                  <path d="M7 1c5 4-3 7 1 12s-4 7 0 12" stroke="#3ec98a" stroke-width="1.7" fill="none"
+                    stroke-linecap="round" />
+                  <path d="M12.5 3c-4 4 2 7-2 11s3 6-1 10" stroke="#5fdfae" stroke-width="1.3" fill="none"
+                    stroke-linecap="round" opacity=".75" />
+                </svg></span>T<span class="bm-o" aria-hidden="true"><svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9.2" fill="none" stroke="#3ec98a" stroke-width="2.3" />
+                  <circle cx="12" cy="12" r="3.2" fill="#3ec98a" />
+                </svg></span>P</span>
+            <span class="brand-sub">Genotype Tissues-Plasma Omics Project</span>
+          </span>
+        </a>
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation"><i
+            class="fa-solid fa-bars"></i></button>
+        <nav class="nav-menu" id="navMenu">
+          <a href="index.html">Home</a>
+          <a href="#">Expression</a>
+          <div class="nav-drop">
+            <a href="#">QTL <i class="fa-solid fa-chevron-down"></i></a>
+            <div class="nav-drop-menu">
+              <a href="#">Small Variant</a>
+              <a href="#">Structure Variant</a>
+              <a href="#">Tandem Repeat</a>
+            </div>
+          </div>
+          <div class="nav-drop">
+            <a href="#">Analyze &amp; Tools <i class="fa-solid fa-chevron-down"></i></a>
+            <div class="nav-drop-menu">
+              <a href="somacard.html">SomaCard Annotation</a>
+              <a href="#">Genome Browser</a>
+            </div>
+          </div>
+          <div class="nav-drop">
+            <a href="index.html">Somatic Mosaicism <i class="fa-solid fa-chevron-down"></i></a>
+            <div class="nav-drop-menu">
+              <a href="somatic-data.html">Data Portal</a>
+            </div>
+          </div>
+          <a href="somatic-data.html">Download</a>
+          <a href="tissue.html" class="active">Tissue</a>
+          <a href="#">Consortium</a>
+          <a href="index.html#search" class="nav-search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ 主体 ============================ -->
+  <main class="container">
+    <nav class="breadcrumb">
+      <a href="index.html">Home</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <span>Tissue</span>
+    </nav>
+
+    <div class="page-head">
+      <h1 class="page-title">Browse by Tissue</h1>
+      <p class="page-desc">Explore somatic mutations across 30 human tissues. Select a tissue to open the atlas with
+        that tissue pre-filtered.</p>
+    </div>
+
+    <div class="tissue-grid" style="padding-bottom:60px">
+            <a class="tissue-card" href="index.html?q=Esophagus#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Esophagus.png" alt="Esophagus" loading="lazy"></span>
+        <span class="tissue-name">Esophagus</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Trachea#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Trachea.png" alt="Trachea" loading="lazy"></span>
+        <span class="tissue-name">Trachea</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Lung%20apex#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Lung_Apex.png" alt="Lung apex" loading="lazy"></span>
+        <span class="tissue-name">Lung apex</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Lung%20base#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Lung_Base.png" alt="Lung base" loading="lazy"></span>
+        <span class="tissue-name">Lung base</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Diaphragm#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Diaphragm.png" alt="Diaphragm" loading="lazy"></span>
+        <span class="tissue-name">Diaphragm</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Liver#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Liver.png" alt="Liver" loading="lazy"></span>
+        <span class="tissue-name">Liver</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Gallbladder#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Gallbladder.png" alt="Gallbladder" loading="lazy"></span>
+        <span class="tissue-name">Gallbladder</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Adrenal%20gland#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Adrenal_Gland.png" alt="Adrenal gland" loading="lazy"></span>
+        <span class="tissue-name">Adrenal gland</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Muscle#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Muscle.png" alt="Muscle" loading="lazy"></span>
+        <span class="tissue-name">Muscle</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Stomach#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Stomach.png" alt="Stomach" loading="lazy"></span>
+        <span class="tissue-name">Stomach</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Pancreas%20head#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Pancreas_Head.png" alt="Pancreas head" loading="lazy"></span>
+        <span class="tissue-name">Pancreas head</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Pancreas%20body#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Pancreas_Body.png" alt="Pancreas body" loading="lazy"></span>
+        <span class="tissue-name">Pancreas body</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Pancreas%20tail#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Pancreas_Tail.png" alt="Pancreas tail" loading="lazy"></span>
+        <span class="tissue-name">Pancreas tail</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Small%20intestine#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Small_Intestine.png" alt="Small intestine" loading="lazy"></span>
+        <span class="tissue-name">Small intestine</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Colon#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Colon.png" alt="Colon" loading="lazy"></span>
+        <span class="tissue-name">Colon</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Thoracic%20aorta#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Thoracic_Aorta.png" alt="Thoracic aorta" loading="lazy"></span>
+        <span class="tissue-name">Thoracic aorta</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Aortic%20arch#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Aortic_Arch.png" alt="Aortic arch" loading="lazy"></span>
+        <span class="tissue-name">Aortic arch</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Heart%20right%20atrium#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Heart_Right_Atrium.png" alt="Heart right atrium" loading="lazy"></span>
+        <span class="tissue-name">Heart right atrium</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Heart%20left%20atrium#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Heart_Left_Atrium.png" alt="Heart left atrium" loading="lazy"></span>
+        <span class="tissue-name">Heart left atrium</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Heart%20right%20ventricle#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Heart_Right_Ventricle.png" alt="Heart right ventricle" loading="lazy"></span>
+        <span class="tissue-name">Heart right ventricle</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Heart%20left%20ventricle#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Heart_Left_Ventricle.png" alt="Heart left ventricle" loading="lazy"></span>
+        <span class="tissue-name">Heart left ventricle</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Heart%20mitral%20valve#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Heart_Mitral_Valve.png" alt="Heart mitral valve" loading="lazy"></span>
+        <span class="tissue-name">Heart mitral valve</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Heart%20tricuspid%20valve#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Heart_Tricuspid_valve.png" alt="Heart tricuspid valve" loading="lazy"></span>
+        <span class="tissue-name">Heart tricuspid valve</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Spleen#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Spleen.png" alt="Spleen" loading="lazy"></span>
+        <span class="tissue-name">Spleen</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Skin#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Skin.png" alt="Skin" loading="lazy"></span>
+        <span class="tissue-name">Skin</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Ovary#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Ovary.png" alt="Ovary" loading="lazy"></span>
+        <span class="tissue-name">Ovary</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Uterus#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Uterus.png" alt="Uterus" loading="lazy"></span>
+        <span class="tissue-name">Uterus</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Adipose#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Adipose.png" alt="Adipose" loading="lazy"></span>
+        <span class="tissue-name">Adipose</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Common%20iliac%20artery#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Common_Iliac_Artery.png" alt="Common iliac artery" loading="lazy"></span>
+        <span class="tissue-name">Common iliac artery</span>
+      </a>
+      <a class="tissue-card" href="index.html?q=Whole%20blood#search">
+        <span class="tissue-icon"><img src="../assets/tissue/Whole_Blood.png" alt="Whole blood" loading="lazy"></span>
+        <span class="tissue-name">Whole blood</span>
+      </a>
+    </div>
+  </main>
+
+  <!-- ============================ 页脚 ============================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="brand-text">
+            <span class="brand-name"><span class="bm-g">G<svg class="bm-swirl" aria-hidden="true" viewBox="0 0 20 26">
+                  <path d="M7 1c5 4-3 7 1 12s-4 7 0 12" stroke="#3ec98a" stroke-width="1.7" fill="none"
+                    stroke-linecap="round" />
+                  <path d="M12.5 3c-4 4 2 7-2 11s3 6-1 10" stroke="#5fdfae" stroke-width="1.3" fill="none"
+                    stroke-linecap="round" opacity=".75" />
+                </svg></span>T<span class="bm-o" aria-hidden="true"><svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9.2" fill="none" stroke="#3ec98a" stroke-width="2.3" />
+                  <circle cx="12" cy="12" r="3.2" fill="#3ec98a" />
+                </svg></span>P</span>
+            <span class="brand-sub">Genotype Tissues-Plasma Omics Project</span>
+          </span>
+        </div>
+        <div class="footer-col">
+          <h5>About</h5>
+          <a href="donors.html">About GTOP</a>
+          <a href="#">Contact Us</a>
+        </div>
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <a href="#">Release History</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Publication</a>
+        </div>
+        <div class="footer-col">
+          <h5>Support</h5>
+          <a href="#">User Guide</a>
+          <a href="#">FAQ</a>
+          <a href="#">Contact Support</a>
+        </div>
+        <div class="footer-col">
+          <h5>Documentation</h5>
+          <a href="#">Lab</a>
+          <a href="somatic-data.html">Downloads</a>
+          <a href="#">Analysis Methods</a>
+        </div>
+        <div class="footer-col">
+          <h5>Follow Us</h5>
+          <div class="footer-social">
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="WeChat"><i class="fab fa-weixin"></i></a>
+            <a href="#" aria-label="Weibo"><i class="fab fa-weibo"></i></a>
+            <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>Copyright &copy; 2025 GTOP. All Rights Reserved.</span>
+        <span><i class="fa-regular fa-copyright"></i> 粤ICP备2022141747号-7</span>
+        <span><i class="fa-solid fa-shield-halved"></i> 粤公网安备44030002009440号</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function toggleNav() {
+      document.getElementById('navMenu').classList.toggle('open');
+    }
+  </script>
+</body>
+
+</html>

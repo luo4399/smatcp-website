@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Somatic Mosaicism Data Portal — GTOP</title>
+  <link rel="stylesheet" href="../assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+
+<body>
+
+  <!-- ============================ 页头 ============================ -->
+  <header class="site-header">
+    <div class="topbar">
+      <div class="container">
+        <div class="topbar-inner">
+          <a href="donors.html"><span>Our Donors</span></a>
+          <a href="index.html#about"><i class="fa-regular fa-circle-info"></i><span>About</span></a>
+          <a href="#"><i class="fa-regular fa-circle-question"></i><span>Help</span></a>
+          <a href="#"><i class="fa-regular fa-envelope"></i><span>Contact</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="navbar-inner">
+        <a href="index.html" class="brand" aria-label="GTOP home">
+          <span class="brand-text">
+            <span class="brand-name"><span class="bm-g">G<svg class="bm-swirl" aria-hidden="true" viewBox="0 0 20 26">
+                  <path d="M7 1c5 4-3 7 1 12s-4 7 0 12" stroke="#3ec98a" stroke-width="1.7" fill="none"
+                    stroke-linecap="round" />
+                  <path d="M12.5 3c-4 4 2 7-2 11s3 6-1 10" stroke="#5fdfae" stroke-width="1.3" fill="none"
+                    stroke-linecap="round" opacity=".75" />
+                </svg></span>T<span class="bm-o" aria-hidden="true"><svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9.2" fill="none" stroke="#3ec98a" stroke-width="2.3" />
+                  <circle cx="12" cy="12" r="3.2" fill="#3ec98a" />
+                </svg></span>P</span>
+            <span class="brand-sub">Genotype Tissues-Plasma Omics Project</span>
+          </span>
+        </a>
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation"><i
+            class="fa-solid fa-bars"></i></button>
+        <nav class="nav-menu" id="navMenu">
+          <a href="index.html">Home</a>
+          <a href="#">Expression</a>
+          <div class="nav-drop">
+            <a href="#">QTL <i class="fa-solid fa-chevron-down"></i></a>
+            <div class="nav-drop-menu">
+              <a href="#">Small Variant</a>
+              <a href="#">Structure Variant</a>
+              <a href="#">Tandem Repeat</a>
+            </div>
+          </div>
+          <div class="nav-drop">
+            <a href="#">Analyze &amp; Tools <i class="fa-solid fa-chevron-down"></i></a>
+            <div class="nav-drop-menu">
+              <a href="somacard.html">SomaCard Annotation</a>
+              <a href="#">Genome Browser</a>
+            </div>
+          </div>
+          <div class="nav-drop">
+            <a href="index.html" class="active">Somatic Mosaicism <i class="fa-solid fa-chevron-down"></i></a>
+            <div class="nav-drop-menu">
+              <a href="somatic-data.html">Data Portal</a>
+            </div>
+          </div>
+          <a href="somatic-data.html">Download</a>
+          <a href="tissue.html">Tissue</a>
+          <a href="#">Consortium</a>
+          <a href="index.html#search" class="nav-search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ 主体 ============================ -->
+  <main class="container">
+    <nav class="breadcrumb">
+      <a href="index.html">Home</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <span>Somatic Mosaicism Data Portal</span>
+    </nav>
+
+    <div class="page-head">
+      <h1 class="page-title">Somatic Mosaicism Data Portal</h1>
+      <div class="page-desc">
+        <p>
+          We provide raw PCR-free bulk whole-genome sequencing (WGS) data from 354 samples spanning 30 normal tissue
+          types, PacBio HiFi WGS data of whole-blood samples from 68 donors, and RNA-seq data from 1,613 samples across
+          33 tissue types, comprising a total of <span id="statFiles">7,249</span> files and
+          <span id="statSize">623.8 TB</span> of data. Together, these datasets offer a multidimensional resource for
+          characterizing somatic mosaicism, germline variations, tissue-specific transcription, and their relationships
+          across individuals and tissues. The data are hosted in a secure, access-controlled cloud environment
+          (<a href="https://cloud.smart-nbc.org.cn/" target="_blank" rel="noopener">https://cloud.smart-nbc.org.cn/</a>)
+          that supports dataset discovery and approved research use while safeguarding participant privacy.
+        </p>
+      </div>
+    </div>
+
+    <div class="filter-layout">
+      <!-- 筛选面板 -->
+      <aside>
+        <div class="filter-title-row">
+          <div class="filter-title">Filters</div>
+          <button class="filter-clear" type="button" id="clearFilters" style="display:none"
+            onclick="clearFilters()">Clear all</button>
+        </div>
+        <div id="filterGroups"></div>
+      </aside>
+
+      <!-- 数据表 -->
+      <div>
+        <!-- Data matrix：Tissue × Assay 的文件数热图（点格子直接筛选） -->
+        <div class="dm-panel" id="dmPanel">
+          <button class="dm-toggle" type="button" id="dmToggle" onclick="toggleMatrix()" aria-expanded="false"
+            aria-controls="dmBody">
+            <span><i class="fa-solid fa-table-cells"></i> Data Matrix
+              <span class="dm-hint">Tissue × Assay file counts</span></span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="dm-body" id="dmBody"></div>
+        </div>
+
+        <div class="table-wrap">
+          <!--
+            列宽用百分比而不是 px：这张表是 table-layout:fixed + width:100%，
+            没有写宽度的列会独吞全部剩余空间。以前只有 File 列没写宽度，
+            于是它拿到 422px（内容最长只要 288px），而 UUID 明明要 248px
+            却只剩 134px，被迫折成两行。
+            下面的百分比按「全量 7249 行里每列最长文本 + 内边距」分配，
+            合计 100%，每列都留了 2~6px 余量，一列都不用折行：
+              File   26.0% ← AJ221-DMSO.hap1.hg38ToDSA.liftover.chain(40 字符) 单行放得下
+              UUID   22.2% ← 36 字符 UUID 单行放得下，不再折行
+              Tissue 13.0% ← Heart Tricuspid Valve 单行放得下
+            改列宽时请保持合计 100%，否则 fixed 布局又会把余量倾斜给某一列。
+          -->
+          <table class="data-list with-uuid">
+            <thead>
+              <tr>
+                <th style="width:4.1%"><i class="fa-solid fa-lock"></i></th>
+                <th class="sortable" data-sort="file" style="width:26%" onclick="sortList('file')">File <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="donor" style="width:5.4%" onclick="sortList('donor')">Donor <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="tissue" style="width:13%" onclick="sortList('tissue')">Tissue <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="assay" style="width:6.4%" onclick="sortList('assay')">Assay <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="platform" style="width:11.8%" onclick="sortList('platform')">Platform <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="format" style="width:4.5%" onclick="sortList('format')">Format <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="size" style="width:6.6%" onclick="sortList('size')">Size <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+                <th class="sortable" data-sort="uuid" style="width:22.2%" onclick="sortList('uuid')">UUID <i
+                    class="fa-solid fa-sort sort-i"></i></th>
+              </tr>
+            </thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination with-info">
+          <span class="page-info" id="listInfo"></span>
+          <div class="page-btns" id="pageBtns"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================ 页脚 ============================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="brand-text">
+            <span class="brand-name"><span class="bm-g">G<svg class="bm-swirl" aria-hidden="true" viewBox="0 0 20 26">
+                  <path d="M7 1c5 4-3 7 1 12s-4 7 0 12" stroke="#3ec98a" stroke-width="1.7" fill="none"
+                    stroke-linecap="round" />
+                  <path d="M12.5 3c-4 4 2 7-2 11s3 6-1 10" stroke="#5fdfae" stroke-width="1.3" fill="none"
+                    stroke-linecap="round" opacity=".75" />
+                </svg></span>T<span class="bm-o" aria-hidden="true"><svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9.2" fill="none" stroke="#3ec98a" stroke-width="2.3" />
+                  <circle cx="12" cy="12" r="3.2" fill="#3ec98a" />
+                </svg></span>P</span>
+            <span class="brand-sub">Genotype Tissues-Plasma Omics Project</span>
+          </span>
+        </div>
+        <div class="footer-col">
+          <h5>About</h5>
+          <a href="donors.html">About GTOP</a>
+          <a href="#">Contact Us</a>
+        </div>
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <a href="#">Release History</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Publication</a>
+        </div>
+        <div class="footer-col">
+          <h5>Support</h5>
+          <a href="#">User Guide</a>
+          <a href="#">FAQ</a>
+          <a href="#">Contact Support</a>
+        </div>
+        <div class="footer-col">
+          <h5>Documentation</h5>
+          <a href="#">Lab</a>
+          <a href="somatic-data.html">Downloads</a>
+          <a href="#">Analysis Methods</a>
+        </div>
+        <div class="footer-col">
+          <h5>Follow Us</h5>
+          <div class="footer-social">
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="WeChat"><i class="fab fa-weixin"></i></a>
+            <a href="#" aria-label="Weibo"><i class="fab fa-weibo"></i></a>
+            <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>Copyright &copy; 2025 GTOP. All Rights Reserved.</span>
+        <span><i class="fa-regular fa-copyright"></i> 粤ICP备2022141747号-7</span>
+        <span><i class="fa-solid fa-shield-halved"></i> 粤公网安备44030002009440号</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 真实数据：由 build_genome_data.py 从 tissue_genome_data.csv 生成 -->
+  <script src="../data/genome_data.js"></script>
+  <script>
+    // ============ 数据 ============
+    // ROWS 每行 = [供体下标, 实验下标, 平台下标, 组织下标, 格式下标, 大小MB, 文件名, UUID]
+    const D = window.GDATA || { donors: [], tissues: [], assays: [], platforms: [], formats: [], rows: [] };
+    const ROWS = D.rows;
+    const DONORS = D.donors, TISSUES = D.tissues, ASSAYS = D.assays,
+      PLATFORMS = D.platforms, FORMATS = D.formats;
+
+    const CLOUD_URL = 'https://cloud.smart-nbc.org.cn/';
+
+    // 组织名在数据里是 Whole_Blood 这种下划线形式，展示时换成空格
+    const pretty = s => String(s).replace(/_/g, ' ');
+    const escapeHtml = s => String(s).replace(/[&<>"]/g,
+      c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const fmtN = n => Number(n).toLocaleString('en-US');
+
+    function fmtSize(mb) {
+      if (mb == null) return '—';
+      if (mb >= 1048576) return (mb / 1048576).toFixed(2) + ' TB';
+      if (mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
+      return mb.toFixed(1) + ' MB';
+    }
+
+    // ============ 索引 ============
+    // 供体 -> 它出现过的组织（"点开供体看组织"）；assay -> 它用过的平台
+    const DONOR_TISSUES = DONORS.map(() => new Set());
+    const ASSAY_PLATFORMS = ASSAYS.map(() => new Set());
+    ROWS.forEach(r => {
+      DONOR_TISSUES[r[0]].add(r[3]);
+      ASSAY_PLATFORMS[r[1]].add(r[2]);
+    });
+
+    // ============ 筛选面板 ============
+    // idx = ROWS 里的列下标；opts 为字典数组，选项值就是数组下标
+    const GROUPS = [
+      { key: 'tissue', label: 'Tissue', idx: 3, opts: TISSUES, open: true },
+      { key: 'donor', label: 'Donor', idx: 0, opts: DONORS, search: true, tree: true },
+      { key: 'assay', label: 'Assay', idx: 1, opts: ASSAYS },
+      { key: 'platform', label: 'Platform', idx: 2, opts: PLATFORMS },
+      { key: 'format', label: 'Format', idx: 4, opts: FORMATS }
+    ];
+    const sel = {};
+    GROUPS.forEach(g => { sel[g.key] = new Set(); });
+
+    // 各组的展开/折叠状态必须跨重建保留：以前 toggleGroup 只改 DOM class，
+    // renderFilters() 一重建就回到 g.open 的静态默认值 ——
+    // 表现就是「勾一个选项，这一组自己收起来了」。
+    const openGroups = new Set(GROUPS.filter(g => g.open).map(g => g.key));
+
+    const expandedDonors = new Set();   // 展开了组织列表的供体
+    const searches = {};                // 组内搜索词，重建面板后要还原
+    let page = 1;
+
+    // faceted count：某组某个值的文件数 = 满足「其它所有生效筛选」的行数。
+    // 这样勾了 Tissue 之后，Donor 列表里还剩多少人一目了然；
+    // 计数为 0 的选项直接不显示（选了 RNA-seq，DNBSEQ-T7 / PacBio HiFi 就自动消失）。
+    function computeCounts() {
+      const out = {};
+      GROUPS.forEach(g => { out[g.key] = new Map(); });
+      const active = GROUPS.filter(g => sel[g.key].size);
+      for (let i = 0; i < ROWS.length; i++) {
+        const r = ROWS[i];
+        for (const g of GROUPS) {
+          let ok = true;
+          for (const g2 of active) {
+            if (g2 === g) continue;
+            if (!sel[g2.key].has(r[g2.idx])) { ok = false; break; }
+          }
+          if (ok) {
+            const v = r[g.idx];
+            out[g.key].set(v, (out[g.key].get(v) || 0) + 1);
+          }
+        }
+      }
+      return out;
+    }
+
+    function optHtml(g, i, o, counts) {
+      const n = counts.get(i) || 0;
+      const on = sel[g.key].has(i);
+      if (!n && !on) return '';                       // 没有文件的选项不占位置
+      const text = escapeHtml(pretty(o));
+      const low = text.toLowerCase();
+      const box = `<input type="checkbox"${on ? ' checked' : ''}`
+        + ` onchange="toggleOpt('${g.key}', ${i}, this.checked)">`;
+
+      if (!g.tree) {
+        return `<label class="filter-opt" data-t="${low}">${box}
+            <span class="filter-opt-name">${text}</span>
+            <span class="filter-opt-n">${fmtN(n)}</span></label>`;
+      }
+
+      // Donor：前面加一个三角，点开显示这个供体有数据的组织
+      const open = expandedDonors.has(i);
+      const tis = [...DONOR_TISSUES[i]].sort((a, b) => TISSUES[a].localeCompare(TISSUES[b]));
+      return `<div class="filter-node" data-t="${low}">
+          <div class="filter-opt filter-opt-tree">
+            <button class="filter-caret" type="button" onclick="toggleDonor(event, ${i})"
+              aria-expanded="${open}" aria-label="Show tissues of ${text}">
+              <i class="fa-solid fa-chevron-right"></i></button>
+            <label class="filter-opt-label">${box}<span class="filter-opt-name">${text}</span></label>
+            <span class="filter-opt-n">${fmtN(n)}</span>
+          </div>
+          ${open ? `<div class="filter-sub">${tis.map(t => `<button type="button" class="filter-chip"
+              onclick="pickDonorTissue(${i}, ${t})" title="只看 ${text} 的 ${escapeHtml(pretty(TISSUES[t]))}"
+              >${escapeHtml(pretty(TISSUES[t]))}</button>`).join('')}</div>` : ''}
+        </div>`;
+    }
+
+    function renderFilters() {
+      // 重建会丢滚动位置和搜索词，先记下来
+      const scrolls = {};
+      document.querySelectorAll('.filter-group').forEach(fg => {
+        const b = fg.querySelector('.filter-group-body');
+        if (b) scrolls[fg.id] = b.scrollTop;
+      });
+
+      const counts = computeCounts();
+
+      // 标题括号里的数字必须跟下面「实际列出的选项数」一致。
+      // 以前取的是固定的 g.opts.length（选项总数），于是勾了 Tissue 之后
+      // Donor 组下面只剩 1 个人、标题却还写着 Donor (160)，标题和列表对不上。
+      // 判定条件与 optHtml 里「渲染 or 跳过」的条件保持同一套：
+      //   计数 > 0（还有文件）或者 已勾选（要留着让人能取消）
+      // 没有任何筛选时每个选项计数都 > 0，算出来就等于选项总数，标题外观不变。
+      const shownCount = g => g.opts.reduce((n, o, i) =>
+        n + ((counts[g.key].get(i) || sel[g.key].has(i)) ? 1 : 0), 0);
+
+      document.getElementById('filterGroups').innerHTML = GROUPS.map(g => `
+        <div class="filter-group${openGroups.has(g.key) ? '' : ' collapsed'}" id="fg-${g.key}">
+          <button class="filter-group-head" type="button" onclick="toggleGroup('${g.key}')">
+            <span>${g.label} (${shownCount(g)})${sel[g.key].size ? ` <em class="fg-sel">${sel[g.key].size}</em>` : ''}</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="filter-group-body">
+            ${g.search ? `<input class="filter-search" type="search" placeholder="Search ${g.label.toLowerCase()}…"
+                  value="${escapeHtml(searches[g.key] || '')}" aria-label="Search ${g.label}"
+                  oninput="searchOptions('${g.key}', this.value)">` : ''}
+            ${g.opts.map((o, i) => optHtml(g, i, o, counts[g.key])).join('')}
+          </div>
+        </div>`).join('');
+
+      Object.entries(scrolls).forEach(([id, top]) => {
+        const b = document.querySelector(`#${id} .filter-group-body`);
+        if (b) b.scrollTop = top;
+      });
+      GROUPS.forEach(g => { if (searches[g.key]) searchOptions(g.key, searches[g.key]); });
+    }
+
+    function toggleGroup(key) {
+      const el = document.getElementById('fg-' + key);
+      if (!el) return;
+      // toggle 返回 true 表示现在带上了 collapsed；把状态写回 openGroups，
+      // 之后任何一次 renderFilters() 重建都不会再把这一组收起来
+      if (el.classList.toggle('collapsed')) openGroups.delete(key);
+      else openGroups.add(key);
+    }
+
+    // 选项太多（Donor 160 个）时给组内搜索框用
+    function searchOptions(key, q) {
+      searches[key] = q;
+      const needle = q.trim().toLowerCase();
+      document.querySelectorAll(`#fg-${key} [data-t]`).forEach(el => {
+        el.style.display = (!needle || el.dataset.t.includes(needle)) ? '' : 'none';
+      });
+    }
+
+    function toggleDonor(e, i) {
+      e.preventDefault();
+      e.stopPropagation();
+      expandedDonors.has(i) ? expandedDonors.delete(i) : expandedDonors.add(i);
+      renderFilters();
+      renderList();
+    }
+
+    // 点供体下面的组织 chip = 直接钻到「这个供体 × 这个组织」
+    function pickDonorTissue(d, t) {
+      sel.donor = new Set([d]);
+      sel.tissue = new Set([t]);
+      page = 1;
+      renderFilters();
+      renderList();
+    }
+
+    function toggleOpt(key, i, on) {
+      on ? sel[key].add(i) : sel[key].delete(i);
+      page = 1;
+      renderFilters();
+      renderList();
+    }
+
+    const activeCount = () => GROUPS.reduce((n, g) => n + sel[g.key].size, 0);
+
+    function clearFilters() {
+      GROUPS.forEach(g => sel[g.key].clear());
+      expandedDonors.clear();
+      page = 1;
+      renderFilters();
+      renderList();
+    }
+
+    // 组内 OR，组间 AND
+    function filtered() {
+      const act = GROUPS.filter(g => sel[g.key].size);
+      if (!act.length) return ROWS.slice();
+      return ROWS.filter(r => act.every(g => sel[g.key].has(r[g.idx])));
+    }
+
+    // ============ 排序 / 分页 ============
+    const VAL = {
+      file: r => r[6].toLowerCase(),
+      donor: r => DONORS[r[0]].toLowerCase(),
+      tissue: r => TISSUES[r[3]].toLowerCase(),
+      assay: r => ASSAYS[r[1]].toLowerCase(),
+      platform: r => PLATFORMS[r[2]].toLowerCase(),
+      format: r => FORMATS[r[4]].toLowerCase(),
+      size: r => r[5],
+      uuid: r => r[7] || ''
+    };
+    const PAGE_SIZE = 50;
+    let sortKey = null, sortDir = 1;
+
+    function sortList(key) {
+      if (sortKey === key) { sortDir = -sortDir; } else { sortKey = key; sortDir = 1; }
+      page = 1;
+      renderList();
+    }
+
+    function gotoPage(p) {
+      page = p;
+      renderList();
+      const wrap = document.querySelector('.table-wrap');
+      if (wrap) window.scrollTo({ top: wrap.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' });
+    }
+
+    function pager(totalPages, cur) {
+      const out = [];
+      const btn = (p, text, state) => out.push(
+        `<button type="button"${state === 'active' ? ' class="active"' : ''}${state === 'off' ? ' disabled' : ''}` +
+        (state === 'off' || state === 'active' ? '' : ` onclick="gotoPage(${p})"`) + `>${text}</button>`);
+      const L = '<i class="fa-solid fa-angle-left"></i>', R = '<i class="fa-solid fa-angle-right"></i>';
+      const LL = '<i class="fa-solid fa-angles-left"></i>', RR = '<i class="fa-solid fa-angles-right"></i>';
+      btn(1, LL, cur === 1 ? 'off' : '');
+      btn(cur - 1, L, cur === 1 ? 'off' : '');
+      let s = Math.max(1, cur - 2), e = Math.min(totalPages, s + 4);
+      s = Math.max(1, e - 4);
+      if (s > 1) out.push('<span class="page-gap">…</span>');
+      for (let p = s; p <= e; p++) btn(p, p, p === cur ? 'active' : '');
+      if (e < totalPages) out.push('<span class="page-gap">…</span>');
+      btn(cur + 1, R, cur === totalPages ? 'off' : '');
+      btn(totalPages, RR, cur === totalPages ? 'off' : '');
+      return out.join('');
+    }
+
+    // ============ 渲染 ============
+    function renderList() {
+      const all = filtered();
+      if (sortKey) {
+        const get = VAL[sortKey];
+        all.sort((a, b) => {
+          const x = get(a), y = get(b);
+          return x < y ? -sortDir : x > y ? sortDir : 0;
+        });
+      }
+
+      const total = all.length;
+      const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (page > pages) page = pages;
+      const start = (page - 1) * PAGE_SIZE;
+      const slice = all.slice(start, start + PAGE_SIZE);
+
+      const body = document.getElementById('listBody');
+      body.innerHTML = total ? slice.map(r => {
+        const name = r[6], uuid = r[7];
+        return `<tr>
+          <td class="cell-lock"><i class="fa-solid fa-lock"></i> Lock</td>
+          <td class="cell-file"><a href="${CLOUD_URL}" target="_blank" rel="noopener"
+              title="Open ${escapeHtml(name)} in the GTOP cloud platform">${escapeHtml(name)}</a></td>
+          <td>${escapeHtml(DONORS[r[0]])}</td>
+          <td>${escapeHtml(pretty(TISSUES[r[3]]))}</td>
+          <td>${escapeHtml(ASSAYS[r[1]])}</td>
+          <td>${escapeHtml(PLATFORMS[r[2]])}</td>
+          <td>${escapeHtml(FORMATS[r[4]])}</td>
+          <td class="cell-size">${fmtSize(r[5])}</td>
+          <td class="cell-uuid" title="${escapeHtml(uuid || '')}">${escapeHtml(uuid || '—')}</td>
+        </tr>`;
+      }).join('') : `<tr class="empty-row"><td colspan="9">No files match the current filters.</td></tr>`;
+
+      // 表头排序箭头
+      document.querySelectorAll('th[data-sort] .sort-i').forEach(i => {
+        const on = i.closest('th').dataset.sort === sortKey;
+        i.className = 'fa-solid sort-i ' + (on ? (sortDir === 1 ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort');
+      });
+
+      // 计数与翻页
+      document.getElementById('listInfo').innerHTML = total
+        ? `Showing <strong>${(start + 1).toLocaleString('en-US')}–${Math.min(start + PAGE_SIZE, total).toLocaleString('en-US')}</strong>`
+        + ` of <strong>${total.toLocaleString('en-US')}</strong> files`
+        : 'No files';
+      const btns = document.getElementById('pageBtns');
+      btns.innerHTML = pages > 1 ? pager(pages, page) : '';
+
+      const clear = document.getElementById('clearFilters');
+      const n = activeCount();
+      clear.style.display = n ? '' : 'none';
+      clear.textContent = n ? `Clear all (${n})` : 'Clear all';
+    }
+
+    // ============ Data matrix（Tissue × Assay 文件数热图）============
+    let dmOpen = false;
+
+    function toggleMatrix() {
+      dmOpen = !dmOpen;
+      document.getElementById('dmPanel').classList.toggle('open', dmOpen);
+      document.getElementById('dmBody').classList.toggle('open', dmOpen);
+      document.getElementById('dmToggle').setAttribute('aria-expanded', String(dmOpen));
+      if (dmOpen) renderMatrix();
+    }
+
+    function renderMatrix() {
+      const grid = TISSUES.map(() => ASSAYS.map(() => 0));
+      for (const r of ROWS) grid[r[3]][r[1]]++;
+      const colMax = ASSAYS.map((_, ai) => Math.max(1, ...TISSUES.map((__, ti) => grid[ti][ai])));
+      const cellCls = (v, max) => (v ? `dm-cell dm-${Math.min(4, Math.max(1, Math.ceil(v / max * 4)))}` : 'dm-cell dm-0');
+      const colTotal = ai => TISSUES.reduce((s, __, ti) => s + grid[ti][ai], 0);
+
+      document.getElementById('dmBody').innerHTML = `
+        <div class="dm-scroll">
+          <table class="dm-table">
+            <thead>
+              <tr>
+                <th class="dm-corner">Tissue <span class="dm-axis">↓</span> · Assay <span class="dm-axis">→</span></th>
+                ${ASSAYS.map(a => `<th class="dm-colhead">${escapeHtml(a)}</th>`).join('')}
+                <th class="dm-total dm-colhead">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${TISSUES.map((t, ti) => `
+                <tr>
+                  <th class="dm-rowhead"><button type="button" onclick="matrixPick(null, ${ti})"
+                      title="只看 ${escapeHtml(pretty(t))}">${escapeHtml(pretty(t))}</button></th>
+                  ${ASSAYS.map((a, ai) => `<td class="${cellCls(grid[ti][ai], colMax[ai])}">
+                      <button type="button" onclick="matrixPick(${ai}, ${ti})"
+                        title="${escapeHtml(pretty(t))} × ${escapeHtml(a)}：${fmtN(grid[ti][ai])} files"
+                        >${fmtN(grid[ti][ai])}</button></td>`).join('')}
+                  <td class="dm-total">${fmtN(ASSAYS.reduce((s, __, ai) => s + grid[ti][ai], 0))}</td>
+                </tr>`).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th class="dm-rowhead">Total</th>
+                ${ASSAYS.map((a, ai) => `<td class="dm-total">${fmtN(colTotal(ai))}</td>`).join('')}
+                <td class="dm-total">${fmtN(ROWS.length)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
+    }
+
+    function matrixPick(ai, ti) {
+      sel.tissue = new Set([ti]);
+      sel.assay = (ai == null) ? new Set() : new Set([ai]);
+      page = 1;
+      renderFilters();
+      renderList();
+      const wrap = document.querySelector('.table-wrap');
+      if (wrap) window.scrollTo({ top: wrap.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' });
+    }
+
+    function toggleNav() {
+      document.getElementById('navMenu').classList.toggle('open');
+    }
+
+    // 概览数字与数据文件保持同步（HTML 里写的是当前发布版本，JS 载入后用真实统计覆盖）
+    (function fillStats() {
+      const s = window.GDATA_STATS;
+      if (!s) return;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('statFiles', s.files.toLocaleString('en-US'));
+      set('statSize', (s.totalMB / 1048576).toFixed(1) + ' TB');
+    })();
+
+    renderFilters();
+    renderList();
+  </script>
+</body>
+
+</html>

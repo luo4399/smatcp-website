@@ -1,10 +1,9 @@
 {
-    "liveServer.settings.port": 5501,
+    "liveServer.settings.port": 5503,
     "liveServer.settings.ignoreFiles": [
-        "somacard/tmp/**",
-        "somacard/*.tsv",
-        "somacard/*.txt",
-        "somacard/*.vcf"
+        "server/examples/**",
+        "data_source/**",
+        ".workbuddy-ai/**"
     ],
     "liveServer.settings.multiRootWorkspaceName": "smatcp-website"
 }

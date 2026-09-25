@@ -20,7 +20,7 @@ tissues to build the landscape of body-wide somatic mosaicism in Chinese individ
 ├── assets/                         # 静态资源（CSS / 图片 / 图标 / 字体）
 │   ├── site.css                    # 全站共享设计系统
 │   ├── col-resize.js               # 表头列宽拖拽（首页搜索表 + Data Portal 共用）
-│   ├── somatic-auth.js             # SomaCard 页的登录门（2026-09-25 从 10.6.109.183 取回，逐字节一致）
+│   ├── somatic-auth.js             # SomaCard 登录门脚本（从 10.6.109.183 取回，逐字节一致）—— 当前未启用，也不进 publish/
 │   ├── hero-bg.jpg                 # 首页英雄区背景图
 │   ├── cells-bg.jpg                # 浅色区块底纹（被 site.css 引用）
 │   ├── donors-banner.svg           # 供体页侧脸剪影横幅（由脚本生成）
@@ -175,8 +175,9 @@ cd /Users/luo/Desktop/smatcp-website
 bash scripts/build_publish.sh
 ```
 
-脚本做三件事：① 把 `assets/`、`data/` 原样拷到 `publish/`；② 把 `src/*.html` 拷到 `publish/` 根，
-并抹掉路径里的 `../` 前缀；③ 把 `data/plots_index.js` 的 `PLOT_BASE` 同步改成 `assets/plots/`。
+脚本做四件事：① 把 `assets/`、`data/` 原样拷到 `publish/`；② **删掉 `publish/assets/somatic-auth.js`**
+（登录门已停用，页面不引用它，文件里又带硬编码密码，不进公开产物）；③ 把 `src/*.html` 拷到 `publish/` 根，
+并抹掉路径里的 `../` 前缀；④ 把 `data/plots_index.js` 的 `PLOT_BASE` 同步改成 `assets/plots/`。
 最后自检产物里不再有 `../`，有就报错退出。
 
 `publish/` 只含站点公开文件（约 9 MB）：五个 HTML、`assets/`（site.css + 图片 + fontawesome +
@@ -796,7 +797,7 @@ Donor 组下面只剩 1 个人、标题却还写着 `Donor (160)`，标题和列
 - `Run Annotation` 从右卡片里挪到两卡片下方居中
 - 结果区 `annotation-results` + `Download TSV`
 - **登录门**：`assets/somatic-auth.js`（与线上逐字节一致，md5
-  `dbe37accecd4c48c9f2a46999d5346ed`）
+  `dbe37accecd4c48c9f2a46999d5346ed`）—— 取回后**已按 luo 要求停用**，见下文
 - 线上那份内联 `<style>`（约 1300 行）**原样保留**，保证视觉与线上一致
 
 **为了适配本地结构改了三处**（其余逐字未动）
@@ -816,20 +817,29 @@ Donor 组下面只剩 1 个人、标题却还写着 `Donor (160)`，标题和列
 - **`nav-component.js` 本身**没有进仓库。页面里那句
   `GtopNav.render('gtopNav', 'default', 'annotation')` 已删除
 
-**登录门怎么工作 / 怎么绕过**
+**登录门：已停用（2026-09-25 luo「取消密码登录的设置」）**
 
-`somatic-auth.js` 默认只认文件名 `somatic-annotation.html`，本地这页叫
-`somacard.html`，所以靠根元素上的 **`data-somatic-auth="required"`** 触发
-（脚本原生支持这个属性，不用改脚本）。线上没配 `window.__GOOGLE_CLIENT_ID`，
-走的是**兜底密码登录**，密码 `window.__SOMATIC_PASSWORD || 'somatic2024'`，
-页面上还会显示一条黄色「Google OAuth not configured」提示 —— 这是线上现状。
+线上那页要登录，本地这页**不设门槛，打开即用**。停用方式是「去设置、留脚本」：
 
-本地调试想跳过登录门：
+- 根元素去掉了 `data-somatic-auth="required"`，现在是普通的 `<html lang="en">`
+- 页面底部那句 `<script src="../assets/somatic-auth.js"></script>` 也去掉了
+- **脚本文件本身留在 `assets/somatic-auth.js` 没删**，要恢复只需把上面两处加回去
+  （文件顶部注释里也写了这两步）
 
-```js
-// 控制台执行后刷新
-sessionStorage.setItem('somatic_authenticated', 'true')
-```
+`build_publish.sh` 里加了一行 `rm -f publish/assets/somatic-auth.js`：
+页面已不引用它，而文件里带一个硬编码兜底密码（`DEV_PASSWORD`），
+没必要放进公开链接。**源文件仍在 `assets/`，不在发布产物里。**
+
+> 顺带记下线上那边是怎么工作的（将来要恢复时用得着）：
+> `somatic-auth.js` 默认只认文件名 `somatic-annotation.html`，本地这页叫
+> `somacard.html`，所以恢复时必须靠根元素上的 `data-somatic-auth="required"` 触发
+> （脚本原生支持这个属性，不用改脚本）。线上没配 `window.__GOOGLE_CLIENT_ID`，
+> 走的是兜底密码登录，密码 `window.__SOMATIC_PASSWORD || 'somatic2024'`，
+> 页面上还会显示一条黄色「Google OAuth not configured」提示 —— 那是线上现状。
+
+停用后的实测：`overlay: false` / `lock: false` / `authScript: false`、
+根元素属性只剩 `lang=en`、组织卡片 30、断图 0、横向溢出 0、控制台异常 0；
+全站 5 页回归全绿。
 
 或直接填密码 `somatic2024`。
 

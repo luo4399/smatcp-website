@@ -20,6 +20,12 @@ mkdir -p publish
 # ---- 静态资源：原样拷贝 ----
 cp -R assets data publish/
 
+# ---- 登录门脚本不随发布产物上线 ----
+# 2026-09-25 luo「取消密码登录的设置」后，页面已不再引用它；
+# 文件里带一个硬编码兜底密码（DEV_PASSWORD），没必要放进公开链接。
+# 源文件仍保留在 assets/somatic-auth.js，将来恢复登录门时直接引用即可。
+rm -f publish/assets/somatic-auth.js
+
 # ---- 页面：拷到发布根，去掉 ../ 前缀 ----
 for f in src/*.html; do
   sed -e 's|"\.\./assets/|"assets/|g' \

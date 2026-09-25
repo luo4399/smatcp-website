@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<!-- data-somatic-auth="required"：本页在本地叫 somacard.html，
-     而 somatic-auth.js 默认只认文件名 somatic-annotation.html，
-     所以必须用这个属性显式声明「本页需要登录」。 -->
-<html lang="en" data-somatic-auth="required">
+<!-- 登录门已停用（2026-09-25 luo：「取消密码登录的设置」）。
+     线上 somatic-annotation.html 需要登录，本地这页不设门槛，直接可用。
+     要恢复只需两步：根元素加回 data-somatic-auth="required"，
+     页面底部加回 ../assets/somatic-auth.js 那个 script 标签。
+     脚本本身仍留在 assets/somatic-auth.js（与线上逐字节一致），没有删。 -->
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -1563,8 +1565,7 @@
   <!-- BACK TO TOP -->
   <button class="back-to-top" id="backToTop" onclick="scrollToTop(event)"><i class="fas fa-arrow-up"></i></button>
 
-  <!-- AUTH GATE：本页需要登录（线上行为），开关见根元素上的 data-somatic-auth -->
-  <script src="../assets/somatic-auth.js"></script>
+  <!-- 登录门已停用，见文件顶部说明；恢复方式也写在那里 -->
 
   <script>
     // ===================== SHARED UTILITIES =====================

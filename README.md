@@ -16,10 +16,11 @@ tissues to build the landscape of body-wide somatic mosaicism in Chinese individ
 │   ├── somatic-data.html           # 数据下载门户（筛选侧栏 + Data Matrix）
 │   ├── donors.html                 # 供体信息
 │   ├── tissue.html                 # 组织浏览
-│   └── somacard.html               # SomaCard 突变注释（调 server/ 的后端 API）
+│   └── somacard.html               # SomaCard 突变注释（调 server/ 的后端 API；需登录）
 ├── assets/                         # 静态资源（CSS / 图片 / 图标 / 字体）
 │   ├── site.css                    # 全站共享设计系统
 │   ├── col-resize.js               # 表头列宽拖拽（首页搜索表 + Data Portal 共用）
+│   ├── somatic-auth.js             # SomaCard 页的登录门（2026-09-25 从 10.6.109.183 取回，逐字节一致）
 │   ├── hero-bg.jpg                 # 首页英雄区背景图
 │   ├── cells-bg.jpg                # 浅色区块底纹（被 site.css 引用）
 │   ├── donors-banner.svg           # 供体页侧脸剪影横幅（由脚本生成）
@@ -775,6 +776,72 @@ Donor 组下面只剩 1 个人、标题却还写着 `Donor (160)`，标题和列
 
 输入突变列表（TXT 或 VCF），选取组织，后端调用 `mutation_annotation.py`
 进行调控元注释和优先级打分，结果以表格展示并可下载 TSV。
+
+### 页面来源：从 10.6.109.183 取回（2026-09-25）
+
+线上 GTOP 站跑在 **10.6.109.183（主机名 mtcook）** 的
+`/media/Rome/home/luodl/website/smatcp-website`，由
+`python somacard/server.py --host 0.0.0.0 --port 8080` 托管，对外是
+`https://bioinfo.szbl.ac.cn/GTOP/`。它的 SomaCard 页 `somatic-annotation.html`
+已经迭代到 **「GTOP Somatic final v6」**（`README.txt` 记了 v4/v5/v6 三轮），
+比本地 `src/somacard.html` 新一代，所以把内容整体取回了本地。
+
+**搬回来的是什么**
+
+- `page-hero` 文案 → 线上版（`Somatic Mutation Annotation` + 新的两行说明）
+- 三步流程条 `wizard-steps`：`1 Input File / 2 Select Tissues / 3 Run & Download`
+- 两张卡片带 `STEP 1` / `STEP 2` 角标；Step 2 的组织选择从**文字按钮网格**换成
+  **带缩略图的滚动列表**（`tissue-select-card` + `Select All` / `Clear All` +
+  `N of 30 tissues selected`）
+- `Run Annotation` 从右卡片里挪到两卡片下方居中
+- 结果区 `annotation-results` + `Download TSV`
+- **登录门**：`assets/somatic-auth.js`（与线上逐字节一致，md5
+  `dbe37accecd4c48c9f2a46999d5346ed`）
+- 线上那份内联 `<style>`（约 1300 行）**原样保留**，保证视觉与线上一致
+
+**为了适配本地结构改了三处**（其余逐字未动）
+
+| 改动 | 原因 |
+|------|------|
+| `tissue/<名>.png` → `../assets/tissue/<名>.png` | 页面在 `src/`，组织图在 `assets/tissue/`（30 个名字本地全都有） |
+| CDN Font Awesome → `../assets/fontawesome/css/all.min.css` | 本地那份就是 6.5.0，与线上 CDN 同版本，图标不缺 |
+| `body { padding-top: 64px }` → `0`（共 3 处） | 线上页头是 `position:fixed` 的导航条，才需要留 64px；本地 `.site-header` 是 `position:sticky`（占位在文档流里），不归零会多 64px 空白 |
+
+**没搬的两样（有意保留本地做法）**
+
+- **页头 / 页脚**：线上用 `nav-component.js` 渲染 GTOP 导航（无工具条），
+  本地保留全站统一的 `<header class="site-header">` / `<footer class="site-footer">`，
+  否则本页会跟其它 4 页的页头长得不一样。
+  代价：线上导航里登录后的**用户 pill**（User Center / Log out）本地没有
+- **`nav-component.js` 本身**没有进仓库。页面里那句
+  `GtopNav.render('gtopNav', 'default', 'annotation')` 已删除
+
+**登录门怎么工作 / 怎么绕过**
+
+`somatic-auth.js` 默认只认文件名 `somatic-annotation.html`，本地这页叫
+`somacard.html`，所以靠根元素上的 **`data-somatic-auth="required"`** 触发
+（脚本原生支持这个属性，不用改脚本）。线上没配 `window.__GOOGLE_CLIENT_ID`，
+走的是**兜底密码登录**，密码 `window.__SOMATIC_PASSWORD || 'somatic2024'`，
+页面上还会显示一条黄色「Google OAuth not configured」提示 —— 这是线上现状。
+
+本地调试想跳过登录门：
+
+```js
+// 控制台执行后刷新
+sessionStorage.setItem('somatic_authenticated', 'true')
+```
+
+或直接填密码 `somatic2024`。
+
+**改完的实测**（1600 / 1440 / 1280 / 1024 / 768 五个视口）
+
+| 项 | 结果 |
+|---|---|
+| 组织卡片 / 图片 | 30 / 30，断图 0 |
+| 页头高度 vs hero 顶距 | 均 81px（**无 64px 空隙**，说明 padding-top 改对了） |
+| 交互 | 点卡片 → 选中 + 计数；Select All → 30；Clear All → 0；TXT/VCF 切换正常 |
+| 横向溢出 / 控制台异常 / 失败请求 | 0 / 0 / 0 |
+| 全站 5 页回归 | 溢出 0、断图 0、异常 0、失败请求 0 |
 
 ### API 接口
 

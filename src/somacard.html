@@ -1,11 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- data-somatic-auth="required"：本页在本地叫 somacard.html，
+     而 somatic-auth.js 默认只认文件名 somatic-annotation.html，
+     所以必须用这个属性显式声明「本页需要登录」。 -->
+<html lang="en" data-somatic-auth="required">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SomaCard — Mutation Annotation | GTOP</title>
+  <title>Somatic Annotation | GTOP</title>
   <link rel="stylesheet" href="../assets/fontawesome/css/all.min.css">
+  <!-- 全站共享样式：页头 / 页脚 / 按钮 / 栅格 -->
   <link rel="stylesheet" href="../assets/site.css">
   <style>
     *,
@@ -63,107 +67,14 @@
     img { max-width: 100%; display: block; }
     ul { list-style: none; }
 
+    /* 线上页头是 position:fixed 的导航条，所以留 64px；本地页头 .site-header 是
+   position:sticky（占位在文档流里），这里必须归零，否则页头和内容之间多 64px 空白。 */
+    body { padding-top: 0; }
+
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--primary-lighter); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--primary-light); }
-
-    /* ===== NAVBAR ===== */
-    .navbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 1000;
-      background: var(--primary-darker);
-      transition: var(--transition);
-    }
-    .navbar.scrolled {
-      box-shadow: var(--shadow-md);
-    }
-    .nav-inner {
-      max-width: 1320px;
-      margin: 0 auto;
-      padding: 0 40px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 64px;
-    }
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .nav-logo:hover { opacity: 0.85; }
-    .logo-icon {
-      width: 34px; height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .logo-icon svg {
-      width: 30px; height: 30px;
-      fill: var(--accent-light);
-      position: relative;
-      z-index: 1;
-    }
-    .logo-text-wrap {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.15;
-    }
-    .logo-text {
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.5px;
-    }
-    .logo-text span { color: var(--accent-light); }
-    .logo-sub {
-      font-size: 0.6rem;
-      color: rgba(255, 255, 255, 0.45);
-      font-weight: 500;
-      white-space: nowrap;
-    }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-    .nav-links a {
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
-      transition: var(--transition);
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-    }
-    .nav-links a:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.08);
-    }
-    .nav-links a.active {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.15);
-      font-weight: 600;
-    }
-    .nav-mobile-toggle {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 1.4rem;
-      color: #fff;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 8px;
-    }
 
     /* ===== BUTTONS ===== */
     .btn {
@@ -222,7 +133,7 @@
     /* ===== PAGE HERO (compact banner) ===== */
     .page-hero {
       background: linear-gradient(135deg, #0C2751 0%, #1F3864 50%, #2E5091 100%);
-      padding: 100px 40px 56px;
+      padding: 165px 40px 56px;
       text-align: center;
     }
     .page-hero-title {
@@ -245,66 +156,183 @@
     .footer {
       background: var(--bg-alt);
       color: var(--text-secondary);
-      padding: 40px 40px 24px;
+      padding: 56px 40px 24px;
       border-top: 1px solid var(--border-light);
     }
-    .footer-inner {
-      max-width: 1320px;
-      margin: 0 auto;
+    .footer-inner { max-width: 1320px; margin: 0 auto; }
+    .footer-top {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: start;
+      gap: 48px;
+      padding-bottom: 32px;
       flex-wrap: wrap;
-      gap: 20px;
     }
+    .footer-brand .logo-text-wrap { margin-bottom: 12px; }
     .footer-brand .logo-text {
       color: var(--primary-dark);
-      font-size: 1.2rem;
+      font-size: 1.4rem;
     }
     .footer-brand .logo-text span { color: var(--accent); }
     .footer-brand .logo-sub {
       color: var(--text-muted);
-      font-size: 0.72rem;
+      font-size: 0.78rem;
     }
-    .footer-copy {
+    .footer-brand p {
+      font-size: 0.82rem;
+      max-width: 300px;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+    .footer-links-group {
+      display: flex;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .footer-col h5 {
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .footer-col a {
+      display: block;
+      padding: 4px 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-light);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-bottom p {
       font-size: 0.78rem;
       color: var(--text-muted);
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
     }
+    .footer-bottom a { color: var(--text-muted); }
 
-    /* ===== SOMACARD ANNOTATION ===== */
-    .somacard-section { background: var(--bg); }
-    .somacard-container { max-width: 1100px; margin: 0 auto; }
-    .somacard-grid {
+    /* ===== STEP WIZARD ===== */
+    .wizard-section { background: var(--bg); }
+    .wizard-container { max-width: 1200px; margin: 0 auto; }
+
+    .wizard-steps {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .wizard-steps::after {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: calc(50% - 100px);
+      width: 200px;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .wizard-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+    .wizard-step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.88rem;
+      background: var(--border);
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+    .wizard-step.active .wizard-step-num {
+      background: var(--primary);
+      color: #fff;
+    }
+    .wizard-step.done .wizard-step-num {
+      background: var(--success);
+      color: #fff;
+    }
+    .wizard-step-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .wizard-step.active .wizard-step-label {
+      color: var(--primary);
+    }
+
+    .wizard-content {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 32px;
+      margin-bottom: 32px;
     }
-    .somacard-card {
+
+    .wizard-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 28px;
       box-shadow: var(--shadow-sm);
+      transition: var(--transition);
     }
-    .somacard-card h3 {
+    .wizard-card.step-highlight {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(74, 158, 206, 0.1), var(--shadow-md);
+    }
+    .wizard-card h3 {
       font-size: 1.05rem;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .somacard-card h3 i { color: var(--accent); font-size: 0.95rem; }
-    .somacard-card .card-desc {
+    .wizard-card h3 .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: var(--primary);
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .wizard-card .card-desc {
       font-size: 0.82rem;
       color: var(--text-muted);
       margin-bottom: 18px;
+      margin-left: 36px;
     }
-    .somacard-format-toggle {
+    .wizard-card h3 i { color: var(--accent); font-size: 0.95rem; }
+
+    /* Step 1: Input */
+    .format-toggle {
       display: flex;
       gap: 0;
       margin-bottom: 16px;
@@ -313,7 +341,7 @@
       overflow: hidden;
       width: fit-content;
     }
-    .somacard-format-toggle button {
+    .format-toggle button {
       padding: 8px 20px;
       font-size: 0.82rem;
       font-weight: 600;
@@ -324,16 +352,16 @@
       font-family: inherit;
       transition: var(--transition);
     }
-    .somacard-format-toggle button.active {
+    .format-toggle button.active {
       background: var(--primary);
       color: #fff;
     }
-    .somacard-format-toggle button:not(:last-child) {
+    .format-toggle button:not(:last-child) {
       border-right: 1px solid var(--border);
     }
-    .somacard-textarea {
+    .mutation-textarea {
       width: 100%;
-      min-height: 200px;
+      min-height: 220px;
       padding: 14px;
       font-size: 0.82rem;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -345,13 +373,19 @@
       transition: var(--transition);
       line-height: 1.5;
     }
-    .somacard-textarea:focus {
+    .mutation-textarea:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(74, 158, 206, 0.12);
     }
-    .somacard-file-upload { margin-bottom: 16px; }
-    .somacard-file-upload label {
+    .file-upload-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .file-upload-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -365,90 +399,24 @@
       cursor: pointer;
       transition: var(--transition);
     }
-    .somacard-file-upload label:hover {
+    .file-upload-btn:hover {
       background: var(--primary-pale);
       border-color: var(--primary);
     }
-    .somacard-file-upload input[type="file"] { display: none; }
-    .somacard-file-name {
-      display: inline-block;
-      margin-left: 10px;
+    .file-upload-row input[type="file"] { display: none; }
+    .file-name {
       font-size: 0.78rem;
       color: var(--text-muted);
-    }
-    .somacard-tissue-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      margin-bottom: 20px;
-      max-height: 320px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-    .somacard-tissue-grid::-webkit-scrollbar { width: 4px; }
-    .somacard-tissue-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    .somacard-tissue-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 7px 9px;
-      background: var(--bg-alt);
-      border: 1.5px solid var(--border-light);
-      border-radius: var(--radius-sm);
-      font-size: 0.74rem;
-      font-weight: 500;
-      color: var(--text);
-      cursor: pointer;
-      transition: var(--transition);
-      user-select: none;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .somacard-tissue-item:hover { border-color: var(--accent); background: var(--primary-ghost); }
-    .somacard-tissue-item.checked {
-      background: var(--primary-ghost);
-      border-color: var(--accent);
-      color: var(--primary-dark);
-      font-weight: 600;
-    }
-    .somacard-tissue-item input { display: none; }
-    .somacard-actions { display: flex; gap: 10px; align-items: center; }
-    .somacard-submit-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 11px 28px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: #fff;
-      background: var(--primary);
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-family: inherit;
-      transition: var(--transition);
-    }
-    .somacard-submit-btn:hover:not(:disabled) {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-    .somacard-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .somacard-submit-btn .spinner {
-      display: none;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    .somacard-submit-btn.loading .spinner { display: inline-block; }
-    .somacard-submit-btn.loading .btn-text { display: none; }
-    .somacard-examples {
-      margin-top: 14px;
+    .example-links {
       font-size: 0.78rem;
       color: var(--text-muted);
     }
-    .somacard-examples button {
+    .example-links button {
       background: none;
       border: none;
       color: var(--accent);
@@ -458,18 +426,163 @@
       font-family: inherit;
       text-decoration: underline;
       text-underline-offset: 2px;
-      margin: 0 4px;
+      margin: 0 2px;
     }
-    .somacard-examples button:hover { color: var(--primary); }
-    .somacard-results { margin-top: 32px; }
-    .somacard-results-header {
+    .example-links button:hover { color: var(--primary); }
+
+    /* Step 2: Tissue List Filter */
+    .tissue-select-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0;
+    }
+    .tissue-select-grid::-webkit-scrollbar { width: 5px; }
+    .tissue-select-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .tissue-select-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      user-select: none;
+    }
+    .tissue-select-card:last-child { border-bottom: none; }
+    .tissue-select-card:hover { background: var(--primary-ghost); }
+    .tissue-select-card.selected {
+      background: #eef6fc;
+    }
+    .tissue-select-card .tissue-img {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .tissue-select-card .tissue-img img {
+      max-width: 28px;
+      max-height: 28px;
+      object-fit: contain;
+    }
+    .tissue-select-card .tissue-label {
+      flex: 1;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .tissue-select-card.selected .tissue-label {
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+    .tissue-select-card .tissue-check {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: var(--transition);
+      font-size: 0.6rem;
+      color: transparent;
+    }
+    .tissue-select-card.selected .tissue-check {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .tissue-select-card input { display: none; }
+
+    .tissue-select-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .tissue-select-actions button {
+      padding: 5px 14px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+    .tissue-select-actions button:hover {
+      background: var(--primary-ghost);
+      color: var(--primary);
+    }
+    .tissue-count {
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .tissue-count strong { color: var(--accent); }
+
+    /* Submit */
+    .wizard-submit {
+      text-align: center;
+    }
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 44px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+      box-shadow: var(--shadow-md);
+    }
+    .submit-btn:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .submit-btn.loading .spinner { display: inline-block; }
+    .submit-btn.loading .btn-text { display: none; }
+
+    /* Results */
+    .annotation-results { margin-top: 40px; }
+    .results-header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
-    .somacard-results-count { font-size: 0.9rem; font-weight: 600; color: var(--text); }
-    .somacard-download-btn {
+    .results-count-text { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .download-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -484,20 +597,20 @@
       font-family: inherit;
       transition: var(--transition);
     }
-    .somacard-download-btn:hover { filter: brightness(0.9); }
-    .somacard-table-wrapper {
+    .download-btn:hover { filter: brightness(0.9); }
+    .results-table-wrap {
       overflow-x: auto;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
     }
-    .somacard-table {
+    .results-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.78rem;
       white-space: nowrap;
     }
-    .somacard-table thead { background: var(--primary-ghost); }
-    .somacard-table th {
+    .results-table thead { background: var(--primary-ghost); }
+    .results-table th {
       padding: 10px 12px;
       text-align: left;
       font-weight: 700;
@@ -507,16 +620,16 @@
       top: 0;
       background: var(--primary-ghost);
     }
-    .somacard-table td {
+    .results-table td {
       padding: 8px 12px;
       border-bottom: 1px solid var(--border-light);
       color: var(--text);
     }
-    .somacard-table tbody tr:hover { background: var(--primary-ghost); }
-    .somacard-table .score-cell { font-weight: 600; text-align: center; }
-    .somacard-table .bool-true { color: var(--success); font-weight: 600; }
-    .somacard-table .bool-false { color: var(--text-muted); }
-    .somacard-error {
+    .results-table tbody tr:hover { background: var(--primary-ghost); }
+    .results-table .score-cell { font-weight: 600; text-align: center; }
+    .results-table .bool-true { color: var(--success); font-weight: 600; }
+    .results-table .bool-false { color: var(--text-muted); }
+    .error-msg {
       padding: 14px 18px;
       background: #fef2f2;
       border: 1px solid #fecaca;
@@ -568,67 +681,652 @@
       .page-hero { padding: 90px 32px 48px; }
     }
     @media (max-width: 768px) {
-      .nav-inner { padding: 0 20px; }
-      .nav-links {
-        display: none;
-        position: absolute;
-        top: 64px;
-        left: 0;
-        right: 0;
-        background: var(--primary-darker);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        flex-direction: column;
-        align-items: stretch;
-        padding: 16px;
-        box-shadow: var(--shadow-lg);
-      }
-      .nav-links.open { display: flex; }
-      .nav-mobile-toggle { display: block; }
-      .somacard-grid { grid-template-columns: 1fr; }
-      .somacard-tissue-grid { grid-template-columns: repeat(2, 1fr); max-height: 240px; }
+      /* 线上页头是 position:fixed 的导航条，所以留 64px；本地页头 .site-header 是
+   position:sticky（占位在文档流里），这里必须归零，否则页头和内容之间多 64px 空白。 */
+    body { padding-top: 0; }
+      .wizard-content { grid-template-columns: 1fr; }
+      .tissue-select-grid { max-height: 280px; }
       .section { padding: 60px 20px; }
       .section-title { font-size: 1.7rem; }
-      .page-hero { padding: 80px 20px 40px; }
+      .page-hero { padding: 140px 20px 40px; }
       .page-hero-title { font-size: 1.5rem; }
-      .footer { padding: 32px 20px 20px; }
-      .footer-inner { flex-direction: column; text-align: center; }
+      .footer { padding: 40px 20px 24px; }
+      .footer-top { flex-direction: column; }
+      .footer-links-group { gap: 32px; }
     }
     @media (max-width: 480px) {
-      .somacard-tissue-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-      .somacard-actions { flex-direction: column; }
-      .somacard-submit-btn { width: 100%; justify-content: center; }
+      .tissue-select-grid { max-height: 260px; }
+      .wizard-submit .submit-btn { width: 100%; justify-content: center; }
     }
-    /* ===== 与全站新版页头/页脚对齐的局部修正 ===== */
-    .site-header,
-    .site-footer {
-      font-family: var(--font, "Source Sans 3", Arial, sans-serif);
+  
+  
+    /* ============================================================
+       ANNOTATION PAGE V4 — aligned with supplied design mockup
+       ============================================================ */
+    body {
+      background: #ffffff;
+      color: #24324a;
+      padding-top: 0;
     }
 
-    /* 页头由 fixed 改为 sticky，收回原来为 fixed 预留的顶部留白 */
     .page-hero {
-      padding: 54px 40px 48px;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 42px 36px 16px;
+      background: #ffffff;
+      text-align: center;
     }
 
-    /* site.css 把 .back-to-top 默认设为 display:none，这里按本页的 .visible 机制恢复 */
-    .back-to-top {
+    .page-hero-title {
+      color: #24324a;
+      font-size: 2.15rem;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.7px;
+      margin-bottom: 14px;
+    }
+
+    .page-hero-title span {
+      color: inherit;
+    }
+
+    .page-hero-desc {
+      max-width: none;
+      margin: 0;
+      color: #62789a;
+      font-size: 0.93rem;
+      line-height: 1.75;
+      text-align: left;
+    }
+
+    .wizard-section.section {
+      background: #ffffff;
+      padding: 0 36px 84px;
+    }
+
+    .wizard-container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* ----- 3-step process strip ----- */
+    .wizard-steps {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      align-items: center;
+      gap: 0;
+      margin: 0 0 34px;
+      padding: 16px 28px 17px;
+      background: #f1f5fa;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .wizard-steps::after {
+      display: none;
+    }
+
+    .wizard-step {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      position: relative;
+      z-index: 2;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .wizard-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: calc(50% + 44px);
+      right: calc(-50% + 44px);
+      height: 1px;
+      background: #cbd6e5;
+      z-index: -1;
+    }
+
+    .wizard-step-num {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
+      border-radius: 50%;
+      background: #4381e8;
+      color: #ffffff;
+      font-size: 0.80rem;
+      font-weight: 800;
+      box-shadow: none;
     }
 
-    .back-to-top.visible {
-      opacity: 1;
-      visibility: visible;
+    .wizard-step.active .wizard-step-num,
+    .wizard-step.done .wizard-step-num {
+      background: #4381e8;
+      color: #fff;
     }
 
-    @media (max-width: 980px) {
+    .wizard-step-label,
+    .wizard-step.active .wizard-step-label {
+      color: #40526e;
+      font-size: 0.74rem;
+      line-height: 1.3;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+      text-align: center;
+    }
+
+    /* ----- two main cards ----- */
+    .wizard-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+      align-items: stretch;
+    }
+
+    .wizard-card,
+    .wizard-card.step-highlight {
+      background: #ffffff;
+      border: 1px solid #ced9e8;
+      border-radius: 12px;
+      padding: 24px 24px 22px;
+      box-shadow: none;
+      min-height: 466px;
+    }
+
+    .wizard-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #4459b7;
+      font-size: 1.13rem;
+      line-height: 1.25;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .wizard-card h3 .step-badge {
+      width: auto;
+      height: auto;
+      min-width: 70px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: #4b5fc0;
+      color: #fff;
+      font-size: 0.72rem;
+      line-height: 1.15;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .wizard-card .card-desc {
+      margin: 0 0 14px;
+      color: #667c9d;
+      font-size: 0.84rem;
+      line-height: 1.55;
+    }
+
+    /* Hide old format control but preserve it for JS state. */
+    .format-toggle {
+      display: none !important;
+    }
+
+    .mutation-textarea {
+      width: 100%;
+      min-height: 315px;
+      height: 315px;
+      padding: 14px 12px;
+      border: 1px solid #ced9e8;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #586f90;
+      font-family: Arial, sans-serif;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      resize: vertical;
+      box-shadow: none;
+    }
+
+    .mutation-textarea:focus {
+      outline: none;
+      border-color: #8298c9;
+      box-shadow: 0 0 0 2px rgba(74, 94, 196, 0.08);
+    }
+
+    .input-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .file-upload-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      flex-wrap: wrap;
+    }
+
+    .file-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border: 1px solid #aebbd0;
+      border-radius: 3px;
+      background: #ffffff;
+      color: #33425a;
+      font-size: 0.78rem;
+      line-height: 1.2;
+      font-weight: 500;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    .file-upload-btn:hover {
+      background: #f5f8fc;
+      border-color: #7f92b2;
+      color: #33425a;
+    }
+
+    .file-name {
+      max-width: 150px;
+      color: #72849f;
+      font-size: 0.72rem;
+    }
+
+    .example-links {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      margin: 0;
+      color: #6c7f9d;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .example-links::before {
+      content: '\f05a';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      color: #6c7f9d;
+      font-size: 0.72rem;
+    }
+
+    .example-links > i {
+      display: none;
+    }
+
+    .example-links button {
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: #4a5ec4;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+    }
+
+    /* ----- tissue list ----- */
+    .tissue-select-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      height: 315px;
+      max-height: 315px;
+      overflow-y: auto;
+      border: 1px solid #ced9e8;
+      border-radius: 10px;
+      background: #f9fbfd;
+      margin: 0;
+    }
+
+    .tissue-select-grid::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .tissue-select-grid::-webkit-scrollbar-thumb {
+      background: #c5d0de;
+      border-radius: 10px;
+    }
+
+    .tissue-select-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 7px 14px;
+      background: #f9fbfd;
+      border-bottom: 1px solid #dbe3ee;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      user-select: none;
+    }
+
+    .tissue-select-card:last-child {
+      border-bottom: none;
+    }
+
+    .tissue-select-card:hover,
+    .tissue-select-card.selected {
+      background: #f1f6fb;
+    }
+
+    .tissue-select-card .tissue-img {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      background: #d7e7f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .tissue-select-card .tissue-img img {
+      max-width: 26px;
+      max-height: 26px;
+      object-fit: contain;
+    }
+
+    .tissue-select-card .tissue-label {
+      flex: 1;
+      color: #33465f;
+      font-size: 0.82rem;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+
+    .tissue-select-card.selected .tissue-label {
+      color: #33465f;
+      font-weight: 500;
+    }
+
+    .tissue-select-card .tissue-check {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
+      border: 1px solid #9fb0c8;
+      border-radius: 2px;
+      background: #ffffff;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+    }
+
+    .tissue-select-card.selected .tissue-check {
+      background: #4b61c2;
+      border-color: #4b61c2;
+      color: #ffffff;
+    }
+
+    .tissue-select-card input {
+      display: none;
+    }
+
+    .tissue-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tissue-select-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 0;
+    }
+
+    .tissue-select-actions button {
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: #4a5ec4;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .tissue-select-actions button:hover {
+      background: transparent;
+      color: #3449aa;
+    }
+
+    .tissue-count {
+      margin: 0;
+      color: #7183a0;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .tissue-count strong:first-child {
+      color: #24324a;
+      font-weight: 800;
+    }
+
+    .tissue-count strong:last-child {
+      color: #7183a0;
+      font-weight: 500;
+    }
+
+    /* ----- submit ----- */
+    .wizard-submit {
+      text-align: center;
+      margin: 0 0 26px;
+    }
+
+    .submit-btn {
+      min-width: 250px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 6px;
+      background: #4a5ec4;
+      color: #fff;
+      font-size: 0.86rem;
+      font-weight: 600;
+      box-shadow: none;
+      justify-content: center;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #3d51b1;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .error-msg {
+      max-width: 760px;
+      margin: 12px auto 0;
+      font-size: 0.80rem;
+    }
+
+    /* ----- results ----- */
+    .annotation-results {
+      margin-top: 0;
+      padding-top: 30px;
+      border-top: 1px solid #cdd8e7;
+    }
+
+    .results-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .results-count-text {
+      color: #24324a;
+      font-size: 0.86rem;
+      font-weight: 400;
+    }
+
+    .results-count-text strong {
+      font-weight: 800;
+      color: #24324a;
+    }
+
+    .results-count-text span {
+      color: #7183a0;
+      margin-left: 8px;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 12px;
+      border: 1px solid #9eacc1;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #26354b;
+      font-size: 0.78rem;
+      line-height: 1.2;
+      font-weight: 600;
+      box-shadow: none;
+    }
+
+    .download-btn:hover {
+      background: #f6f8fb;
+      filter: none;
+    }
+
+    .results-table-wrap {
+      overflow-x: auto;
+      border: 1px solid #cfd9e7;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .results-table {
+      width: 100%;
+      min-width: 1080px;
+      border-collapse: collapse;
+      white-space: nowrap;
+      font-size: 0.72rem;
+    }
+
+    .results-table thead {
+      background: #e9eef7;
+    }
+
+    .results-table th {
+      position: static;
+      top: auto;
+      padding: 11px 10px;
+      background: #e9eef7;
+      color: #24324a;
+      border-bottom: 1px solid #cdd8e7;
+      text-align: left;
+      font-size: 0.69rem;
+      font-weight: 800;
+    }
+
+    .results-table td {
+      padding: 8px 10px;
+      color: #425571;
+      border-bottom: 1px solid #dce4ef;
+      background: #ffffff;
+      font-size: 0.69rem;
+    }
+
+    .results-table tbody tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .results-table tbody tr:hover td {
+      background: #f1f5fa;
+    }
+
+    .results-table a,
+    .results-table .mutation-link {
+      color: #4a5ec4;
+    }
+
+    .results-table .score-cell {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* ----- responsive ----- */
+    @media (max-width: 900px) {
       .page-hero {
-        padding: 40px 20px 36px;
+        padding: 36px 20px 16px;
+      }
+
+      .wizard-section.section {
+        padding: 0 20px 64px;
+      }
+
+      .wizard-content {
+        grid-template-columns: 1fr;
+      }
+
+      .wizard-card,
+      .wizard-card.step-highlight {
+        min-height: auto;
       }
     }
+
+    @media (max-width: 620px) {
+      .page-hero-title {
+        font-size: 1.7rem;
+      }
+
+      .wizard-steps {
+        padding: 14px 8px;
+      }
+
+      .wizard-step:not(:last-child)::after {
+        left: calc(50% + 24px);
+        right: calc(-50% + 24px);
+      }
+
+      .wizard-step-label {
+        font-size: 0.65rem;
+      }
+
+      .input-card-footer,
+      .tissue-card-footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .example-links {
+        justify-content: flex-start;
+      }
+
+      .submit-btn {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+
   </style>
 </head>
 
@@ -698,79 +1396,109 @@
 
   <!-- PAGE HERO -->
   <section class="page-hero">
-    <h1 class="page-hero-title">SomaCard <span>Annotation</span></h1>
+    <h1 class="page-hero-title">Somatic Mutation Annotation</h1>
     <p class="page-hero-desc">
-      Annotate somatic mutations with regulatory evidence — cCRE, TF binding, chromatin interactions,
-      and tissue-enriched gene scores across selected tissues.
+      Systematic functional annotation of your mutations with multi-dimensional evidence. Supports TXT and VCF input formats with downloadable TSV results.The following are the steps to operate this analysis tool :
     </p>
   </section>
 
-  <!-- SOMACARD ANNOTATION -->
-  <section class="section somacard-section" id="somacard">
-    <div class="somacard-container">
-      <div class="somacard-grid">
-        <!-- Left: Input -->
-        <div class="somacard-card">
-          <h3><i class="fas fa-edit"></i> Input Mutations</h3>
-          <p class="card-desc">Paste mutation list or upload a file (TXT / VCF format).</p>
+  <!-- ANNOTATION WIZARD -->
+  <section class="section wizard-section" id="somacard">
+    <div class="wizard-container">
 
-          <div class="somacard-format-toggle" id="somacardFormatToggle">
-            <button class="active" data-format="txt" onclick="setSomacardFormat('txt')">TXT Format</button>
-            <button data-format="vcf" onclick="setSomacardFormat('vcf')">VCF Format</button>
-          </div>
-
-          <textarea class="somacard-textarea" id="somacardInput"
-            placeholder="chrom&#9;pos&#9;ref&#9;alt&#10;chr1&#9;1158636&#9;A&#9;G&#10;chr2&#9;12345&#9;C&#9;T&#10;chr7&#9;55249071&#9;G&#9;A"></textarea>
-
-          <div class="somacard-file-upload">
-            <label><i class="fas fa-upload"></i> Upload File<input type="file" id="somacardFileInput"
-                onchange="handleSomacardFile(event)" accept=".txt,.vcf,.vcf.gz"></label>
-            <span class="somacard-file-name" id="somacardFileName"></span>
-          </div>
-
-          <div class="somacard-examples">
-            <i class="fas fa-lightbulb"></i> Examples:
-            <button onclick="loadSomacardExample('txt')">TXT</button>
-            <button onclick="loadSomacardExample('vcf')">VCF</button>
-          </div>
+      <!-- Three-step process -->
+      <div class="wizard-steps">
+        <div class="wizard-step active" id="wizardStep1">
+          <div class="wizard-step-num">1</div>
+          <div class="wizard-step-label">Input File</div>
         </div>
-
-        <!-- Right: Tissues & Submit -->
-        <div class="somacard-card">
-          <h3><i class="fas fa-microscope"></i> Select Tissues</h3>
-          <p class="card-desc">Choose one or more tissues for annotation.</p>
-
-          <div class="somacard-tissue-grid" id="somacardTissueGrid"></div>
-
-          <div class="somacard-actions">
-            <button type="button" class="somacard-submit-btn" id="somacardSubmitBtn" onclick="submitSomacardAnnotation()">
-              <span class="spinner"></span>
-              <span class="btn-text"><i class="fas fa-play"></i> Run Annotation</span>
-            </button>
-          </div>
-
-          <div class="somacard-error" id="somacardError" style="display:none;"></div>
+        <div class="wizard-step active" id="wizardStep2">
+          <div class="wizard-step-num">2</div>
+          <div class="wizard-step-label">Select Tissues</div>
+        </div>
+        <div class="wizard-step active" id="wizardStep3">
+          <div class="wizard-step-num">3</div>
+          <div class="wizard-step-label">Run &amp; Download</div>
         </div>
       </div>
 
+      <div class="wizard-content">
+        <!-- Step 1 -->
+        <div class="wizard-card" id="step1Card">
+          <h3><span class="step-badge">STEP 1</span> Input Mutations</h3>
+          <p class="card-desc">Paste mutation list or upload a file (TXT / VCF format).</p>
+
+          <!-- Preserved for format state; examples/files update it -->
+          <div class="format-toggle" id="formatToggle">
+            <button data-format="txt" onclick="setFormat('txt')">TXT Format</button>
+            <button class="active" data-format="vcf" onclick="setFormat('vcf')">VCF Format</button>
+          </div>
+
+          <textarea class="mutation-textarea" id="mutationInput" oninput="clearFileUpload()"
+            placeholder="##fileformat=VCFv4.1&#10;#CHROM POS ID REF ALT ..."></textarea>
+
+          <div class="input-card-footer">
+            <div class="file-upload-row">
+              <label class="file-upload-btn">
+                <i class="fas fa-upload"></i> Upload File
+                <input type="file" id="fileInput" onchange="handleFile(event)" accept=".txt,.vcf,.vcf.gz">
+              </label>
+              <span class="file-name" id="fileName"></span>
+            </div>
+
+            <div class="example-links">
+              <span>Examples:</span>
+              <button onclick="loadExample('txt')">TXT</button>
+              <button onclick="loadExample('vcf')">VCF</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="wizard-card" id="step2Card">
+          <h3><span class="step-badge">STEP 2</span> Select Tissues</h3>
+          <p class="card-desc">Click to select tissues for annotation. Selected tissues are highlighted.</p>
+
+          <div class="tissue-select-grid" id="tissueGrid"></div>
+
+          <div class="tissue-card-footer">
+            <div class="tissue-select-actions">
+              <button onclick="selectAllTissues()"><i class="fas fa-check"></i> Select All</button>
+              <button onclick="clearAllTissues()"><i class="fas fa-eraser"></i> Clear All</button>
+            </div>
+            <div class="tissue-count" id="tissueCount"><strong>0</strong> of <strong>30</strong> tissues selected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="wizard-submit">
+        <button type="button" class="submit-btn" id="submitBtn" onclick="submitAnnotation()">
+          <span class="spinner"></span>
+          <span class="btn-text"><i class="far fa-circle-play"></i> Run Annotation</span>
+        </button>
+        <div class="error-msg" id="errorMsg" style="display:none;"></div>
+      </div>
+
       <!-- Results -->
-      <div class="somacard-results" id="somacardResults" style="display:none;">
-        <div class="somacard-results-header">
-          <span class="somacard-results-count" id="somacardResultsCount"></span>
-          <button class="somacard-download-btn" onclick="downloadSomacardTSV()">
+      <div class="annotation-results" id="resultsBlock" style="display:none;">
+        <div class="results-header-bar">
+          <span class="results-count-text" id="resultsCount"></span>
+          <button class="download-btn" onclick="downloadTSV()">
             <i class="fas fa-download"></i> Download TSV
           </button>
         </div>
-        <div class="somacard-table-wrapper">
-          <table class="somacard-table">
-            <thead id="somacardTableHead"></thead>
-            <tbody id="somacardTableBody"></tbody>
+        <div class="results-table-wrap">
+          <table class="results-table">
+            <thead id="resultsHead"></thead>
+            <tbody id="resultsBody"></tbody>
           </table>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- ============================ 页脚（与全站一致） ============================ -->
   <!-- ============================ 页脚（与全站一致） ============================ -->
   <footer class="site-footer">
     <div class="container">
@@ -835,25 +1563,17 @@
   <!-- BACK TO TOP -->
   <button class="back-to-top" id="backToTop" onclick="scrollToTop(event)"><i class="fas fa-arrow-up"></i></button>
 
+  <!-- AUTH GATE：本页需要登录（线上行为），开关见根元素上的 data-somatic-auth -->
+  <script src="../assets/somatic-auth.js"></script>
+
   <script>
     // ===================== SHARED UTILITIES =====================
-    function scrollToTop(e) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function scrollToTop(e) { if (e) e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-    // 新版页头的移动端导航开关（与全站其他页面一致）
-    function toggleNav() {
-      document.getElementById('navMenu').classList.toggle('open');
-    }
+    // 本地站点没有导航组件脚本 —— 页头改用全站统一的 .site-header（见下方 <header>）。
 
-    function toggleMobileNav() {
-      const navLinks = document.getElementById('navLinks');
-      const icon = document.getElementById('navToggleIcon');
-      navLinks.classList.toggle('open');
-      icon.className = navLinks.classList.contains('open') ? 'fas fa-times' : 'fas fa-bars';
-    }
-
-    // Navbar scroll + back-to-top
+    // Back-to-top
     window.addEventListener('scroll', () => {
-      document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
       document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 400);
     });
 
@@ -864,8 +1584,8 @@
     }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
     fadeEls.forEach(el => observer.observe(el));
 
-    // ===================== SOMACARD ANNOTATION =====================
-    const SOMACARD_TISSUES = [
+    // ===================== ANNOTATION WIZARD =====================
+    const TISSUE_LIST = [
       "Adipose", "Adrenal_Gland", "Aortic_Arch", "Colon",
       "Common_Iliac_Artery", "Diaphragm", "Esophagus", "Gallbladder",
       "Heart_Left_Atrium", "Heart_Left_Ventricle", "Heart_Mitral_Valve",
@@ -876,9 +1596,11 @@
       "Thoracic_Aorta", "Trachea", "Uterus", "Whole_Blood"
     ];
 
-    // In production (Render), Flask serves everything on one port.
-    // In local dev, static files and API run on separate ports (5501/5503 → 5502).
-    const SOMACARD_API = (() => {
+    // API endpoint — same-origin by default; dev overrides for VS Code Live Server / file://
+    const ANNOTATION_API = (() => {
+      if (window.location.protocol === "file:") {
+        return "http://127.0.0.1:5502";
+      }
       const port = window.location.port;
       if (port === "5501" || port === "5503") {
         return window.location.origin.replace(":" + port, ":5502");
@@ -886,27 +1608,84 @@
       return window.location.origin;
     })();
 
-    let somacardFormat = "txt";
-    let somacardResultsTSV = "";
+    let currentFormat = "vcf";
+    let resultsTSV = "";
+    let fileContent = "";
+    const EXAMPLES = {
+      txt: `chrom\tpos\tref\talt
+chr1\t1158636\tA\tG
+chr2\t12345\tC\tT
+chr7\t55249071\tG\tA
+chr12\t25398284\tC\tT
+chr17\t7673803\tC\tT
+`,
+      vcf: `##fileformat=VCFv4.2
+##fileDate=20260720
+##reference=GRCh38
+##contig=<ID=chr1,length=248956422>
+##contig=<ID=chr4,length=190214555>
+##INFO=<ID=TISSUE,Number=1,Type=String,Description="Tissue label">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t1158636\ttest_chr1_1158636_A_G\tA\tG\t.\tPASS\t.
+chr4\t77179210\ttest_chr4_77179210_C_T\tC\tT\t.\tPASS\t.
+chr7\t55249071\ttest_chr7_55249071_G_A\tG\tA\t.\tPASS\t.
+chr12\t25398284\ttest_chr12_25398284_C_T\tC\tT\t.\tPASS\t.
+chr17\t7673803\ttest_chr17_7673803_C_T\tC\tT\t.\tPASS\t.
+`,
+    };
 
-    function initSomacardTissues() {
-      const grid = document.getElementById("somacardTissueGrid");
-      SOMACARD_TISSUES.forEach(t => {
-        const label = document.createElement("label");
-        label.className = "somacard-tissue-item";
-        label.innerHTML = `<input type="checkbox" value="${t}" onchange="this.parentElement.classList.toggle('checked', this.checked)">${t.replace(/_/g, " ")}`;
-        grid.appendChild(label);
+    function initTissueGrid() {
+      const grid = document.getElementById("tissueGrid");
+      grid.innerHTML = "";
+      TISSUE_LIST.forEach(t => {
+        const displayName = t.replace(/_/g, " ");
+        const imgSrc = "../assets/tissue/" + t + ".png";
+        const card = document.createElement("div");
+        card.className = "tissue-select-card";
+        card.title = displayName;
+        card.innerHTML = '<div class="tissue-img"><img src="' + imgSrc + '" alt="" loading="lazy" onerror="this.style.display=\'none\'"></div>'
+          + '<div class="tissue-label">' + displayName + '</div>'
+          + '<div class="tissue-check"><i class="fas fa-check"></i></div>'
+          + '<input type="checkbox" value="' + t + '">';
+        card.onclick = function(e) {
+          const cb = this.querySelector('input[type=checkbox]');
+          cb.checked = !cb.checked;
+          this.classList.toggle("selected", cb.checked);
+          updateTissueCount();
+        };
+        grid.appendChild(card);
       });
-      // 默认加载TXT示例
-      loadSomacardExample("txt");
+      updateTissueCount();
+      setFormat("vcf");
     }
 
-    function setSomacardFormat(fmt) {
-      somacardFormat = fmt;
-      document.querySelectorAll("#somacardFormatToggle button").forEach(b => {
+    function updateTissueCount() {
+      const n = getSelectedTissues().length;
+      document.getElementById("tissueCount").innerHTML = '<strong>' + n + '</strong> of <strong>30</strong> tissues selected';
+    }
+
+    function selectAllTissues() {
+      document.querySelectorAll("#tissueGrid .tissue-select-card").forEach(card => {
+        card.querySelector('input[type=checkbox]').checked = true;
+        card.classList.add("selected");
+      });
+      updateTissueCount();
+    }
+
+    function clearAllTissues() {
+      document.querySelectorAll("#tissueGrid .tissue-select-card").forEach(card => {
+        card.querySelector('input[type=checkbox]').checked = false;
+        card.classList.remove("selected");
+      });
+      updateTissueCount();
+    }
+
+    function setFormat(fmt) {
+      currentFormat = fmt;
+      document.querySelectorAll("#formatToggle button").forEach(b => {
         b.classList.toggle("active", b.dataset.format === fmt);
       });
-      const ta = document.getElementById("somacardInput");
+      const ta = document.getElementById("mutationInput");
       if (fmt === "vcf") {
         ta.placeholder = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nchr1\t1158636\t.\tA\tG\t.\tPASS\t.";
       } else {
@@ -914,71 +1693,74 @@
       }
     }
 
-    async function loadSomacardExample(fmt) {
-      setSomacardFormat(fmt);
-      const errDiv = document.getElementById("somacardError");
-      errDiv.style.display = "none";
-      try {
-        const resp = await fetch(SOMACARD_API + "/api/example/" + fmt);
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to load example (HTTP " + resp.status + ")");
+    function loadExample(fmt) {
+      setFormat(fmt);
+      clearFileUpload();
+      document.getElementById("errorMsg").style.display = "none";
+      document.getElementById("mutationInput").value = EXAMPLES[fmt] || "";
+      // Select example tissues
+      clearAllTissues();
+      document.querySelectorAll("#tissueGrid .tissue-select-card").forEach(card => {
+        const cb = card.querySelector('input[type=checkbox]');
+        if (cb.value === "Adrenal_Gland" || cb.value === "Muscle") {
+          cb.checked = true;
+          card.classList.add("selected");
         }
-        const data = await resp.json();
-        if (!data.content || !data.content.trim()) {
-          throw new Error("Example file is empty");
-        }
-        document.getElementById("somacardInput").value = data.content;
-      } catch (err) {
-        errDiv.textContent = "Failed to load " + fmt.toUpperCase() + " example: " + err.message;
-        errDiv.style.display = "block";
-      }
-      // 自动选中示例组织：Adrenal_Gland, Muscle
-      document.querySelectorAll("#somacardTissueGrid input[type=checkbox]").forEach(cb => {
-        const check = cb.value === "Adrenal_Gland" || cb.value === "Muscle";
-        cb.checked = check;
-        cb.parentElement.classList.toggle("checked", check);
       });
+      updateTissueCount();
     }
 
-    function handleSomacardFile(event) {
+    function handleFile(event) {
       const file = event.target.files[0];
       if (!file) return;
-      document.getElementById("somacardFileName").textContent = file.name;
+      document.getElementById("fileName").textContent = file.name;
+      fileContent = "";
 
       const ext = file.name.replace(/\.gz$/, "").split(".").pop().toLowerCase();
-      if (ext === "vcf") setSomacardFormat("vcf");
-      else setSomacardFormat("txt");
+      if (ext === "vcf") setFormat("vcf");
+      else setFormat("txt");
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        document.getElementById("somacardInput").value = e.target.result;
+        fileContent = e.target.result || "";
+        const ta = document.getElementById("mutationInput");
+        ta.value = "";
+        ta.placeholder = "Loaded file: " + file.name;
       };
       reader.readAsText(file);
     }
 
+    function clearFileUpload() {
+      fileContent = "";
+      const fn = document.getElementById("fileName");
+      if (fn) fn.textContent = "";
+      const fi = document.getElementById("fileInput");
+      if (fi) fi.value = "";
+    }
+
     function getSelectedTissues() {
-      const checked = document.querySelectorAll("#somacardTissueGrid input[type=checkbox]:checked");
+      const checked = document.querySelectorAll("#tissueGrid input[type=checkbox]:checked");
       return Array.from(checked).map(cb => cb.value);
     }
 
-    async function submitSomacardAnnotation() {
-      const btn = document.getElementById("somacardSubmitBtn");
-      const errDiv = document.getElementById("somacardError");
-      const resultsDiv = document.getElementById("somacardResults");
-      const mutations = document.getElementById("somacardInput").value.trim();
+    async function submitAnnotation() {
+      const btn = document.getElementById("submitBtn");
+      const errDiv = document.getElementById("errorMsg");
+      const resultsDiv = document.getElementById("resultsBlock");
+      const textVal = document.getElementById("mutationInput").value.trim();
+      const mutations = fileContent || textVal;
       const tissues = getSelectedTissues();
 
       errDiv.style.display = "none";
       resultsDiv.style.display = "none";
 
       if (!mutations) {
-        errDiv.textContent = "Please enter mutation data.";
+        errDiv.textContent = "Please enter mutation data in Step 1.";
         errDiv.style.display = "block";
         return;
       }
       if (tissues.length === 0) {
-        errDiv.textContent = "Please select at least one tissue.";
+        errDiv.textContent = "Please select at least one tissue in Step 2.";
         errDiv.style.display = "block";
         return;
       }
@@ -987,51 +1769,56 @@
       btn.disabled = true;
 
       try {
-        const resp = await fetch(SOMACARD_API + "/api/annotate", {
+        const resp = await fetch(ANNOTATION_API + "/api/annotate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mutations: mutations,
-            file_type: somacardFormat,
+            file_type: currentFormat,
             tissues: tissues
           })
         });
 
-        const data = await resp.json();
-
-        if (!resp.ok) {
-          throw new Error(data.error + (data.detail ? ": " + data.detail : ""));
+        let data;
+        try {
+          data = await resp.json();
+        } catch (parseErr) {
+          throw new Error("Invalid JSON response from API (" + ANNOTATION_API + "/api/annotate)");
         }
 
-        somacardResultsTSV = data.results;
-        renderSomacardResults(data.results);
+        if (!resp.ok) {
+          throw new Error(data.error + (data.detail ? ": " + data.detail : "") + " (API: " + ANNOTATION_API + "/api/annotate)");
+        }
+
+        resultsTSV = data.results;
+        renderResults(data.results);
         document.getElementById("somacard").scrollIntoView({ behavior: "smooth" });
       } catch (err) {
-        errDiv.textContent = "Error: " + err.message;
+        const message = err instanceof Error ? err.message : String(err);
+        errDiv.textContent = "Error: " + message;
         errDiv.style.display = "block";
+        console.error("Annotation failed:", err);
       } finally {
         btn.classList.remove("loading");
         btn.disabled = false;
       }
     }
 
-    function renderSomacardResults(tsv) {
+    function renderResults(tsv) {
       const lines = tsv.trim().split("\n");
       if (lines.length < 2) {
-        document.getElementById("somacardError").textContent = "No results returned.";
-        document.getElementById("somacardError").style.display = "block";
+        document.getElementById("errorMsg").textContent = "No results returned.";
+        document.getElementById("errorMsg").style.display = "block";
         return;
       }
 
       const headers = lines[0].split("\t");
       const rows = lines.slice(1).map(line => line.split("\t"));
 
-      // Table head
-      const thead = document.getElementById("somacardTableHead");
-      thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+      const thead = document.getElementById("resultsHead");
+      thead.innerHTML = "<tr>" + headers.map(h => "<th>" + h + "</th>").join("") + "</tr>";
 
-      // Table body
-      const tbody = document.getElementById("somacardTableBody");
+      const tbody = document.getElementById("resultsBody");
       tbody.innerHTML = rows.map(row =>
         "<tr>" + row.map((cell, i) => {
           let cls = "";
@@ -1043,33 +1830,41 @@
           } else if (cell === "False" || cell === ".") {
             cls = cell === "False" ? "bool-false" : "";
           }
-          if (val.length > 50) {
+          if (headers[i] === "mutation_key" && val && val !== ".") {
+            val = '<span class="mutation-link">' + val + '</span>';
+          } else if (val.length > 50) {
             val = '<span title="' + val.replace(/"/g, "&quot;") + '">' + val.substring(0, 47) + "...</span>";
           }
-          return `<td class="${cls}">${val}</td>`;
+          return "<td class=\"" + cls + "\">" + val + "</td>";
         }).join("") + "</tr>"
       ).join("");
 
-      document.getElementById("somacardResultsCount").textContent =
-        rows.length + " result" + (rows.length !== 1 ? "s" : "") + " (" + getSelectedTissues().length + " tissue" + (getSelectedTissues().length !== 1 ? "s" : "") + ")";
-      document.getElementById("somacardResults").style.display = "block";
-      document.getElementById("somacardError").style.display = "none";
+      const tissueN = getSelectedTissues().length;
+      document.getElementById("resultsCount").innerHTML =
+        '<strong>' + rows.length + ' Result' + (rows.length !== 1 ? 's' : '') + '</strong>' +
+        '<span>(' + tissueN + ' tissue' + (tissueN !== 1 ? 's' : '') + ')</span>';
+      document.getElementById("resultsBlock").style.display = "block";
+      document.getElementById("errorMsg").style.display = "none";
     }
 
-    function downloadSomacardTSV() {
-      if (!somacardResultsTSV) return;
-      const blob = new Blob([somacardResultsTSV], { type: "text/tab-separated-values" });
+    function downloadTSV() {
+      if (!resultsTSV) return;
+      const blob = new Blob([resultsTSV], { type: "text/tab-separated-values" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "somacard_annotation.tsv";
+      a.download = "somatic_annotation.tsv";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
-    document.addEventListener("DOMContentLoaded", initSomacardTissues);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initTissueGrid);
+    } else {
+      initTissueGrid();
+    }
   </script>
 </body>
 

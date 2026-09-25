@@ -230,9 +230,12 @@ bash scripts/build_publish.sh
 
 ### 已知限制
 
-- `somacard.html` 的 **Load example** 和 **Annotate** 按钮依赖 `server/server.py` 提供的
-  `/api/example/*` 与 `/api/annotate`。纯静态发布没有这个后端，这两个按钮会报 HTTP 404；
-  页面本身能正常打开。其余四页（首页搜索 / Data Portal / Donors / Tissue）功能完整。
+- **`somacard.html` 的 `Run Annotation` 按钮**依赖 `server/server.py` 提供的
+  `/api/annotate`。纯静态发布没有这个后端，点了会报请求失败；页面本身能正常打开，
+  三步流程条、组织选择、Select All / Clear All 都可用。
+  （**`Examples: TXT / VCF` 按钮不受影响** —— 2026-09-25 取回的那版把示例内容内联在
+  脚本里的 `EXAMPLES` 常量里，不再请求 `/api/example`；旧版是请求后端、在静态站上会 404。）
+- 其余四页（首页搜索 / Data Portal / Donors / Tissue）功能完整。
 - 首页首次加载要下载 8.3 MB 的 `data/variants_data.js`（21 列全量），首屏表格约 3 秒后才出现。
 
 ## 页面功能

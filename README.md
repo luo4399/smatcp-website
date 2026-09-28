@@ -180,8 +180,10 @@ bash scripts/build_publish.sh
 并抹掉路径里的 `../` 前缀；④ 把 `data/plots_index.js` 的 `PLOT_BASE` 同步改成 `assets/plots/`。
 最后自检产物里不再有 `../`，有就报错退出。
 
-`publish/` 只含站点公开文件（约 9 MB）：五个 HTML、`assets/`（site.css + 图片 + fontawesome +
+`publish/` 只含站点公开文件（约 12 MB）：五个 HTML、`assets/`（site.css + 图片 + fontawesome +
 `tissue/` 33 张图标 + `plots/` 8 张示例 PDF）、`data/`（三个数据 js）。
+⚠️ `assets/somatic-auth.js`（登录门脚本）**不在产物里** —— 页面已不引用它，
+且文件里带硬编码兜底密码，构建脚本会 `rm -f` 掉。见「SomaCard 页」一节。
 它在 `.gitignore` 里，是生成物，不入库。
 
 **为什么线上是扁平结构**：仓库里页面在 `src/`，页面用 `../assets/…` 引用资源；但线上要求首页就是
@@ -212,6 +214,13 @@ bash scripts/build_publish.sh
 发布完成后会返回一个形如 `https://<hash>.sg.agentos-app.run` 的公开地址，任何人可直接打开。
 
 > 当前线上链接：`https://c363dab05b6e47579d5a7ac5b0b836c1.sg.agentos-app.run`
+>
+> **更新记录**
+>
+> | 时间 | 改了什么 |
+> |---|---|
+> | 2026-09-25 17:56 | 重新发布（SomaCard 取回 + 取消登录门） |
+> | **2026-09-28 10:2x** | **重新发布（首页搜索表列顺序调整）** —— 链接复用，实测五页全绿、首页 12 列可见到 `Type`、0 个单元格被截断 |
 
 **第 4 步 · 更新线上内容**
 
@@ -225,8 +234,8 @@ bash scripts/build_publish.sh
 
 - [ ] `bash scripts/build_publish.sh` 自检通过
 - [ ] `ls publish/` 里**不含** `README.md`、`.workbuddy-ai/`、`server/`、`data_source/`、`design/`
-- [ ] 发布后抽查 `https://<链接>/README.md`、`/server/server.py`、`/data_source/variants_website.csv`
-      三个地址都返回 **404**（返回 200 说明发错目录了，立即下线重发）
+- [ ] 发布后抽查 `https://<链接>/README.md`、`/server/server.py`、`/data_source/variants_website.csv`、
+      `/assets/somatic-auth.js` 四个地址都返回 **404**（返回 200 说明发错目录了，立即下线重发）
 
 ### 已知限制
 
@@ -266,7 +275,9 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
 
 - 只把 `gene_symbol` / `region` / `sample` / `donor` / `tissue` 这 **5 列从第 10–14 位
   整体前移到第 5–9 位**，其余 16 列的相对顺序一律没动
-- **为什么**：22 列实测渲染 **2674px**，而 `.table-wrap` 可视宽**恒为 1374px**
+- **为什么**：22 列实测渲染 **约 2620~2674px**（列宽由 JS 按字体度量算出来，本地与线上
+  会差几十像素，但都不影响内容完整性 —— 实测 0 个单元格被截断），
+  而 `.table-wrap` 可视宽**恒为 1374px**
   （`.container` 上限 1440px 减左右各 32px padding）——**换多大的显示器都不会变宽**。
   调整前只有前 12 列完整可见（到 `Sample`），`Donor` 被切一半，`Tissue` 起 9 列
   全在屏幕外，其中恰好包括表头筛选的主力维度 `Donor` / `Tissue`。
@@ -280,8 +291,10 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
   `idxOf(字段名)`（`FIELDS.indexOf`），是按名字查的，不是按下标。
   所以 `scripts/build_variants_data.py` 里 `FIELDS` 的顺序现在只是**行内下标顺序**，
   不再等于页面展示顺序 —— 展示顺序的唯一真源是 `src/index.html` 的 `COLS`
-- 改动用 `/tmp/reorder_cols.py` 式的**断言脚本**一次做完（22 个 `<th>` / 21 个 `COLS` 条目、
-  新旧键集合一致、改后数量不变），任一条不绿就不落盘
+- 改动是**带断言的文本重排脚本**一次做完的：解析出 22 个 `<th>` 块与 21 个 `COLS` 条目，
+  断言「块数 / 条目数 / 当前键顺序 == 预期旧顺序 / 新旧键集合一致 / 改后数量不变 /
+  `storageKey` 命中恰好 1 次 / `<html>` `<thead>` 各 1 个」，任一条不绿就 `sys.exit(1)` 不落盘。
+  **别手改** —— 几十个 `<th>` 块很容易漏一个，而且错位后页面看起来完全正常
 
 - 除 `Visualization` 外**全部可点表头排序**；字典列按文字排（不是按字典下标）
 - **表头筛选 8 组**（漏斗图标）：`Type` `Ti/Tv` `Tissue` `Donor` `Ref Origin`

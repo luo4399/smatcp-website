@@ -268,24 +268,6 @@
               </th>
               <th class="sortable" onclick="sortBy('alt')">Alt <i class="fa-solid fa-sort sort-i"></i>
               </th>
-              <th class="sortable" onclick="sortBy('depth')">Depth <i class="fa-solid fa-sort sort-i"></i>
-              </th>
-              <th class="sortable" onclick="sortBy('vaf')">VAF <i class="fa-solid fa-sort sort-i"></i>
-              </th>
-              <th class="sortable has-filter" onclick="sortBy('mutation_type')">Type <i class="fa-solid fa-sort sort-i"></i>
-                <button class="th-filter" type="button" data-fkey="mutation_type" onclick="toggleFilter(event, 'mutation_type')"
-                  aria-haspopup="true" aria-expanded="false" title="Filter by type">
-                  <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="mutation_type"></span>
-                </button>
-              </th>
-              <th class="sortable has-filter" onclick="sortBy('TiTv')">Ti/Tv <i class="fa-solid fa-sort sort-i"></i>
-                <button class="th-filter" type="button" data-fkey="TiTv" onclick="toggleFilter(event, 'TiTv')"
-                  aria-haspopup="true" aria-expanded="false" title="Filter by ti/tv">
-                  <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="TiTv"></span>
-                </button>
-              </th>
-              <th class="sortable" onclick="sortBy('trinucleotide')">Trinucleotide <i class="fa-solid fa-sort sort-i"></i>
-              </th>
               <th class="sortable" onclick="sortBy('gene_symbol')">Gene <i class="fa-solid fa-sort sort-i"></i>
               </th>
               <th class="sortable" onclick="sortBy('region')">Region <i class="fa-solid fa-sort sort-i"></i>
@@ -303,6 +285,24 @@
                   aria-haspopup="true" aria-expanded="false" title="Filter by tissue">
                   <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="tissue"></span>
                 </button>
+              </th>
+              <th class="sortable" onclick="sortBy('depth')">Depth <i class="fa-solid fa-sort sort-i"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('vaf')">VAF <i class="fa-solid fa-sort sort-i"></i>
+              </th>
+              <th class="sortable has-filter" onclick="sortBy('mutation_type')">Type <i class="fa-solid fa-sort sort-i"></i>
+                <button class="th-filter" type="button" data-fkey="mutation_type" onclick="toggleFilter(event, 'mutation_type')"
+                  aria-haspopup="true" aria-expanded="false" title="Filter by type">
+                  <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="mutation_type"></span>
+                </button>
+              </th>
+              <th class="sortable has-filter" onclick="sortBy('TiTv')">Ti/Tv <i class="fa-solid fa-sort sort-i"></i>
+                <button class="th-filter" type="button" data-fkey="TiTv" onclick="toggleFilter(event, 'TiTv')"
+                  aria-haspopup="true" aria-expanded="false" title="Filter by ti/tv">
+                  <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="TiTv"></span>
+                </button>
+              </th>
+              <th class="sortable" onclick="sortBy('trinucleotide')">Trinucleotide <i class="fa-solid fa-sort sort-i"></i>
               </th>
               <th class="sortable has-filter" onclick="sortBy('ref_origin')">Ref Origin <i class="fa-solid fa-sort sort-i"></i>
                 <button class="th-filter" type="button" data-fkey="ref_origin" onclick="toggleFilter(event, 'ref_origin')"
@@ -490,11 +490,6 @@
       { k: 'pos', label: 'Position', kind: 'int', fmt: 'int', cls: 'col-pos' },
       { k: 'ref', label: 'Ref', kind: 'raw' },
       { k: 'alt', label: 'Alt', kind: 'raw' },
-      { k: 'depth', label: 'Depth', kind: 'int', fmt: 'int', cls: 'col-num' },
-      { k: 'vaf', label: 'VAF', kind: 'num', fmt: 'vaf', cls: 'col-vaf' },
-      { k: 'mutation_type', label: 'Type', kind: 'dict', filter: true },
-      { k: 'TiTv', label: 'Ti/Tv', kind: 'dict', filter: true },
-      { k: 'trinucleotide', label: 'Trinucleotide', kind: 'dict', cls: 'col-mono' },
       // 空值统一显示成 '--'（原来是 'NA'）。两处必须一致：
       //   这里每个字段的 empty、cellHtml() 里的兜底。
       // （2026-09-24 第二轮：原来还有第三处 showDetail() 侧栏的兜底，详情栏已移除。）
@@ -503,6 +498,11 @@
       { k: 'sample', label: 'Sample', kind: 'dict', cls: 'col-mono' },
       { k: 'donor', label: 'Donor', kind: 'dict', cls: 'col-donor', filter: true },
       { k: 'tissue', label: 'Tissue', kind: 'dict', filter: true },
+      { k: 'depth', label: 'Depth', kind: 'int', fmt: 'int', cls: 'col-num' },
+      { k: 'vaf', label: 'VAF', kind: 'num', fmt: 'vaf', cls: 'col-vaf' },
+      { k: 'mutation_type', label: 'Type', kind: 'dict', filter: true },
+      { k: 'TiTv', label: 'Ti/Tv', kind: 'dict', filter: true },
+      { k: 'trinucleotide', label: 'Trinucleotide', kind: 'dict', cls: 'col-mono' },
       { k: 'ref_origin', label: 'Ref Origin', kind: 'dict', filter: true },
       { k: 'tissue_shared', label: 'Tissue Shared', kind: 'bool', filter: true },
       { k: 'infiltration_pp', label: 'Infiltration PP', kind: 'num', fmt: 'num4', cls: 'col-num' },
@@ -1360,7 +1360,7 @@
       // 107,852 行定的，翻页不会因为第 1 页碰巧值短而溢出。
       const tbl = document.querySelector('table.data-table');
       initColResize(tbl, {
-        storageKey: 'gtop.cols.search',
+        storageKey: 'gtop.cols.search.v2',
         minWidth: 44,
         minColWidths: idealColWidths(tbl)
       });

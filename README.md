@@ -254,10 +254,34 @@ Analysis & Tools（Genome Browser）/ Somatic Mosaicism / Download / Tissue / Co
 （依次是 基因 / 组织 / 供体 / 样本 / 染色体区间）。
 搜索框的 placeholder 也写明了可搜的维度。
 
-**结果表 = 21 个 CSV 列 + Visualization，共 22 列**（2026-09-24 改造，此前只有 13 列）：
-`Chr | Position | Ref | Alt | Depth | VAF | Type | Ti/Tv | Trinucleotide | Gene | Region |
-Sample | Donor | Tissue | Ref Origin | Tissue Shared | Infiltration PP | Infiltration |
-COSMIC Signature | CADD | Regulatory Score | Visualization`
+**结果表 = 21 个 CSV 列 + Visualization，共 22 列**（2026-09-24 由 13 列扩到 22 列；
+2026-09-28 调过一次列顺序，见下）：
+
+`Chr | Position | Ref | Alt | Gene | Region | Sample | Donor | Tissue |
+Depth | VAF | Type | Ti/Tv | Trinucleotide | Ref Origin | Tissue Shared |
+Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Visualization`
+
+**2026-09-28 列顺序调整**（luo：「search 表的顺序是不是要调整下呀」→
+「Gene / Region / Sample / Donor / Tissue 这些也挺重要的在前面吧」）：
+
+- 只把 `gene_symbol` / `region` / `sample` / `donor` / `tissue` 这 **5 列从第 10–14 位
+  整体前移到第 5–9 位**，其余 16 列的相对顺序一律没动
+- **为什么**：22 列实测渲染 **2674px**，而 `.table-wrap` 可视宽**恒为 1374px**
+  （`.container` 上限 1440px 减左右各 32px padding）——**换多大的显示器都不会变宽**。
+  调整前只有前 12 列完整可见（到 `Sample`），`Donor` 被切一半，`Tissue` 起 9 列
+  全在屏幕外，其中恰好包括表头筛选的主力维度 `Donor` / `Tissue`。
+  调整后可见列变成前 12 列到 `Type`，`Gene / Region / Sample / Donor / Tissue` 全部落在可见区内
+- **改的时候三处必须同步**（少改一处就会串位）：
+  1. `<thead>` 里**写死的 22 个 `<th>`**（表头不是由 `COLS` 生成的）
+  2. 脚本里的 `COLS` 数组（驱动 tbody 单元格 / 排序 / 筛选 / 导出 / 列宽）
+  3. `localStorage` 的列宽键 `gtop.cols.search` → **`gtop.cols.search.v2`**
+     —— 列宽脚本存的是「按列下标」的数组，重排后旧数据会套到错误的列上，必须作废
+- **`data/variants_data.js` 不用重新生成**：页面取任何一列都走
+  `idxOf(字段名)`（`FIELDS.indexOf`），是按名字查的，不是按下标。
+  所以 `scripts/build_variants_data.py` 里 `FIELDS` 的顺序现在只是**行内下标顺序**，
+  不再等于页面展示顺序 —— 展示顺序的唯一真源是 `src/index.html` 的 `COLS`
+- 改动用 `/tmp/reorder_cols.py` 式的**断言脚本**一次做完（22 个 `<th>` / 21 个 `COLS` 条目、
+  新旧键集合一致、改后数量不变），任一条不绿就不落盘
 
 - 除 `Visualization` 外**全部可点表头排序**；字典列按文字排（不是按字典下标）
 - **表头筛选 8 组**（漏斗图标）：`Type` `Ti/Tv` `Tissue` `Donor` `Ref Origin`
@@ -265,13 +289,20 @@ COSMIC Signature | CADD | Regulatory Score | Visualization`
   语义与其他页一致：**组内 OR、组间 AND、一个都不勾 = 不筛**，
   选项旁的计数是 faceted count（统计满足「其它生效筛选」的行数），计数为 0 的选项不显示
 - `Download` 导出的 CSV **列名与取值与源表完全一致**（`contig`/`pos`/…/`regulatory_score`），
-  可直接和 `variants_website.csv` 对回去
-- 表格 `min-width: 2180px`，窄屏横向滚动（`.table-wrap` 本来就是 `overflow-x:auto`）
+  可直接和 `variants_website.csv` 对回去。
+  ⚠️ **列顺序跟表格走**（`DL_COLS = COLS.map(...)`），所以 2026-09-28 调列顺序后
+  导出的列顺序也跟着变了 —— 表头行还在，按**列名**对回去不受影响；
+  如果有下游脚本是按列**位置**解析的，需要一起改
+- 表格 `min-width: 2180px` 只是 CSS 里的初始值；列宽脚本初始化后会把
+  `width`/`min-width` 一起钉成「各列之和」（实测 **2674px**），窄屏横向滚动
+  （`.table-wrap` 本来就是 `overflow-x:auto`）
 - **空值统一显示成 `--`**（2026-09-24 由 `NA` 改）。改的时候两处必须同步：
   `COLS` 里各字段的 `empty`、`cellHtml()` 的兜底
   （原来还有第三处 `showDetail()` 详情侧栏的兜底，详情栏已移除，见下文）
 - **表头列宽可拖拽**：拖动表头右边缘的细线即可改列宽，双击手柄恢复默认，
-  调整结果记在 `localStorage` 的 `gtop.cols.search`。详见「列宽拖拽」一节
+  调整结果记在 `localStorage` 的 `gtop.cols.search.v2`（**存的是按列下标的数组**，
+  所以 2026-09-28 调列顺序时把键从 `gtop.cols.search` 升到了 `.v2`，旧记录自动作废）。
+  详见「列宽拖拽」一节
 - **`Regulatory Score` 列显示成迷你柱状图**（2026-09-24 改）：柱子按「值 ÷ 满格刻度」取宽，
   满格刻度是 **5**（p99）而不是数据里的最大值 11 —— 该列 p50=1、p90=2、p99=5，99% 的值
   都落在 0~5，若按 11 归一化，「1」只有 9% 宽，肉眼分不出高低。6~11 的 645 行（0.6%）
@@ -347,8 +378,12 @@ cosmic_signature / CADD_PHRED / regulatory_score`，
 
 首页搜索表和 Data Portal 文件列表的**表头右边缘都能拖**：鼠标移上去出现一条细竖线，
 拖动即改列宽，双击手柄恢复该列默认宽度，调整结果记在 `localStorage`
-（`gtop.cols.search` / `gtop.cols.data`），刷新后仍在。
+（`gtop.cols.search.v2` / `gtop.cols.data`），刷新后仍在。
 实现只有一份 `assets/col-resize.js`，两个页面各引一次、在页面底部调 `initColResize()`。
+
+> ⚠️ **存的是「按列下标」的数组**（`saved.forEach((w, i) => widths[i] = w)`），
+> 所以**任何列顺序调整都必须同时升一次 `storageKey`**，否则老用户记录里的宽度会
+> 套到错误的列上。2026-09-28 调首页列顺序时就是从 `gtop.cols.search` 升到了 `.v2`。
 
 **交互行为**
 

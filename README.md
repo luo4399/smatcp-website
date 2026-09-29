@@ -633,7 +633,51 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
 | Format | 4 | `Data format` |
 
 筛选逻辑：**组内 OR、组间 AND**。选中任意项后标题栏出现 `Clear all (n)` 按钮，
-分组标题上也会挂一个「已选 N 项」的角标。选项数超过 20 的组（Donor）会额外带一个组内搜索框。
+分组标题上也会挂一个「已选 N 项」的角标。
+
+**分组标题的三个图标按钮**（2026-09-29 加，luo：「每个筛选都有自己的清除筛选，
+第一个和第二个可以搜索。左边筛选部分可以折叠或打开」）：
+
+| 图标 | 出现条件 | 作用 |
+|------|----------|------|
+| 🔍 放大镜 | 只有 `GROUPS` 里标了 `search: true` 的组（Tissue 33 项 / Donor 160 项） | 展开 / 收起这一组的组内搜索框 |
+| ↻ 环形箭头 | 只有**该组已勾选**时才出现（`nSel > 0`） | 只清这一组的勾选 |
+| ⌄ 展开箭头 | 所有组 | 展开 / 收起选项列表 |
+
+- **分组级清除**（`clearGroup(key)`）与全局 `Clear all` 的区别：**不动别的组**。
+  「Tissue 选错了想重选」不该把 Donor 的选择也一起清掉。另外它也不清 `expandedDonors`
+  —— 那是「展开看组织」的浏览状态，不是筛选条件。
+- **搜索框默认收起**，点放大镜才展开。`searchOpen` 这个 Set 必须独立存状态，
+  不能只改 DOM class —— `renderFilters()` 是全量重建 `innerHTML`，一重建就回默认。
+  同理，有搜索词时 `searchShown` 会强制把框顶出来，否则词还在、框却没了，
+  用户看着被过滤的列表找不到是哪儿在筛。
+- ⚠️ 两个「点了没反应」的坑，都在 `toggleGroupSearch()` 里：
+  1. **展开搜索时必须同时摊开这一组**。搜索框住在 `.filter-group-body` 里，而
+     `.filter-group.collapsed .filter-group-body { display: none }`；Donor 默认收起，
+     光开搜索框的话框子是藏着的，用户只看到放大镜亮了一下、下面什么都没变。
+  2. **收起搜索时必须把搜索词一并清掉**。否则上面那条 `|| !!searches[key]` 会把框又顶出来，
+     按钮变成按不动的死键。
+- ⚠️ **行为变化（相对 2026-09-25 版）**：Donor 原来在展开后就有一个**常驻**搜索框，
+  现在改成和 Tissue 一致的「点放大镜展开」。代价是多一次点击，好处是两个可搜组外观一致、
+  标题条不再被搜索框挤高。想改回常驻：把 `GROUPS` 里 donor 的 `search` 保留、
+  并在 `renderFilters()` 里把 `searchShown` 换成 `!!g.search` 即可。
+
+**折叠整个左侧筛选栏**（`toggleFilterPanel()`）：标题栏右侧的 `<` 按钮，折叠后左栏从
+236px 收成 **44px 窄轨道**，只留展开按钮和一个**生效筛选数角标**（`.filter-rail-note`）。
+
+- 角标不能省：折叠后看不到任何筛选痕迹，列表却只剩几条，用户会以为数据坏了
+- 折叠时隐藏的是 `#filterGroups` 和 `Clear all`，**表格照常渲染**（实测折叠前后都是 50 行/页）
+- 状态存在 `filtersCollapsed` 变量，class 挂在 `.filter-layout` 上（不是 `aside`）——
+  要改的是 grid 的列宽。44px 那条窄轨规则包在 `@media (min-width: 981px)` 里；
+  窄屏本来就是单列布局，`#filterGroups { display: none }` 同样生效
+- ⚠️ **`filter-group-head` 从 `<button>` 改成了 `<div>`**。里面要塞三个 `<button>`，
+  而 `<button>` 里不能再嵌 `<button>`（非法 HTML，浏览器会把内层拆出去）。
+  条高仍由 `.fg-label` 的 `padding: 9px 4px 9px 13px` 撑起 ——
+  与原来的 `padding: 9px 13px` 等价，实测条高 34px 不变、左栏宽 / 选项高 / 各组顶距 / 页面总高**全部 +0**。
+- ⚠️ 放大镜的高亮规则必须写成 `.fg-btn[aria-expanded="true"]:not(.fg-caret)`：
+  展开收起的箭头也带 `aria-expanded="true"`，不排除的话「展开中的组」会多出一个
+  像被按下的底色方块。底色用 `rgba(255,255,255,.3)` + 内描边，**要比 `:hover` 的 `.2` 更重**
+  —— 它是「常驻的开启态」不是「划过」，试过 `.18` 在截图里几乎不可见。
 
 三处与 ENCODE 对齐的增强：
 
@@ -795,13 +839,32 @@ Donor 组下面只剩 1 个人、标题却还写着 `Donor (160)`，标题和列
 `Tissue` 前移到 `Assay` 之前，因为 Tissue 是这里最主要的筛选维度。锁图标列、表头样式、
 行高、蓝色链接色等外观未动。设计稿表格里的数据本身是 COLO829 示例数据，已整体替换为真实 GTOP 清单。
 
-另外两处属于「新增、未改动原有规则」的调整：
+另外几处属于「新增、未改动原有规则」的调整：
 
 - `.filter-layout` 在 `max-width: 980px` 下原来是 `grid-template-columns: 1fr`，单列时该列的
   min-content 被表格的 `min-width` 撑开，连带左侧筛选栏一起把页面顶出横向滚动条
   （768px 下溢出 147px）。改成 `minmax(0, 1fr)` 后由 `.table-wrap` 自己横向滚动。
   该规则只有本页用到。
 - 列表有 7,249 行，滚动后筛选栏会移出视口，因此双栏（≥981px）下给 `aside` 加了吸顶。
+- 2026-09-29 新增的「折叠左栏 / 分组清除 / 组内搜索」三组规则，全部是新选择器
+  （`.fg-*` / `.filter-collapse` / `.filter-rail-note` / `.filter-layout.filters-collapsed`），
+  没有覆盖或删除任何既有声明，只把 `.filter-group-head` 的 `padding: 9px 13px`
+  覆盖成 `0 8px 0 0`（左右内边距挪给 `.fg-label` / `.fg-actions`，条高不变）。
+
+### ⚠️ 已知问题：981–1050px 区间页头导航溢出
+
+全站 5 页在 **1024px 视口**下都有 22–27px 横向溢出，根因统一是页头的
+`<nav id="navMenu" class="nav-menu">`（`assets/site.css`）。
+
+汉堡菜单的断点是 `@media (max-width: 980px)`，但横向排列的导航条实际需要约 **1051px**，
+于是 981–1050px 这段区间里导航既没收起成汉堡、又排不下，把页面顶出横向滚动条。
+
+- **这是既有问题，不是 2026-09-29 引入的**：拿 `HEAD` 版本的 `site.css` + `somatic-data.html`
+  逐字节换回去重测，溢出量完全一致（index 27px / somatic-data 27px）
+- 其余视口都干净：1920 / 1440 / 390 三档 5 页全部 0 溢出、0 断图、0 异常、0 失败请求
+- 修法是把汉堡断点从 `980px` 抬到 `1060px`（`@media (max-width: 1060px)`，共两处），
+  但这会改变 981–1060px 区间所有页面的页头外观（导航变汉堡），属于「改外观契约」，
+  故未擅自改动，留待确认
 
 ### 布局容器宽度
 

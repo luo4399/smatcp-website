@@ -1541,6 +1541,80 @@ th.has-filter {
   display: none;
 }
 
+/* ---------- 分组标题右侧的图标按钮（组内搜索 / 清除本组 / 展开收起）----------
+   2026-09-29 luo：「每个筛选都有自己的清除筛选，第一个和第二个可以搜索」。
+   head 原来是 <button>，里面不能再嵌 <button>（非法 HTML，浏览器会把内层拆出去），
+   所以改成 <div> + 左侧 .fg-label 按钮 + 右侧 .fg-actions 图标组。
+   蓝底、字号、条高都保持原样 —— 条高仍由 .fg-label 的 9px 上下内边距撑起。 */
+.filter-group-head {
+  /* 覆盖上面那条 padding: 9px 13px —— 左右内边距挪给 .fg-label 和 .fg-actions，
+     这样图标按钮能有自己的点击热区，而整条的高度不变 */
+  padding: 0 8px 0 0;
+}
+
+.fg-label {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 4px 9px 13px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.fg-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.fg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.82);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s;
+}
+
+.fg-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* 搜索框已展开时，放大镜按钮保持高亮，一眼看出这组在搜。
+   ⚠️ 必须排除 .fg-caret：展开收起箭头也带 aria-expanded="true"，
+   不排除的话「展开中的组」会多出一个像被按下的底色方块。
+   ⚠️ 底色要比 :hover 的 0.2 更重 —— 这是「常驻的开启态」，不是「划过」，
+   比 hover 还淡的话根本看不出来（试过 0.18，截图里几乎不可见）。
+   再补一圈内描边，读起来才像被按下的开关。 */
+.fg-btn[aria-expanded="true"]:not(.fg-caret) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+/* 展开收起的箭头：这一组收起时朝右 */
+.fg-caret i {
+  transition: transform 0.16s;
+}
+
+.filter-group.collapsed .fg-caret i {
+  transform: rotate(-90deg);
+}
+
 .filter-opt {
   display: flex;
   align-items: center;
@@ -1717,6 +1791,82 @@ td.cell-lock i {
 
 .filter-clear:hover {
   text-decoration: underline;
+}
+
+/* ---------- 折叠整个左侧筛选栏（2026-09-29 luo：「左边筛选部分可以折叠或打开」）---------- */
+.filter-title-actions {
+  display: flex;
+  align-items: center;
+  align-self: center;      /* 这一行是 baseline 对齐的，图标按钮改成居中 */
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 11px;
+  color: var(--muted-2);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.filter-collapse:hover {
+  color: var(--blue);
+  border-color: var(--blue);
+  background: var(--soft);
+}
+
+/* 折叠后隐藏的是「筛选组列表」本身，这条所有宽度都生效 ——
+   窄屏（≤980px）下 .filter-layout 本来就是单列，收起来同样合理 */
+.filter-layout.filters-collapsed #filterGroups,
+.filter-layout.filters-collapsed .filter-clear {
+  display: none;
+}
+
+/* 折叠后显示「生效筛选数」。这个角标不能省：否则用户看不到筛选还在生效，
+   只会觉得「怎么只剩 3 条数据」。 */
+.filter-rail-note {
+  display: none;
+}
+
+.filter-layout.filters-collapsed .filter-rail-note {
+  display: block;
+  margin-top: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue);
+  text-align: center;
+  background: var(--badge-bg);
+  border-radius: 999px;
+}
+
+.filter-layout.filters-collapsed .filter-rail-note[hidden] {
+  display: none;
+}
+
+@media (min-width: 981px) {
+  /* 宽屏下把左栏收成一条 44px 的窄轨道，只留展开按钮 + 计数角标 */
+  .filter-layout.filters-collapsed {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .filter-layout.filters-collapsed .filter-title {
+    display: none;
+  }
+
+  .filter-layout.filters-collapsed .filter-title-row {
+    margin-bottom: 0;
+    justify-content: center;
+  }
 }
 
 /* 选项超过 20 个的筛选组（Donor）带一个组内搜索框 */

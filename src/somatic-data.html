@@ -103,9 +103,18 @@
       <aside>
         <div class="filter-title-row">
           <div class="filter-title">Filters</div>
-          <button class="filter-clear" type="button" id="clearFilters" style="display:none"
-            onclick="clearFilters()">Clear all</button>
+          <div class="filter-title-actions">
+            <button class="filter-clear" type="button" id="clearFilters" style="display:none"
+              onclick="clearFilters()">Clear all</button>
+            <!-- 折叠整个筛选栏。折叠后左栏收成一条 44px 窄轨道，
+                 只留这个按钮 + 下面的生效筛选数角标（见 .filter-rail-note） -->
+            <button class="filter-collapse" type="button" id="filterCollapse" onclick="toggleFilterPanel()"
+              aria-expanded="true" aria-controls="filterGroups" title="Hide filters">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+          </div>
         </div>
+        <div class="filter-rail-note" id="filterRailNote" hidden></div>
         <div id="filterGroups"></div>
       </aside>
 
@@ -283,8 +292,11 @@
 
     // ============ 筛选面板 ============
     // idx = ROWS 里的列下标；opts 为字典数组，选项值就是数组下标
+    // search: true → 标题上出现放大镜按钮，可展开组内搜索框。
+    //   只给前两组（Tissue 33 个选项 / Donor 160 个）；Assay 2 / Platform 3 /
+    //   Format 4 选项太少，加搜索框只是占地方（2026-09-29 luo：「第一个和第二个可以搜索」）
     const GROUPS = [
-      { key: 'tissue', label: 'Tissue', idx: 3, opts: TISSUES, open: true },
+      { key: 'tissue', label: 'Tissue', idx: 3, opts: TISSUES, open: true, search: true },
       { key: 'donor', label: 'Donor', idx: 0, opts: DONORS, search: true, tree: true },
       { key: 'assay', label: 'Assay', idx: 1, opts: ASSAYS },
       { key: 'platform', label: 'Platform', idx: 2, opts: PLATFORMS },
@@ -300,6 +312,11 @@
 
     const expandedDonors = new Set();   // 展开了组织列表的供体
     const searches = {};                // 组内搜索词，重建面板后要还原
+    // 组内搜索框默认收起，点标题上的放大镜展开（2026-09-29）。
+    // 与 openGroups 同理：状态必须存在这里，不能只改 DOM class ——
+    // renderFilters() 是全量重建 innerHTML，一重建就回到默认。
+    const searchOpen = new Set();
+    let filtersCollapsed = false;       // 整个左侧筛选栏是否折叠
     let page = 1;
     // Data Matrix 是否展开。声明放在这里而不是矩阵那一节，是因为
     // renderFilters() 里要根据它决定要不要重画矩阵 —— 声明晚于调用会踩到 TDZ。
@@ -380,19 +397,40 @@
       const shownCount = g => g.opts.reduce((n, o, i) =>
         n + ((counts[g.key].get(i) || sel[g.key].has(i)) ? 1 : 0), 0);
 
-      document.getElementById('filterGroups').innerHTML = GROUPS.map(g => `
-        <div class="filter-group${openGroups.has(g.key) ? '' : ' collapsed'}" id="fg-${g.key}">
-          <button class="filter-group-head" type="button" onclick="toggleGroup('${g.key}')">
-            <span>${g.label} (${shownCount(g)})${sel[g.key].size ? ` <em class="fg-sel">${sel[g.key].size}</em>` : ''}</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="filter-group-body">
-            ${g.search ? `<input class="filter-search" type="search" placeholder="Search ${g.label.toLowerCase()}…"
+      document.getElementById('filterGroups').innerHTML = GROUPS.map(g => {
+        const isOpen = openGroups.has(g.key);
+        const nSel = sel[g.key].size;
+        // 有搜索词时强制把搜索框摊开 —— 否则词还在、框却没了，
+        // 用户会看到列表被过滤着却找不到是哪儿在筛
+        const searchShown = !!g.search && (searchOpen.has(g.key) || !!searches[g.key]);
+        return `
+        <div class="filter-group${isOpen ? '' : ' collapsed'}" id="fg-${g.key}">
+          <div class="filter-group-head">
+            <button class="fg-label" type="button" onclick="toggleGroup('${g.key}')"
+              aria-expanded="${isOpen}" aria-controls="fgb-${g.key}"
+              >${g.label} (${shownCount(g)})${nSel ? ` <em class="fg-sel">${nSel}</em>` : ''}</button>
+            <span class="fg-actions">
+              ${g.search ? `<button class="fg-btn" type="button" onclick="toggleGroupSearch('${g.key}')"
+                aria-expanded="${searchShown}" aria-controls="fgs-${g.key}"
+                title="${searchShown ? 'Hide' : 'Search'} ${g.label} options"
+                ><i class="fa-solid fa-magnifying-glass"></i></button>` : ''}
+              ${nSel ? `<button class="fg-btn" type="button" onclick="clearGroup('${g.key}')"
+                title="Clear the ${g.label} filter (${nSel} selected)"
+                ><i class="fa-solid fa-rotate-right"></i></button>` : ''}
+              <button class="fg-btn fg-caret" type="button" onclick="toggleGroup('${g.key}')"
+                aria-expanded="${isOpen}" title="${isOpen ? 'Collapse' : 'Expand'} ${g.label}"
+                ><i class="fa-solid fa-chevron-down"></i></button>
+            </span>
+          </div>
+          <div class="filter-group-body" id="fgb-${g.key}">
+            ${searchShown ? `<input class="filter-search" id="fgs-${g.key}" type="search"
+                  placeholder="Search ${g.label.toLowerCase()}…"
                   value="${escapeHtml(searches[g.key] || '')}" aria-label="Search ${g.label}"
                   oninput="searchOptions('${g.key}', this.value)">` : ''}
             ${g.opts.map((o, i) => optHtml(g, i, o, counts[g.key])).join('')}
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
 
       Object.entries(scrolls).forEach(([id, top]) => {
         const b = document.querySelector(`#${id} .filter-group-body`);
@@ -411,6 +449,56 @@
       // 之后任何一次 renderFilters() 重建都不会再把这一组收起来
       if (el.classList.toggle('collapsed')) openGroups.delete(key);
       else openGroups.add(key);
+    }
+
+    // 展开 / 收起某一组的组内搜索框（只有 GROUPS 里标了 search:true 的组有）
+    //
+    // 两个必须一起做的事，少一个就会出现「点了没反应」：
+    //   · 展开时同时把这一组摊开 —— 搜索框住在 .filter-group-body 里，而
+    //     .filter-group.collapsed .filter-group-body { display:none }，
+    //     Donor 这类默认收起的组，光开搜索框的话框子是藏着的，用户只看到
+    //     放大镜亮了一下、下面什么都没变。
+    //   · 收起时把搜索词一并清掉 —— 否则 searchShown 里的 `|| !!searches[key]`
+    //     会把框子又顶出来，按钮变成按不动的死键。顺带「关掉搜索」= 恢复完整
+    //     列表，语义上也自洽。
+    function toggleGroupSearch(key) {
+      if (searchOpen.has(key)) {
+        searchOpen.delete(key);
+        searches[key] = '';
+      } else {
+        searchOpen.add(key);
+        openGroups.add(key);
+      }
+      renderFilters();
+      // 重建之后焦点没了，手动给回去并选中已有内容，方便直接改词
+      const box = document.getElementById('fgs-' + key);
+      if (box) { box.focus(); box.select(); }
+    }
+
+    // 折叠 / 展开整个左侧筛选栏。状态存 filtersCollapsed，
+    // class 挂在 .filter-layout 上（不是 aside）—— 因为要改的是 grid 的列宽
+    function toggleFilterPanel() {
+      filtersCollapsed = !filtersCollapsed;
+      const layout = document.querySelector('.filter-layout');
+      if (!layout) return;
+      layout.classList.toggle('filters-collapsed', filtersCollapsed);
+      const btn = document.getElementById('filterCollapse');
+      if (!btn) return;
+      btn.setAttribute('aria-expanded', String(!filtersCollapsed));
+      btn.title = (filtersCollapsed ? 'Show' : 'Hide') + ' filters';
+      const i = btn.querySelector('i');
+      if (i) i.className = 'fa-solid ' + (filtersCollapsed ? 'fa-chevron-right' : 'fa-chevron-left');
+      updateRailNote();
+    }
+
+    // 折叠状态下显示「生效筛选数」。不显示的话，用户看到列表只剩几条
+    // 却看不到任何筛选痕迹，会以为数据坏了
+    function updateRailNote() {
+      const note = document.getElementById('filterRailNote');
+      if (!note) return;
+      const n = activeCount();
+      note.textContent = n ? String(n) : '';
+      note.hidden = !n;
     }
 
     // 选项太多（Donor 160 个）时给组内搜索框用
@@ -451,6 +539,16 @@
     function clearFilters() {
       GROUPS.forEach(g => sel[g.key].clear());
       expandedDonors.clear();
+      page = 1;
+      renderFilters();
+      renderList();
+    }
+
+    // 只清这一组的勾选（标题上的 ↻ 按钮）。和 clearFilters() 的区别：
+    //   · 不动别的组 —— 「Tissue 选错了，重选」不该把 Donor 的选择也清掉
+    //   · 不清 expandedDonors —— 那是「展开看组织」的浏览状态，不是筛选条件
+    function clearGroup(key) {
+      sel[key].clear();
       page = 1;
       renderFilters();
       renderList();
@@ -561,6 +659,8 @@
       const n = activeCount();
       clear.style.display = n ? '' : 'none';
       clear.textContent = n ? `Clear all (${n})` : 'Clear all';
+      // 折叠时左栏只剩这条角标，筛选一变就得跟着更新
+      updateRailNote();
     }
 
     // ============ Data matrix（Tissue × Assay 文件数热图）============

@@ -180,6 +180,22 @@ bash scripts/build_publish.sh
 并抹掉路径里的 `../` 前缀；④ 把 `data/plots_index.js` 的 `PLOT_BASE` 同步改成 `assets/plots/`。
 最后自检产物里不再有 `../`，有就报错退出。
 
+⚠️ **第 ③ 步的 sed 必须是「引号无关」的**，即 `s|\.\./assets/|assets/|g` 这种，
+**不能只匹配双引号开头的 `"\.\./assets/`**（2026-09-29 修）：
+
+- 漏点一：`src/index.html` 里 `const PLOT_BASE = window.PLOT_BASE || '../assets/plots/';`
+  —— **单引号**，双引号版的 sed 匹配不到，产物里会残留一条指向上级目录的兜底路径。
+  （实践中它是死代码，因为 `data/plots_index.js` 总会先设好 `window.PLOT_BASE`；
+  但一旦那个 js 加载失败，Plot 链接就会指到站点根之外。）
+- 漏点二：`src/somacard.html` 顶部注释里的路径（**无引号**的散文）。
+
+⚠️ **自检必须排除 `assets/fontawesome/`**：Font Awesome 自己的 `all.min.css` 里有一堆
+`url(../webfonts/...)`，那是相对**该 CSS 自身**解析的、完全正确，不排除会误报挡住发布。
+
+⚠️ 自检用 `find … -exec grep -l` 的写法，**不要用 `grep -r --exclude-dir=`**：
+本机 `grep` 是 toybox 版，与 GNU/BSD grep 的选项支持不一致
+（`\|` 交替就静默失效过，见「工具使用注意」）。
+
 `publish/` 只含站点公开文件（约 12 MB）：五个 HTML、`assets/`（site.css + 图片 + fontawesome +
 `tissue/` 33 张图标 + `plots/` 8 张示例 PDF）、`data/`（三个数据 js）。
 ⚠️ `assets/somatic-auth.js`（登录门脚本）**不在产物里** —— 页面已不引用它，
@@ -204,6 +220,15 @@ bash scripts/build_publish.sh
 
 看到 `✅ publish/ 重建完成（自检通过）` 才算成功。自检不过会报错退出，产物不会留下半成品。
 
+> **发布前先在本地对快照冒烟**（比发布后再查便宜得多）：`publish/` 就在项目根下，
+> 用现有的 `python -m http.server 8913` 直接访问 `http://127.0.0.1:8913/publish/index.html` 即可。
+> 四组检查：① 8 个敏感路径（`README.md` / `server/` / `data_source/` / `assets/somatic-auth.js` /
+> `Procfile` / `requirements.txt` / `scripts/` / `.workbuddy-ai/`）必须 **404**；
+> ② 五页 0 溢出 / 0 断图 / 0 异常 / 0 失败请求；③ 本次改动的新功能逐项跑一遍；
+> ④ 首页 `window.PLOT_BASE === 'assets/plots/'` 且 `PLOT_META` 非空。
+> ⚠️ 判 404 时要**先导航到站点再 fetch** —— 在 `about:blank` 里跨源 fetch 会返回
+> `Failed to fetch`，看着像 404 的假阳性。
+
 **第 2 步 · 发布 `publish/` 目录**
 
 用 **「发布为应用」** 能力，把**项目目录指向 `publish/`**（⚠️ 不是项目根目录）。
@@ -220,7 +245,8 @@ bash scripts/build_publish.sh
 > | 时间 | 改了什么 |
 > |---|---|
 > | 2026-09-25 17:56 | 重新发布（SomaCard 取回 + 取消登录门） |
-> | **2026-09-28 10:2x** | **重新发布（首页搜索表列顺序调整）** —— 链接复用，实测五页全绿、首页 12 列可见到 `Type`、0 个单元格被截断 |
+> | 2026-09-28 10:2x | 重新发布（首页搜索表列顺序调整）—— 链接复用，实测五页全绿、首页 12 列可见到 `Type`、0 个单元格被截断 |
+> | **2026-09-29 21:0x** | **重新发布（Data Portal 筛选面板：分组清除 / 前两组可搜索 / 左栏可折叠）** —— 链接复用，`verified: true`；线上实测五页 0 溢出 / 0 断图 / 0 异常 / 0 失败请求，8 个敏感路径全 404，三个新功能逐项跑通，覆盖度图弹窗 PDF 200 |
 
 **第 4 步 · 更新线上内容**
 

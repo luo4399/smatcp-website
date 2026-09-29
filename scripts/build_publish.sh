@@ -27,23 +27,36 @@ cp -R assets data publish/
 rm -f publish/assets/somatic-auth.js
 
 # ---- 页面：拷到发布根，去掉 ../ 前缀 ----
+# ⚠️ 不要只匹配「双引号开头的」`"\.\./assets/` —— 单引号 / 无引号的引用会漏掉。
+#    2026-09-29 发现的漏点：src/index.html 里 `window.PLOT_BASE || '../assets/plots/'`
+#    这个单引号兜底值，以及 src/somacard.html 顶部注释里的路径。
+#    一律按「出现即抹掉」处理，反正发布产物是扁平结构，任何 ../ 都是错的。
 for f in src/*.html; do
-  sed -e 's|"\.\./assets/|"assets/|g' \
-      -e 's|"\.\./data/|"data/|g' \
+  sed -e 's|\.\./assets/|assets/|g' \
+      -e 's|\.\./data/|data/|g' \
       "$f" > "publish/$(basename "$f")"
 done
 
 # ---- 图集基址：生成的 js 里也带 ../，同样要抹掉 ----
-sed "s|'\.\./assets/plots/'|'assets/plots/'|" data/plots_index.js > publish/data/plots_index.js
+sed -e 's|\.\./assets/|assets/|g' -e 's|\.\./data/|data/|g' \
+    data/plots_index.js > publish/data/plots_index.js
 
 # ---- 自检：发布产物里不该再有 ../ ----
-if grep -rlE '"\.\./(assets|data)/' publish --include='*.html' >/dev/null 2>&1; then
+# 扫 html / js / css。⚠️ 必须排除 fontawesome：它自己的 all.min.css 里有一堆
+# `url(../webfonts/...)`，那是相对该 CSS 自身解析的、完全正确，误报会挡住发布。
+#
+# 用 find + grep -l 而不是 `grep -r --exclude-dir=` —— 本机 grep 是 toybox 版，
+# 与 GNU/BSD grep 的选项支持不一致（`\|` 交替就静默失效过），find 的写法到哪都能跑。
+_leak() {
+  find publish -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' \) \
+       -not -path '*/fontawesome/*' \
+       -exec grep -lE '\.\./(assets|data)/' {} + 2>/dev/null
+}
+if [ -n "$(_leak)" ]; then
   echo "❌ 发布产物里仍有 ../ 相对路径：" >&2
-  grep -rnE '"\.\./(assets|data)/' publish --include='*.html' >&2
-  exit 1
-fi
-if grep -q "\.\./assets/plots/" publish/data/plots_index.js; then
-  echo "❌ plots_index.js 的 PLOT_BASE 没改写成功" >&2
+  find publish -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' \) \
+       -not -path '*/fontawesome/*' \
+       -exec grep -nE '\.\./(assets|data)/' {} + >&2
   exit 1
 fi
 

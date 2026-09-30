@@ -2110,31 +2110,68 @@ td.cell-uuid {
 }
 
 .dm-scroll {
+  /* 33 行（表头 + 33 行 + 表尾 ≈ 890px）只露前 16 行左右，其余滚动。
+     别用 vh：headless Chrome 窗口高 600 时 calc(100vh - 40px) 会截掉表尾。
+
+     ⚠️ width: max-content 别删 —— 热图只有 486px 宽，如果这个滚动容器还是满宽
+     （1116px），竖向滚动条会挂在面板最右端、离表格 630px，看着不知道在滚什么。
+     收缩到内容宽（再被 max-width: 100% 兜住窄屏），滚动条就贴着表格右边。 */
+  width: max-content;
+  max-width: 100%;
   max-height: 420px;
   overflow: auto;
   overscroll-behavior: contain;
 }
 
 table.dm-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11.5px;
-  /* ⚠️ 必须 table-layout: fixed，别删。
+  /* ⚠️ 两件事都别改：
+     ① width: auto（**不是** 100%）—— 热图不撑满面板，右边留白就留白。
+     ② table-layout: fixed —— 否则第一列会按 max-content 独吞宽度。
+
      2026-09-25 luo：「data matrix 的第一列是不是太宽了」—— 是的，实测第一列 570px，
      而它最长的一条内容（"Heart Tricuspid Valve"）只要 130.8px，421px 是纯浪费。
-
      原因在 auto 布局的分配规则：table 宽 100%（1116px）、4 列，多余空间按各列
      **max-content 的比例**摊。第一列的 max-content 是 168px（行头文字），
      另外三列各约 45px —— 比例 3.7 : 1 : 1 : 1，于是第一列独吞了 570px。
      光给它加 max-width 没用（auto 布局下 td/th 的 max-width 不可靠），
      只能换成 fixed 布局、把列宽写死。
 
-     fixed 下：第一行（thead）给出宽度的列按写死的值，**没给出宽度的列平分剩下的**。
-     所以这里只需要给第一列 168px，后面三列自动平分 (1116 − 168) / 3 = 316px。
-     表格仍然 100% 宽、仍然填满面板 —— 试过「按内容收缩」（表格 433px）和
-     「限宽 720px 居中/左对齐」，前者右半边空一大片，后者和面板标题「Data Matrix」
-     对不齐或右边留白，都不如填满。 */
+     fixed 下：第一行（thead）给出宽度的列按写死的值，没给出宽度的列平分剩下的。
+     以前这里写的是 width: 100% + 只给第一列 168px，后三列就平分 (1116 − 168) / 3 = 316px
+     —— 于是 luo 连着问「右边列很宽，只有数字，没必要这么宽」「RNA-seq WGS 也是很宽呀」。
+
+     中途走过两条弯路：
+       · 拆成左右两块、把宽度用来放更多列 —— 结构上成立，但页面上冒出两个表头 +
+         两行合计，很别扭（luo：「现在搞得这么别扭」）。
+       · 把表格缩到 433px 但仍在面板里居中/左对齐 —— 当时以为「右边空一片」不能接受。
+
+     最后是 luo 点破前提：「它本质上就是一个热图吧，还有为什么一定要跟表格同宽呢？」
+     对 —— 这是张**图**，不是下面那张数据表，图没有理由撑满面板。
+     所以改成 width: auto + 四列全部写死宽度（.dm-corner / .dm-colhead / .dm-total），
+     表格自然宽 = 168 + 120 + 120 + 78 = 486px，靠左对齐。 */
+  width: auto;
+  /* 兜底：窄到装不下 486px 时（≲540px 视口）按容器宽度压缩，不要撑出横向滚动 */
+  max-width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
   table-layout: fixed;
+}
+
+/* 两个 assay 列（RNA-seq / WGS）：固定 120px，不随面板变宽。
+   为什么是 120px：格子里最长的数是 "1,384"（32.6px），加左右各 6px 内边距也才 45px；
+   余下的宽度留给横条（最长 = 整个格子内宽），120px 能把 √ 刻度的长短差异看清楚。
+   ⚠️ 必须声明在 .dm-total 之前：表头最后一格同时带 .dm-total 和 .dm-colhead，
+   两者同权重时后声明的赢，78px 要压过这里的 120px。 */
+.dm-colhead {
+  width: 120px;
+}
+
+/* 窄到装不下 486px 时（≲540px 视口），退回「占满容器 + 两个 assay 列平分剩余」
+   的老做法 —— 写死宽度的列在 fixed 布局下不会自己缩，硬留着会撑出横向滚动。
+   实测 390px：容器 340 → 168 / 57 / 57 / 58，正好铺满。 */
+@media (max-width: 540px) {
+  table.dm-table { width: 100%; }
+  .dm-colhead { width: auto; }
 }
 
 table.dm-table th,

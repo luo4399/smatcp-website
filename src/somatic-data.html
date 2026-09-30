@@ -760,21 +760,34 @@
         + `<span><i class="dm-sw dm-4"></i>${fmtN(T[2] + 1)}+</span>`
         + `</span>`;
 
-      document.getElementById('dmBody').innerHTML = `
-        <div class="dm-note"><span>${noteBits.join(' ')}</span>${legend}</div>
-        <div class="dm-scroll">
-          <table class="dm-table">
-            <thead>
-              <tr>
-                <th class="dm-corner">Tissue <span class="dm-axis">↓</span> · Assay <span class="dm-axis">→</span></th>
-                ${ASSAYS.map((a, ai) => `<th class="dm-colhead${aOn.has(ai) ? ' dm-on' : ''}">${escapeHtml(a)}</th>`).join('')}
-                <th class="dm-total dm-colhead">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${TISSUES.map((t, ti) => {
-                const rt = rowTotal(ti);
-                return `
+      // 33 行 × 4 列铺在 1116px 上，每列必然 300px 往上 —— luo 2026-09-30 连问两次
+      // （「右边列很宽，只有数字，没必要这么宽」→「RNA-seq WGS 也是很宽呀」）。
+      //
+      // 中途试过「拆成左右两块、把宽度用来放更多列」：结构上成立，但页面上冒出
+      // 两个表头 + 两行合计，很别扭。luo 一句话点破前提错了：
+      //     「它本质上就是一个热图吧，还有为什么一定要跟表格同宽呢？」
+      // 对 —— 这是张**图**，不是下面那张数据表。图没有理由撑满面板宽度。
+      // 所以列宽改成固定值（见 CSS 的 .dm-colhead / .dm-total），表格 width: auto、
+      // 靠左对齐，右边留白就是留白。
+      const headRow = `
+                <tr>
+                  <th class="dm-corner">Tissue <span class="dm-axis">↓</span> · Assay <span class="dm-axis">→</span></th>
+                  ${ASSAYS.map((a, ai) => `<th class="dm-colhead${aOn.has(ai) ? ' dm-on' : ''}">${escapeHtml(a)}</th>`).join('')}
+                  <th class="dm-total dm-colhead">Total</th>
+                </tr>`;
+      const footRow = `
+                <tr>
+                  <th class="dm-rowhead">Total</th>
+                  ${ASSAYS.map((a, ai) => `<td class="dm-total${aOn.has(ai) ? ' dm-on' : ''}"><button type="button" onclick="matrixPick(${ai}, null)"
+                      title="Show only ${escapeHtml(a)} (clears the Tissue filter)">${fmtN(colTotal(ai))}</button></td>`).join('')}
+                  <td class="dm-total dm-grand"><button type="button" onclick="matrixPick(null, null)"
+                      title="Clear the Tissue and Assay filters (all ${fmtN(ROWS.length)} files)">${fmtN(base.length)}</button></td>
+                </tr>`;
+
+      // ⚠️ 这里必须是 (t, ti) —— TISSUES.map 的第一个参数是组织名，不是下标
+      const bodyRows = TISSUES.map((t, ti) => {
+        const rt = rowTotal(ti);
+        return `
                 <tr>
                   <th class="dm-rowhead${tOn.has(ti) ? ' dm-on' : ''}${rt === 0 ? ' dm-off' : ''}"><button type="button" onclick="matrixPick(null, ${ti})"
                       title="Show only ${escapeHtml(pretty(t))} (clears the Assay filter)">${escapeHtml(pretty(t))}</button></th>
@@ -788,17 +801,15 @@
                   <td class="dm-total${tOn.has(ti) ? ' dm-on' : ''}"><button type="button" onclick="matrixPick(null, ${ti})"
                       title="Show only ${escapeHtml(pretty(t))} (clears the Assay filter)">${fmtN(rt)}</button></td>
                 </tr>`;
-              }).join('')}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th class="dm-rowhead">Total</th>
-                ${ASSAYS.map((a, ai) => `<td class="dm-total${aOn.has(ai) ? ' dm-on' : ''}"><button type="button" onclick="matrixPick(${ai}, null)"
-                    title="Show only ${escapeHtml(a)} (clears the Tissue filter)">${fmtN(colTotal(ai))}</button></td>`).join('')}
-                <td class="dm-total dm-grand"><button type="button" onclick="matrixPick(null, null)"
-                    title="Clear the Tissue and Assay filters (all ${fmtN(ROWS.length)} files)">${fmtN(base.length)}</button></td>
-              </tr>
-            </tfoot>
+      }).join('');
+
+      document.getElementById('dmBody').innerHTML = `
+        <div class="dm-note"><span>${noteBits.join(' ')}</span>${legend}</div>
+        <div class="dm-scroll">
+          <table class="dm-table">
+            <thead>${headRow}</thead>
+            <tbody>${bodyRows}</tbody>
+            <tfoot>${footRow}</tfoot>
           </table>
         </div>`;
 

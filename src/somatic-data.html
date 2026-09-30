@@ -751,13 +751,24 @@
         noteBits.push('Tissue / Assay selections are highlighted but not applied to these counts.');
       }
       noteBits.push('Click a cell, or a row / column <strong>Total</strong>, to filter.');
-      // 色阶图例。取值只有 1~2 种时不做分档，图例也就不显示。
+      // 色阶图例 —— 按热图的标准排版做成图右侧竖排的一根 colorbar：
+      // 4 个色块上下相接（每块高 = 右侧刻度行的行高，才能一一对上），高值在上。
+      // 色块用 .dm-b1~4 而不是 .dm-1~4，避免和格子/表头的 .dm-N 撞名。
+      // 取值只有 1~2 种时不做分档，图例也就不显示。
       const legend = uniq.length < 3 ? '' :
         `<span class="dm-legend" title="Cell colour = quartile of the counts; the bar length is the square root of the count.">`
-        + `<span><i class="dm-sw dm-1"></i>≤${fmtN(T[0])}</span>`
-        + `<span><i class="dm-sw dm-2"></i>${fmtN(T[0] + 1)}–${fmtN(T[1])}</span>`
-        + `<span><i class="dm-sw dm-3"></i>${fmtN(T[1] + 1)}–${fmtN(T[2])}</span>`
-        + `<span><i class="dm-sw dm-4"></i>${fmtN(T[2] + 1)}+</span>`
+        + `<span class="dm-legend-title">Files</span>`
+        + `<span class="dm-legend-body">`
+        + `<span class="dm-legend-bar">`
+        + `<i class="dm-b4"></i><i class="dm-b3"></i><i class="dm-b2"></i><i class="dm-b1"></i>`
+        + `</span>`
+        + `<span class="dm-legend-ticks">`
+        + `<b>${fmtN(T[2] + 1)}+</b>`
+        + `<b>${fmtN(T[1] + 1)}–${fmtN(T[2])}</b>`
+        + `<b>${fmtN(T[0] + 1)}–${fmtN(T[1])}</b>`
+        + `<b>≤${fmtN(T[0])}</b>`
+        + `</span>`
+        + `</span>`
         + `</span>`;
 
       // 33 行 × 4 列铺在 1116px 上，每列必然 300px 往上 —— luo 2026-09-30 连问两次
@@ -804,13 +815,16 @@
       }).join('');
 
       document.getElementById('dmBody').innerHTML = `
-        <div class="dm-note"><span>${noteBits.join(' ')}</span>${legend}</div>
-        <div class="dm-scroll">
-          <table class="dm-table">
-            <thead>${headRow}</thead>
-            <tbody>${bodyRows}</tbody>
-            <tfoot>${footRow}</tfoot>
-          </table>
+        <div class="dm-note"><span>${noteBits.join(' ')}</span></div>
+        <div class="dm-figure">
+          <div class="dm-scroll">
+            <table class="dm-table">
+              <thead>${headRow}</thead>
+              <tbody>${bodyRows}</tbody>
+              <tfoot>${footRow}</tfoot>
+            </table>
+          </div>
+          ${legend}
         </div>`;
 
       const now = document.querySelector('.dm-scroll');

@@ -2369,14 +2369,8 @@ tfoot .dm-rowhead {
 /* ---- 矩阵与左侧筛选的联动 ---- */
 
 /* 提示条：说明格子里的数字是在什么口径下算出来的。
-   矩阵只跟随「Tissue / Assay 之外」的筛选，不写清楚很容易被当成算错了。
-   右侧挂色阶图例（四分位阈值随数据变，必须标出来）。 */
+   矩阵只跟随「Tissue / Assay 之外」的筛选，不写清楚很容易被当成算错了。 */
 .dm-note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 16px;
   padding: 8px 12px;
   font-size: 11.5px;
   line-height: 1.55;
@@ -2385,31 +2379,70 @@ tfoot .dm-rowhead {
   border-bottom: 1px solid var(--border-2);
 }
 
+/* 热图 + 右侧 colorbar 的一行。flex-wrap 让图例在窄屏自动掉到热图下面，
+   不用写媒体查询（掉下去之后竖排的图例照样读得懂）。 */
+.dm-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 28px;
+}
+
+/* 色阶图例：热图的标准排版 —— 图右侧一根竖排 colorbar。
+   2026-09-30 之前它横排在提示条右端、离热图很远，读数时要来回找；
+   挪到图右边之后，色块和格子落在同一条水平视线上。 */
 .dm-legend {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 auto;
   color: var(--muted-2);
 }
 
-.dm-legend > span {
-  display: inline-flex;
+.dm-legend-title {
+  font-size: 11px;
+}
+
+/* 4 个色块上下相接、只在外圈描边 + 圆角 —— 这样才读成「一根色阶」，
+   而不是 4 个互不相干的色片。
+   描边用 box-shadow（不占布局）：上下各 1px 真边框会把色块整体推偏 1px，
+   和右侧刻度对不齐。 */
+.dm-legend-body {
+  display: flex;
+  gap: 6px;
+}
+
+.dm-legend-bar {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--border-2);
+}
+
+.dm-legend-bar i {
+  display: block;
+  height: 15px;
+}
+
+.dm-b1 { background: #f2f7fd; }
+.dm-b2 { background: #dce9fa; }
+.dm-b3 { background: #bedaf4; }
+.dm-b4 { background: #9cc4ed; }
+
+/* 右侧刻度：每行 15px（= 色块高）、垂直居中，才能和左边色块一一对上 */
+.dm-legend-ticks {
+  display: grid;
+  grid-auto-rows: 15px;
   align-items: center;
-  gap: 4px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
 }
 
-.dm-sw {
-  width: 13px;
-  height: 10px;
-  border-radius: 2px;
-  border: 1px solid var(--border-2);
+.dm-legend-ticks b {
+  font-weight: 500;
 }
-
-.dm-sw.dm-1 { background: #f2f7fd; }
-.dm-sw.dm-2 { background: #dce9fa; }
-.dm-sw.dm-3 { background: #bedaf4; }
-.dm-sw.dm-4 { background: #9cc4ed; }
 
 .dm-note strong {
   color: var(--navy);

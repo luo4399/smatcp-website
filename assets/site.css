@@ -1477,6 +1477,14 @@ th.has-filter {
   margin-top: 4px;
 }
 
+/* Data Portal 的页面描述有四行，两端对齐（luo 2026-09-30：「We provide raw PCR-free
+   这段文字应该是两端对齐的」）。
+   ⚠️ 选择器是 `.page-desc > p`（子代）而不是 `.page-desc` —— tissue.html 那边写的是
+   `<p class="page-desc">`（类在 p 自己身上），匹配不到，所以这条只作用于 Data Portal。 */
+.page-desc > p {
+  text-align: justify;
+}
+
 /* 正文里的外链（如 Data Portal 的 cloud.smart-nbc.org.cn），默认 a 是继承色、看不出是链接 */
 .page-desc a {
   color: var(--blue-link);

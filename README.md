@@ -643,6 +643,17 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
 页面载入后由 `window.GDATA_STATS` 覆盖，所以源 CSV 更新后描述不会和数据表打架；
 其余样本数是官方口径，写死。
 
+**两端对齐**（2026-09-30 luo：「We provide raw PCR-free 这段文字应该是两端对齐的」）：
+`site.css` 里加了 `.page-desc > p { text-align: justify }`。描述这段有 4~5 行，
+两端对齐后行末齐平。
+
+> ⚠️ 选择器必须是 **`.page-desc > p`（子代）而不是 `.page-desc`**：
+> `tissue.html` 那边写的是 `<p class="page-desc">`（类挂在 `<p>` 自己身上），
+> 用后代/自身选择器会连带把「Browse by Tissue」那句也变成两端对齐。
+> 现在这个写法只命中 Data Portal 的 `<div class="page-desc"><p>…</p></div>`。
+> 实测：somatic-data `text-align: justify`（1440 下 4 行），tissue 仍是 `start`。
+> 最后一行不拉伸是 CSS 的正常行为，不用管。
+
 ### 页面结构
 
 沿用设计稿的「左侧筛选 + 右侧列表」双栏结构（`.filter-layout`）。

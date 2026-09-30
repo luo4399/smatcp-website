@@ -1832,7 +1832,10 @@ td.cell-lock i {
 }
 
 /* 折叠后隐藏的是「筛选组列表」本身，这条所有宽度都生效 ——
-   窄屏（≤980px）下 .filter-layout 本来就是单列，收起来同样合理 */
+   窄屏（≤640px，见文件末尾 `@media (max-width: 640px)` 里把 .filter-layout 改成单列）
+   下筛选栏本来就是单列，收起来同样合理。
+   ⚠️ 这里原来写的是「≤980px」，但单列断点其实是 640px —— 981–640px 之间一直是双栏，
+   别照着旧注释去改断点。 */
 .filter-layout.filters-collapsed #filterGroups,
 .filter-layout.filters-collapsed .filter-clear {
   display: none;

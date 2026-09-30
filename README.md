@@ -247,6 +247,7 @@ bash scripts/build_publish.sh
 > | 2026-09-25 17:56 | 重新发布（SomaCard 取回 + 取消登录门） |
 > | 2026-09-28 10:2x | 重新发布（首页搜索表列顺序调整）—— 链接复用，实测五页全绿、首页 12 列可见到 `Type`、0 个单元格被截断 |
 > | **2026-09-29 21:0x** | **重新发布（Data Portal 筛选面板：分组清除 / 前两组可搜索 / 左栏可折叠）** —— 链接复用，`verified: true`；线上实测五页 0 溢出 / 0 断图 / 0 异常 / 0 失败请求，8 个敏感路径全 404，三个新功能逐项跑通，覆盖度图弹窗 PDF 200 |
+> | **2026-09-30 16:1x** | **重新发布（Data Matrix 固定列宽 + 靠左 / 色阶改竖排 colorbar / 页面描述两端对齐 / 页头汉堡断点 980→1100px）** —— 链接复用，`verified: true`；线上 5 页 × 5 视口 0 溢出 / 0 断图 / 0 异常 / 0 失败请求，8 个敏感路径全 404，热图 486.5px + 滚动条贴表 + 33 行 + sticky 表头 + colorbar 并排 + 描述 justify 逐项跑通 |
 
 **第 4 步 · 更新线上内容**
 
@@ -988,10 +989,13 @@ Donor 组下面只剩 1 个人、标题却还写着 `Donor (160)`，标题和列
 
 另外几处属于「新增、未改动原有规则」的调整：
 
-- `.filter-layout` 在 `max-width: 980px` 下原来是 `grid-template-columns: 1fr`，单列时该列的
+- `.filter-layout` 在窄屏媒体查询里原来是 `grid-template-columns: 1fr`，单列时该列的
   min-content 被表格的 `min-width` 撑开，连带左侧筛选栏一起把页面顶出横向滚动条
   （768px 下溢出 147px）。改成 `minmax(0, 1fr)` 后由 `.table-wrap` 自己横向滚动。
   该规则只有本页用到。
+  > ⚠️ 这条断点现在挂在 `@media (max-width: 640px)`（不是 980px）——
+  > 641px 以上 `.filter-layout` 一直是双栏。`site.css` 里曾有一条「窄屏（≤980px）下
+  > 本来就是单列」的注释，2026-09-30 已改正。
 - 列表有 7,249 行，滚动后筛选栏会移出视口，因此双栏（≥981px）下给 `aside` 加了吸顶。
 - 2026-09-29 新增的「折叠左栏 / 分组清除 / 组内搜索」三组规则，全部是新选择器
   （`.fg-*` / `.filter-collapse` / `.filter-rail-note` / `.filter-layout.filters-collapsed`），

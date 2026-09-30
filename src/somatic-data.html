@@ -687,10 +687,51 @@
       const { rows: base, labels } = matrixBase();
       const grid = TISSUES.map(() => ASSAYS.map(() => 0));
       for (const r of base) grid[r[3]][r[1]]++;
-      const colMax = ASSAYS.map((_, ai) => Math.max(1, ...TISSUES.map((__, ti) => grid[ti][ai])));
-      const cellCls = (v, max) => (v ? `dm-cell dm-${Math.min(4, Math.max(1, Math.ceil(v / max * 4)))}` : 'dm-cell dm-0');
       const colTotal = ai => TISSUES.reduce((s, __, ti) => s + grid[ti][ai], 0);
       const rowTotal = ti => ASSAYS.reduce((s, __, ai) => s + grid[ti][ai], 0);
+
+      // ---- 颜色分档：全局四分位，不是「每列按列最大值线性 4 等分」----
+      // 旧写法 `Math.ceil(v / colMax * 4)` 下，一个离群值（Whole Blood 的 955）
+      // 会把同列其余格子全压到最浅档 —— 实测 66 个格子里 51 个同色，看着像
+      // 「只高亮了那几个大数」（luo 2026-09-30 反馈）。改成按非零值的
+      // 25/50/75 分位切档，4 档各覆盖约 1/4 的格子。
+      const nz = [];
+      for (const row of grid) for (const v of row) if (v) nz.push(v);
+      nz.sort((a, b) => a - b);
+      const uniq = [...new Set(nz)];
+      const qtl = p => {
+        const pos = (nz.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos);
+        return nz[lo] + (nz[hi] - nz[lo]) * (pos - lo);
+      };
+      const sqrtThr = () => {
+        const mx = Math.max(1, ...nz);
+        return [1, 2, 3].map(k => mx * (k / 4) ** 2);
+      };
+      let thr;
+      if (uniq.length < 3) {
+        // 非零取值只有 1~2 种（筛到单个供体时很常见：7 个格子全是同一个数）。
+        // 这时分档没有意义，若还按 √ 刻度走会全部落进最深的 dm-4，看着像
+        // 「怎么全高亮了」—— 统一给中间档，图例也不显示。
+        const v0 = uniq[0] || 0;
+        thr = [v0 - 0.5, v0 + 0.5, v0 + 1.5];
+      } else if (nz.length < 8) {
+        thr = sqrtThr();                       // 格子太少，四分位会退化
+      } else {
+        thr = [qtl(.25), qtl(.5), qtl(.75)];
+        if (!(thr[0] < thr[2])) thr = sqrtThr();  // 分位点重合，退回 √ 刻度
+      }
+      const lv = v => (v ? 1 + (v > thr[0]) + (v > thr[1]) + (v > thr[2]) : 0);
+
+      // ---- 横条长度 ∝ √值 ----
+      // 列宽 316px 而数字只有 7~40px 宽，空格子全空着就是「空隙太大」的来源，
+      // 用横条把它填成信息。长度取 √：线性的话 955 与 3 差 300 倍，小值的条
+      // 短到看不见；√ 之后 955→100%、447→68%、185→44%、33→19%、3→5.6%。
+      const gmax = Math.max(1, ...nz);
+      const barW = v => (v ? Math.max(2.5, Math.sqrt(v) / Math.sqrt(gmax) * 100) : 0);
+
+      // 图例上的整数阈值（显示用），保证严格递增，别出现「1–0」
+      const T = thr.map(x => Math.max(1, Math.round(x)));
+      for (let i = 1; i < T.length; i++) if (T[i] <= T[i - 1]) T[i] = T[i - 1] + 1;
 
       const tOn = sel.tissue, aOn = sel.assay;
 
@@ -699,19 +740,28 @@
       const keepTop = old ? old.scrollTop : 0;
       const keepLeft = old ? old.scrollLeft : 0;
 
-      // 把「这些数字是在什么口径下算的」说清楚，否则很容易以为矩阵坏了
-      const notes = [];
-      if (labels.length) {
-        notes.push(`Counts cover <strong>${fmtN(base.length)}</strong> of ${fmtN(ROWS.length)} files, `
-          + `narrowed by ${labels.map(escapeHtml).join(', ')}.`);
-      }
+      // 口径 + 色阶图例 + 点法说明。色阶改成四分位后必须把阈值标出来，
+      // 否则「为什么 33 和 170 是同一个颜色」会被当成 bug。
+      const noteBits = [
+        labels.length
+          ? `Counts cover <strong>${fmtN(base.length)}</strong> of ${fmtN(ROWS.length)} files, narrowed by ${labels.map(escapeHtml).join(', ')}.`
+          : `Counts cover all <strong>${fmtN(base.length)}</strong> files.`,
+      ];
       if (tOn.size || aOn.size) {
-        notes.push('Tissue / Assay selections are highlighted but not applied to these counts — '
-          + 'click any cell to switch.');
+        noteBits.push('Tissue / Assay selections are highlighted but not applied to these counts.');
       }
+      noteBits.push('Click a cell, or a row / column <strong>Total</strong>, to filter.');
+      // 色阶图例。取值只有 1~2 种时不做分档，图例也就不显示。
+      const legend = uniq.length < 3 ? '' :
+        `<span class="dm-legend" title="Cell colour = quartile of the counts; the bar length is the square root of the count.">`
+        + `<span><i class="dm-sw dm-1"></i>≤${fmtN(T[0])}</span>`
+        + `<span><i class="dm-sw dm-2"></i>${fmtN(T[0] + 1)}–${fmtN(T[1])}</span>`
+        + `<span><i class="dm-sw dm-3"></i>${fmtN(T[1] + 1)}–${fmtN(T[2])}</span>`
+        + `<span><i class="dm-sw dm-4"></i>${fmtN(T[2] + 1)}+</span>`
+        + `</span>`;
 
       document.getElementById('dmBody').innerHTML = `
-        ${notes.length ? `<div class="dm-note">${notes.join(' ')}</div>` : ''}
+        <div class="dm-note"><span>${noteBits.join(' ')}</span>${legend}</div>
         <div class="dm-scroll">
           <table class="dm-table">
             <thead>
@@ -727,20 +777,26 @@
                 return `
                 <tr>
                   <th class="dm-rowhead${tOn.has(ti) ? ' dm-on' : ''}${rt === 0 ? ' dm-off' : ''}"><button type="button" onclick="matrixPick(null, ${ti})"
-                      title="只看 ${escapeHtml(pretty(t))}">${escapeHtml(pretty(t))}</button></th>
-                  ${ASSAYS.map((a, ai) => `<td class="${cellCls(grid[ti][ai], colMax[ai])}">
+                      title="Show only ${escapeHtml(pretty(t))} (clears the Assay filter)">${escapeHtml(pretty(t))}</button></th>
+                  ${ASSAYS.map((a, ai) => {
+                    const v = grid[ti][ai];
+                    return `<td class="dm-cell dm-${lv(v)}">
                       <button type="button" onclick="matrixPick(${ai}, ${ti})"
-                        title="${escapeHtml(pretty(t))} × ${escapeHtml(a)}：${fmtN(grid[ti][ai])} files"
-                        >${fmtN(grid[ti][ai])}</button></td>`).join('')}
-                  <td class="dm-total">${fmtN(rt)}</td>
+                        title="${escapeHtml(pretty(t))} × ${escapeHtml(a)}: ${fmtN(v)} files"
+                        ><span class="dm-bar" style="width:${barW(v).toFixed(1)}%"></span><span class="dm-val">${fmtN(v)}</span></button></td>`;
+                  }).join('')}
+                  <td class="dm-total${tOn.has(ti) ? ' dm-on' : ''}"><button type="button" onclick="matrixPick(null, ${ti})"
+                      title="Show only ${escapeHtml(pretty(t))} (clears the Assay filter)">${fmtN(rt)}</button></td>
                 </tr>`;
               }).join('')}
             </tbody>
             <tfoot>
               <tr>
                 <th class="dm-rowhead">Total</th>
-                ${ASSAYS.map((a, ai) => `<td class="dm-total">${fmtN(colTotal(ai))}</td>`).join('')}
-                <td class="dm-total">${fmtN(base.length)}</td>
+                ${ASSAYS.map((a, ai) => `<td class="dm-total${aOn.has(ai) ? ' dm-on' : ''}"><button type="button" onclick="matrixPick(${ai}, null)"
+                    title="Show only ${escapeHtml(a)} (clears the Tissue filter)">${fmtN(colTotal(ai))}</button></td>`).join('')}
+                <td class="dm-total dm-grand"><button type="button" onclick="matrixPick(null, null)"
+                    title="Clear the Tissue and Assay filters (all ${fmtN(ROWS.length)} files)">${fmtN(base.length)}</button></td>
               </tr>
             </tfoot>
           </table>
@@ -750,8 +806,15 @@
       if (now) { now.scrollTop = keepTop; now.scrollLeft = keepLeft; }
     }
 
+    // 矩阵里的四个点击入口：
+    //   matrixPick(ai, ti)     只看这一格「组织 × 测定」
+    //   matrixPick(null, ti)   只看这个组织（点行头、或行尾的 Total）
+    //   matrixPick(ai, null)   只看这个测定（点表尾的列 Total）
+    //   matrixPick(null, null) 清空这两轴（点右下角的总计）
+    // 传 null 的那一轴会被清空 —— 旧版 ti 是必填的，所以「只看某个 assay」
+    // 根本没有入口，表尾的 Total 也只能是纯文本（luo 2026-09-30 反馈）。
     function matrixPick(ai, ti) {
-      sel.tissue = new Set([ti]);
+      sel.tissue = (ti == null) ? new Set() : new Set([ti]);
       sel.assay = (ai == null) ? new Set() : new Set([ai]);
       page = 1;
       renderFilters();

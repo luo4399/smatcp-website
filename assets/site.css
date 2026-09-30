@@ -2268,10 +2268,28 @@ table.dm-table thead .dm-corner {
 /* 行尾 / 表尾的 Total：2026-09-30 起可点（luo：「total 不能点击」）。
    行 Total = 只看该组织；列 Total = 只看该测定；右下角总计 = 清空这两轴。 */
 .dm-total {
+  /* 这一列只放一个数字，别跟着面板宽度一起变胖 ——
+     2026-09-30 luo：「右边列很宽，只有数字，没必要这么宽」。
+     实测最长的合计是 "1,384"，文本 32.6px，加左右各 6px 内边距 = 44.6px，
+     78px 有 33px 余量（还要放 4 位数 + 千分位）。
+     收窄之后 fixed 布局会把省下的宽度平分给两个 assay 列 —— 它们有横条，
+     宽度是有用的；Total 没有条，宽了就只是空白。 */
+  width: 78px;
+  min-width: 78px;
   background: var(--soft);
   color: var(--navy);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* 窄屏（390px 视口下面板只有 342px）时 78px 会反超两个 assay 列
+   （它们只剩 47px）—— 等比收窄，让四列宽度大致均衡。
+   58px 仍装得下 "1,384"（文本 32.6px + 左右各 6px 内边距 = 44.6px）。 */
+@media (max-width: 700px) {
+  .dm-total {
+    width: 58px;
+    min-width: 58px;
+  }
 }
 
 .dm-total button {

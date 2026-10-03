@@ -39,7 +39,11 @@ FIELDS = [
     ('ref',              'raw',  None),
     ('alt',              'raw',  None),
     ('depth',            'int',  None),
-    ('vaf',              'num',  6),
+    # ⚠️ vaf / infiltration_pp 的小数位限制已去掉（原 6 / 4）——2026-10-03 luo：
+    #    首页导出的 CSV 要与源表 variants_website.csv 逐字段一致。截精度会让
+    #    0.0649351 变成 0.064935（79.9% 的行）、0.0590567479298669 变成 0.0591
+    #    （7.1% 的行）。页面显示不受影响（显示走 cellPlain 的 fmt，另算）。
+    ('vaf',              'num',  None),
     ('mutation_type',    'dict', None),
     ('TiTv',             'dict', None),
     ('trinucleotide',    'dict', None),
@@ -50,7 +54,7 @@ FIELDS = [
     ('tissue',           'dict', None),
     ('ref_origin',       'dict', None),
     ('tissue_shared',    'bool', None),
-    ('infiltration_pp',  'num',  4),
+    ('infiltration_pp',  'num',  None),
     ('infiltration',     'bool', None),
     ('cosmic_signature', 'dict', None),
     ('CADD_PHRED',       'num',  3),

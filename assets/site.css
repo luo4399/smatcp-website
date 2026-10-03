@@ -421,6 +421,25 @@ select {
   color: var(--sky);
 }
 
+/* 第二行里的两个短语走渐变文字（2026-10-03 luo：「Normal Tissues 和
+   Chinese Population 是有颜色且渐变色的」）。「of」保持上面的 --sky 平色。
+   做法是 background-clip: text —— 文字自身透明，露出背后的渐变。
+   ⚠️ 三件事都要写全：
+     ① `-webkit-background-clip` 前缀（Safari / 老 Chromium 只认带前缀的）；
+     ② `-webkit-text-fill-color: transparent` —— 只写 `color` 在部分 Chromium 上
+        会被 `-webkit-text-fill-color` 的默认值盖掉，字会变回实色；
+     ③ `color: transparent` 兜底，给不支持 background-clip: text 的环境留个
+        至少不变成黑字的退路。
+   色标从站点自身的蓝系里取（--sky #7eaeff / --glow #5aa2ec），末端压到
+   #7b8dfb 是刻意的：末端太暗会压不住 #033069 的深蓝底，对比度掉到 3:1 以下。 */
+.hero-title .line-2 .grad {
+  background-image: linear-gradient(92deg, #c7ecff 0%, #83bbff 45%, #6f83f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
 .hero-sub {
   margin-top: 18px;
   max-width: 640px;
@@ -933,13 +952,17 @@ table.data-table tbody td.pin-r,
 table.data-table tbody td.pin-r2 {
   position: sticky;
   z-index: 2;
-  background: #fff;
+  /* 底色比普通单元格浅一档（普通是 #fff）。2026-10-03 luo：「search 表格右边
+     固定的两列不明显」—— 只靠一道阴影不够，固定组得有自己的底色才读得出来。
+     先用的是设计变量 --soft(#f6f7fb)，实测偏淡，往同一色系再压一档。 */
+  background: #f2f5fb;
 }
 
 table.data-table thead th.pin-r,
 table.data-table thead th.pin-r2 {
   z-index: 3;
-  background: var(--head-bg);
+  /* 表头再深一档（普通表头是 --head-bg #eceff8），让固定组整块像一块独立的板 */
+  background: #e0e6f4;
 }
 
 table.data-table thead th.pin-r,
@@ -952,15 +975,21 @@ table.data-table tbody td.pin-r2 {
   right: var(--pin-r2, 0px);
 }
 
+/* 固定组左侧的分隔：1px 实线 + 软阴影（线只能用 box-shadow 画，见上面 ③）。
+   2026-10-03：原来只有一道 `-8px 0 9px -8px` 的软阴影，实测几乎看不见，现在
+   补一条实线并把阴影加重。实线用 navy 22% 而不是 `--border`(#e4e7f0) ——
+   后者压在 `--soft` 底色上太淡。 */
 .table-wrap.pin-on table.data-table thead th.pin-r2,
 .table-wrap.pin-on table.data-table tbody td.pin-r2 {
-  box-shadow: -8px 0 9px -8px rgba(12, 39, 82, 0.28);
+  box-shadow: -1px 0 0 rgba(12, 39, 82, 0.22),
+              -12px 0 14px -10px rgba(12, 39, 82, 0.38);
 }
 
-/* 行悬停时固定列也要跟着变色，否则固定列与其余单元格之间会露出一条白缝 */
+/* 行悬停时固定列也要跟着变色，否则固定列与其余单元格之间会露出一条白缝。
+   比普通行的 #fafbfe 深、也比固定列常态底 #f2f5fb 深，悬停要看得出来。 */
 table.data-table tbody tr:hover td.pin-r,
 table.data-table tbody tr:hover td.pin-r2 {
-  background: #fafbfe;
+  background: #e4eaf7;
 }
 
 /* 窄屏关掉固定。
@@ -993,6 +1022,24 @@ table.data-table tbody tr:hover td.pin-r2 {
   .table-wrap.pin-on table.data-table thead th.pin-r2,
   .table-wrap.pin-on table.data-table tbody td.pin-r2 {
     box-shadow: none;
+  }
+
+  /* ⚠️ 关掉固定后，**底色也要一起复位**。否则表格里会平白多出两个染色列
+     （固定组的浅蓝底 + 深色表头），而它们已经不再固定在右侧了，看着像选错了列。
+     这三条必须写在媒体查询里、靠「后声明」压过外面的同名规则。 */
+  table.data-table thead th.pin-r,
+  table.data-table thead th.pin-r2 {
+    background: var(--head-bg);
+  }
+
+  table.data-table tbody td.pin-r,
+  table.data-table tbody td.pin-r2 {
+    background: #fff;
+  }
+
+  table.data-table tbody tr:hover td.pin-r,
+  table.data-table tbody tr:hover td.pin-r2 {
+    background: #fafbfe;
   }
 }
 

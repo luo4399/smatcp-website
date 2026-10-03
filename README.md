@@ -528,6 +528,68 @@ cosmic_signature / CADD_PHRED / regulatory_score`，
 > `/tmp/width_verify.mjs` 翻 10 页断言「被裁单元格 ≤1 格/页」；
 > `/tmp/regress.mjs` 5 页 × 5 宽度全过（压到邻列 0、行高恒定、无控制台错误）。
 
+**末两列固定在右侧（2026-10-03）**
+
+luo：「表格可以把最后两列固定」。表格 22 列、总宽 2671px，`.table-wrap` 只有 1374px，
+横向滚动时最右端的 Regulatory Score 和 Visualization（Plot 按钮）会滚出视野；
+固定后 Plot 永远够得到。
+
+| 位置 | 改动 |
+|---|---|
+| `index.html` 表头 | 末两列 `<th>` 加 `.pin-r2`（Regulatory Score）/ `.pin-r`（Visualization） |
+| `index.html` `render()` | 行体末列加 `.pin-r2`（`i === COLS.length - 1`）、`col-plot` 加 `.pin-r` |
+| `assets/site.css` | `position: sticky` + `right`；底色 / z-index / 分隔；`≤767px` 复位 |
+| `assets/col-resize.js` | 新增可选回调 `onWidths(widths)`（在 `apply()` 末尾触发，不传则行为不变） |
+| `index.html` 初始化 | `pinRightCols()` 把末列宽写进 CSS 变量 `--pin-r2`；`syncPinEdge()` 切 `.pin-on` |
+
+四个坑：
+
+1. **右偏移必须动态算**：末列宽度可以被拖拽改，所以倒数第二列的 `right` 不能写死 ——
+   走 CSS 变量 `--pin-r2`，由 `onWidths` 在每次列宽变化（含拖拽过程中）写入。
+   量宽度**只能量 `th`**（模块把宽度写在 `th.style.width` 上），量 `<col>` 没有。
+2. **分隔的判据不是 `scrollLeft > 0`**：这张表一直比容器宽，`scrollLeft = 0` 时末两列
+   **也是浮着的**（自然位置在容器右边界之外），那时同样需要分隔。正确判据是
+   `scrollLeft + clientWidth < scrollWidth - 1`，只有滚到最右端、末两列落回原位才撤掉。
+3. **⚠️ 窄屏媒体查询里表头不能写 `position: static`**：表头拖拽手柄是
+   `.col-resizer { position: absolute; right: -3px }`，靠 `th.th-resizable`
+   （`position: relative`）当包含块。th 一旦变 static，手柄改以**初始包含块**为参照、
+   跑到文档右边界外面 —— 页面凭空多出 **3px** 横向滚动，而且只在断点以下暴露
+   （768px 起是 sticky，反而是 0），极易误判成「窄屏本来就有」。用
+   `position: relative; right: auto`（`relative` 会真的按 `right` 偏移，不归零
+   `.pin-r2` 会被左移 105px）。
+4. **窄屏要关掉固定**：末两列合计 255px，390px 视口下 `.table-wrap` 只有 342px，
+   固定列吃掉 75%，可滚动内容只剩 87px，比不固定还难用。定在 `≤767px` 关。
+   ⚠️ 关的时候**底色要一起复位**（`th` 回 `--head-bg`、`td` 回 `#fff`、
+   悬停回 `#fafbfe`），否则表格里会平白多出两个染色列。
+
+**观感（同日第二轮，luo：「search 表格右边固定的两列不明显」）**：原来只有一道
+`-8px 0 9px -8px rgba(12,39,82,.28)` 的软阴影，实测几乎看不见；固定组的底色又和普通
+单元格一样是白的，所以「钉住」这件事读不出来。现在：
+
+- `td.pin-r` / `td.pin-r2` 底色 `#f2f5fb`（比普通白底深一档。先试过设计变量
+  `--soft` `#f6f7fb`，实测偏淡，往同一色系再压一档）
+- `th.pin-r` / `th.pin-r2` 底色 `#e0e6f4`（比普通表头 `--head-bg` `#eceff8` 深一档），
+  固定组整块读起来像一块独立的板
+- 行悬停时固定列 `#e4eaf7`（比普通行的 `#fafbfe` 深，悬停要看得出来）
+- 分隔：`box-shadow: -1px 0 0 rgba(12,39,82,.22), -12px 0 14px -10px rgba(12,39,82,.38)`
+  —— 1px 实线 + 加重阴影。实线用 navy 22% 而不是 `--border`(`#e4e7f0`)，
+  后者压在 `#f2f5fb` 上太淡
+- ⚠️ 实线只画在**固定组最左侧**（`.pin-r2`），且只能用 `box-shadow`：
+  表是 `border-collapse: collapse`，折叠边框由 table 统一绘制、不跟 sticky 单元格走，
+  用 `border` 会在原位置留下一条穿帮的竖线
+
+顺带修掉一个既有瑕疵：末列的拖拽手柄是 `right: -3px; width: 7px`，在末列上会往表格
+右边多探出 4px，使表格 `scrollWidth` 比实际宽度大 4px —— 横向滚到最右端时表格右侧
+留一条 4px 的缝（表头那行最明显）。改成 `right: 0`，只作用首页表；Data Portal 的
+`.data-list` 未动。
+
+> 实测（`/tmp/probe-pin.mjs` / `probe-pin-bp.mjs` / `probe-pin-drag.mjs` /
+> `verify-pin-vis.mjs` / `verify-narrow-hover.mjs`）：`--pin-r2` = 105px = 末列实测宽；
+> 固定列右边界在未滚动 / 中段 / 最右三种状态下**恒为 1407**（容器右边界 1408，
+> 差 1px 是边框）；两列无缝相接；8 档断点（390~1920）`docOverflow` 全 0；
+> 末列拖 105 → 145 后 `--pin-r2` 同步为 145px、仍贴右；窄屏 767/390 下底色已复位
+> （`th` = `rgb(236,239,248)`、`td` = `#fff`、悬停 = `rgb(250,251,254)`）。
+
 ### Browse by Tissue
 30 个组织卡片（图标 + 名称）：Esophagus, Trachea, Lung Apex, Lung Base,
 Diaphragm, Liver, Gallbladder, Adrenal Gland, Muscle, Stomach,

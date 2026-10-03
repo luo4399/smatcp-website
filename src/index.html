@@ -246,6 +246,15 @@
       <div class="results-bar" data-page-node-id="D3Lq9khqzdt7EiIVnMNfcJ">
         <div class="results-count" id="resultsCount" data-page-node-id="9kxvhcWhJm0IJx5IXTw4km"></div>
         <div class="results-actions">
+          <!-- 2026-10-03 luo：「窄屏也保留固定+底色；可以折叠收起」——
+               末两列的固定不再按断点自动关闭，改由这个按钮手动折叠 / 展开。
+               标签与 aria-pressed 由 togglePinCols() 同步。 -->
+          <button class="btn-link" type="button" id="pinToggleBtn" onclick="togglePinCols()"
+            aria-pressed="true"
+            title="Collapse the two fixed columns so the table can be scrolled at full width">
+            <i class="fa-solid fa-angles-right" id="pinToggleIcon"></i>
+            <span id="pinToggleLabel">Collapse fixed columns</span>
+          </button>
           <!-- 2026-09-24：原先是个 CSV / TSV 二选一的下拉菜单，现在只导 CSV，
                只剩一个选项的菜单没有意义，改成按钮直接下载（少一次点击）。 -->
           <button class="btn-link" type="button" id="dlBtn" onclick="downloadResults()"
@@ -1403,11 +1412,48 @@
       if (wrap) {
         const syncPinEdge = () => wrap.classList.toggle(
           'pin-on',
+          // 折叠状态下末两列不再浮动，阴影自然也不该有
+          !wrap.classList.contains('pin-off') &&
           wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 1
         );
         wrap.addEventListener('scroll', syncPinEdge, { passive: true });
         window.addEventListener('resize', syncPinEdge);
-        syncPinEdge();
+
+        // ---- 折叠 / 展开固定列（luo 2026-10-03：「窄屏也保留固定+底色；可以折叠收起」）----
+        // 原先 ≤767px 会自动解除固定（末两列合计 255px，390px 视口下吃掉 75%，
+        // 可滚动内容只剩 87px，比不固定还难用）。现在**不自动关**，由按钮手动折叠：
+        // 收起 = 末两列回到表格正常顺序、跟着其它列一起横向滚动，底色与分隔一并复位
+        // （见 site.css 的 .table-wrap.pin-off）。选择记在 localStorage，刷新后保持。
+        const PIN_KEY = 'gtop.pin.search.v1';
+        const pinBtn = document.getElementById('pinToggleBtn');
+        const pinLabel = document.getElementById('pinToggleLabel');
+        const pinIcon = document.getElementById('pinToggleIcon');
+
+        const applyPinState = (collapsed) => {
+          wrap.classList.toggle('pin-off', collapsed);
+          if (pinBtn) pinBtn.setAttribute('aria-pressed', String(!collapsed));
+          if (pinLabel) {
+            pinLabel.textContent = collapsed
+              ? 'Expand fixed columns' : 'Collapse fixed columns';
+          }
+          if (pinIcon) {
+            pinIcon.className = collapsed
+              ? 'fa-solid fa-angles-left' : 'fa-solid fa-angles-right';
+          }
+          syncPinEdge();
+        };
+
+        // 按钮的 onclick 在全局作用域，而这里在 init() 的闭包里，所以要挂到 window 上
+        window.togglePinCols = () => {
+          const collapsed = !wrap.classList.contains('pin-off');
+          applyPinState(collapsed);
+          try { localStorage.setItem(PIN_KEY, collapsed ? 'off' : 'on'); } catch (e) { }
+        };
+
+        let savedPin = null;
+        try { savedPin = localStorage.getItem(PIN_KEY); } catch (e) { }
+        // 默认展开（= 固定）；只有明确存过 'off' 才收起
+        applyPinState(savedPin === 'off');
       }
     })();
   </script>

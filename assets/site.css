@@ -1004,55 +1004,46 @@ table.data-table tbody tr:hover td.pin-r2 {
   background: #dbe4f5;
 }
 
-/* 窄屏关掉固定。
-   末两列合计 255px，在 390px 视口下会吃掉 75% 的宽度 —— 实测 .table-wrap 只有
-   342px，固定列占 255px，可滚动的内容只剩 87px，比不固定还难用。
-   768px 起（容器约 720px，还剩 465px 给内容）才开。
-   ⚠️ 阈值是按「末两列合计约 255px」定的；如果以后把 Regulatory Score 或
-   Visualization 拖得很宽，这个阈值要跟着抬。 */
-@media (max-width: 767px) {
+/* ---- 手动折叠固定列（luo 2026-10-03：「窄屏也保留固定+底色；可以折叠收起」）----
+   原先 ≤767px 会**自动**解除固定（末两列合计 255px，390px 视口下吃掉 75%，
+   可滚动内容只剩 87px，比不固定还难用）。luo 要求窄屏也保留固定与底色，于是改成
+   **不自动关**，由「Collapse fixed columns」按钮手动折叠 —— 收起时末两列回到表格
+   正常顺序、跟着其它列一起横向滚动。
 
-  table.data-table thead th.pin-r,
-  table.data-table thead th.pin-r2 {
-    /* ⚠️ 这里**不能写 `position: static`**。
-       表头里的拖拽手柄是 `.col-resizer { position: absolute; right: -3px }`，
-       它靠 `th.th-resizable { position: relative }` 当包含块。th 一旦变成
-       static，手柄就改以「初始包含块」为参照，跑到**文档右边界外面**去 ——
-       页面凭空多出 3px 横向滚动（实测 766/767px 各溢出 3px，768px 起
-       position: sticky 时反而是 0，所以只在断点以下暴露）。
-       用 relative（th.th-resizable 本来就是它），再把 right 归零 ——
-       relative 会真的按 right 偏移，不归零 .pin-r2 会被左移 105px。 */
-    position: relative;
-    right: auto;
-  }
+   ⚠️ 收起时**底色必须一起复位**（浅色面板 + 深色表头），否则表格里会平白多出两个
+   染色列，而它们已经不再固定在右侧了，看着像选错了列。
+   选择器用 `.table-wrap.pin-off` 提高特异性（3 类 + 3 元素），不依赖声明顺序。 */
 
-  table.data-table tbody td.pin-r,
-  table.data-table tbody td.pin-r2 {
-    position: static;
-  }
+.table-wrap.pin-off table.data-table thead th.pin-r,
+.table-wrap.pin-off table.data-table thead th.pin-r2 {
+  /* ⚠️ 这里**不能写 `position: static`**。
+     表头里的拖拽手柄是 `.col-resizer { position: absolute; right: -3px }`，
+     它靠 `th.th-resizable { position: relative }` 当包含块。th 一旦变成 static，
+     手柄就改以「初始包含块」为参照，跑到**文档右边界外面**去 —— 页面凭空多出 3px
+     横向滚动（实测 766/767px 各溢出 3px，position: sticky 时反而是 0，
+     所以只在解除固定后才暴露）。
+     用 relative（th.th-resizable 本来就是它），再把 right 归零 ——
+     relative 会真的按 right 偏移，不归零 .pin-r2 会被左移 105px。 */
+  position: relative;
+  right: auto;
+  background: var(--head-bg);
+}
 
-  .table-wrap.pin-on table.data-table thead th.pin-r2,
-  .table-wrap.pin-on table.data-table tbody td.pin-r2 {
-    box-shadow: none;
-  }
+.table-wrap.pin-off table.data-table tbody td.pin-r,
+.table-wrap.pin-off table.data-table tbody td.pin-r2 {
+  position: static;
+  right: auto;
+  background: #fff;
+}
 
-  /* ⚠️ 关掉固定后，**底色也要一起复位**。否则表格里会平白多出两个染色列
-     （固定组的浅蓝底 + 深色表头），而它们已经不再固定在右侧了，看着像选错了列。
-     这三条必须写在媒体查询里、靠「后声明」压过外面的同名规则。 */
-  table.data-table thead th.pin-r,
-  table.data-table thead th.pin-r2 {
-    background: var(--head-bg);
-  }
+.table-wrap.pin-off table.data-table tbody tr:hover td.pin-r,
+.table-wrap.pin-off table.data-table tbody tr:hover td.pin-r2 {
+  background: #fafbfe;
+}
 
-  table.data-table tbody td.pin-r,
-  table.data-table tbody td.pin-r2 {
-    background: #fff;
-  }
-
-  table.data-table tbody tr:hover td.pin-r,
-  table.data-table tbody tr:hover td.pin-r2 {
-    background: #fafbfe;
-  }
+.table-wrap.pin-off table.data-table thead th.pin-r2,
+.table-wrap.pin-off table.data-table tbody td.pin-r2 {
+  box-shadow: none;
 }
 
 td.col-pos,

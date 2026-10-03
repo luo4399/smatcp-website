@@ -964,17 +964,18 @@ table.data-table tbody td.pin-r,
 table.data-table tbody td.pin-r2 {
   position: sticky;
   z-index: 2;
-  /* 底色比普通单元格浅一档（普通是 #fff）。2026-10-03 luo：「search 表格右边
-     固定的两列不明显」—— 只靠一道阴影不够，固定组得有自己的底色才读得出来。
-     先用的是设计变量 --soft(#f6f7fb)，实测偏淡，往同一色系再压一档。 */
-  background: #f2f5fb;
+  /* 底色要比普通单元格（白）明显深。2026-10-03 luo 先说「右边固定的两列不明显」，
+     当时给的是 --soft 一档的 #f2f5fb；luo 再看仍然读不出来 —— 实测它与白底只差
+     5% 亮度（255 → 242），多数屏幕上等于没有。这里再压两档。
+     ⚠️ 别再往回调淡：这个值是按「一眼能看出这是一块独立的板」定的，不是装饰。 */
+  background: #e6ecf9;
 }
 
 table.data-table thead th.pin-r,
 table.data-table thead th.pin-r2 {
   z-index: 3;
-  /* 表头再深一档（普通表头是 --head-bg #eceff8），让固定组整块像一块独立的板 */
-  background: #e0e6f4;
+  /* 表头比普通表头 --head-bg(#eceff8) 再深两档，让固定组整块像一块独立的板 */
+  background: #d3ddee;
 }
 
 table.data-table thead th.pin-r,
@@ -988,20 +989,19 @@ table.data-table tbody td.pin-r2 {
 }
 
 /* 固定组左侧的分隔：1px 实线 + 软阴影（线只能用 box-shadow 画，见上面 ③）。
-   2026-10-03：原来只有一道 `-8px 0 9px -8px` 的软阴影，实测几乎看不见，现在
-   补一条实线并把阴影加重。实线用 navy 22% 而不是 `--border`(#e4e7f0) ——
-   后者压在 `--soft` 底色上太淡。 */
+   2026-10-03：原来只有一道 `-8px 0 9px -8px` 的软阴影，实测几乎看不见，于是补了
+   一条实线；同日 luo 反馈底色还是读不出来，就把实线和阴影一起再加重一档。 */
 .table-wrap.pin-on table.data-table thead th.pin-r2,
 .table-wrap.pin-on table.data-table tbody td.pin-r2 {
-  box-shadow: -1px 0 0 rgba(12, 39, 82, 0.22),
-              -12px 0 14px -10px rgba(12, 39, 82, 0.38);
+  box-shadow: -1px 0 0 rgba(12, 39, 82, 0.32),
+              -14px 0 16px -10px rgba(12, 39, 82, 0.42);
 }
 
 /* 行悬停时固定列也要跟着变色，否则固定列与其余单元格之间会露出一条白缝。
-   比普通行的 #fafbfe 深、也比固定列常态底 #f2f5fb 深，悬停要看得出来。 */
+   比普通行的 #fafbfe 深、也比固定列常态底 #e6ecf9 深，悬停要看得出来。 */
 table.data-table tbody tr:hover td.pin-r,
 table.data-table tbody tr:hover td.pin-r2 {
-  background: #e4eaf7;
+  background: #dbe4f5;
 }
 
 /* 窄屏关掉固定。

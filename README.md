@@ -588,8 +588,9 @@ luo：「表格可以把最后两列固定」。表格 22 列、总宽 2671px，
 |---|---|
 | `index.html` 表头 | 末两列 `<th>` 加 `.pin-r2`（Regulatory Score）/ `.pin-r`（Visualization） |
 | `index.html` `render()` | 行体末列加 `.pin-r2`（`i === COLS.length - 1`）、`col-plot` 加 `.pin-r` |
-| `assets/site.css` | `position: sticky` + `right`；底色 / z-index / 分隔；`≤767px` 复位 |
+| `assets/site.css` | `position: sticky` + `right`；底色 / z-index / 分隔；`.table-wrap.pin-off` 折叠态 |
 | `assets/col-resize.js` | 新增可选回调 `onWidths(widths)`（在 `apply()` 末尾触发，不传则行为不变） |
+| `index.html` `.results-actions` | 「Collapse / Expand fixed columns」按钮，状态存 `localStorage` |
 | `index.html` 初始化 | `pinRightCols()` 把末列宽写进 CSS 变量 `--pin-r2`；`syncPinEdge()` 切 `.pin-on` |
 
 四个坑：
@@ -607,10 +608,24 @@ luo：「表格可以把最后两列固定」。表格 22 列、总宽 2671px，
    （768px 起是 sticky，反而是 0），极易误判成「窄屏本来就有」。用
    `position: relative; right: auto`（`relative` 会真的按 `right` 偏移，不归零
    `.pin-r2` 会被左移 105px）。
-4. **窄屏要关掉固定**：末两列合计 255px，390px 视口下 `.table-wrap` 只有 342px，
-   固定列吃掉 75%，可滚动内容只剩 87px，比不固定还难用。定在 `≤767px` 关。
-   ⚠️ 关的时候**底色要一起复位**（`th` 回 `--head-bg`、`td` 回 `#fff`、
-   悬停回 `#fafbfe`），否则表格里会平白多出两个染色列。
+4. **折叠是手动的，不再按断点自动关**（2026-10-03 第四轮，luo：「窄屏也保留固定+底色；
+   可以折叠收起」）。原先 `≤767px` 会**自动**解除固定 —— 因为末两列合计 255px，
+   390px 视口下 `.table-wrap` 只有 342px，固定列吃掉 75%，可滚动内容只剩 87px，
+   比不固定还难用。现在**不自动关**，改由 `.results-actions` 里的
+   **「Collapse / Expand fixed columns」**按钮手动折叠：
+
+   - 收起 = 给 `.table-wrap` 加 `.pin-off`：末两列回到表格正常顺序、跟着其它列一起横向滚动
+   - ⚠️ **底色要一起复位**（`th` 回 `--head-bg`、`td` 回 `#fff`、悬停回 `#fafbfe`），
+     否则表格里会平白多出两个染色列，看着像选错了列
+   - 选择器用 `.table-wrap.pin-off`（3 类 + 3 元素）提高特异性，**不依赖声明顺序**
+   - 状态存 `localStorage` 的 `gtop.pin.search.v1`（`'off'` = 收起，其它 / 缺失 = 展开），
+     刷新后保持；按钮的 `aria-pressed` 与文案（含图标 `fa-angles-right` / `fa-angles-left`）
+     由 `togglePinCols()` 同步
+   - ⚠️ 收起态下**窄屏表头仍要 `position: relative; right: auto`，不能写 `static`** ——
+     理由见上面第 3 条
+   - `syncPinEdge()` 在 `.pin-off` 时不再加 `.pin-on`（收起后末两列不浮动，不该有分隔阴影）
+   - ⚠️ `togglePinCols()` 必须挂在 `window` 上：按钮的 `onclick` 在全局作用域，
+     而这段代码在 `init()` 的闭包里
 
 **观感（同日第二轮，luo：「search 表格右边固定的两列不明显」→ 第三轮：「固定列没有底色啦」）**：
 原来只有一道 `-8px 0 9px -8px rgba(12,39,82,.28)` 的软阴影，实测几乎看不见；固定组的底色
@@ -643,8 +658,13 @@ luo：「表格可以把最后两列固定」。表格 22 列、总宽 2671px，
 > `verify-pin-vis.mjs` / `verify-narrow-hover.mjs`）：`--pin-r2` = 105px = 末列实测宽；
 > 固定列右边界在未滚动 / 中段 / 最右三种状态下**恒为 1407**（容器右边界 1408，
 > 差 1px 是边框）；两列无缝相接；8 档断点（390~1920）`docOverflow` 全 0；
-> 末列拖 105 → 145 后 `--pin-r2` 同步为 145px、仍贴右；窄屏 767/390 下底色已复位
-> （`th` = `rgb(236,239,248)`、`td` = `#fff`、悬停 = `rgb(250,251,254)`）。
+> 末列拖 105 → 145 后 `--pin-r2` 同步为 145px、仍贴右。
+>
+> 折叠开关实测（`/tmp/verify-pin-collapse.mjs` / `verify-pin-overflow.mjs`）：
+> 1440 / 390 默认都是**固定 + 底色**（`th` = `rgb(211,221,238)`、`td` = `rgb(230,236,249)`）；
+> 点一下变 `pin-off`（`th` = `rgb(236,239,248)`、`td` = `#fff`、阴影 `none`、按钮文案变
+> `Expand fixed columns`、`aria-pressed` = `false`）；刷新后仍是收起；再点恢复。
+> **768 / 767 / 766 / 480 / 390 五档 `docOverflow` 全 0**（固定态与收起态都测了），无 JS 异常。
 
 ### Browse by Tissue
 30 个组织卡片（图标 + 名称）：Esophagus, Trachea, Lung Apex, Lung Base,

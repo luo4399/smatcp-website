@@ -56,7 +56,8 @@
      initColResize(document.querySelector('table.data-table'), {
        storageKey: 'gtop.cols.search',   // 不传则不记忆
        minWidth: 44,                     // 拖拽下限（会被上面第 5 条的每列下限抬高）
-       minColWidths: idealColWidths()    // 可选：每列默认宽度至少这么宽
+       minColWidths: idealColWidths(),   // 可选：每列默认宽度至少这么宽
+       onWidths: w => {}                 // 可选：每次列宽变化后回调（w 是各列宽度数组）
      });
    ========================================================================== */
 (function () {
@@ -159,6 +160,10 @@
       const total = widths.reduce((a, b) => a + b, 0);
       table.style.width = total + 'px';
       table.style.minWidth = total + 'px';
+      // 通知调用方「列宽变了」。首页搜索表用它把「固定在右侧的最后两列」的
+      // 右偏移跟着最后一列的宽度走（见 index.html 的 pinRightCols）。
+      // 不传 onWidths 完全不影响老行为。
+      if (typeof o.onWidths === 'function') o.onWidths(widths.slice());
     };
     apply();
 

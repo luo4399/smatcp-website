@@ -332,9 +332,9 @@
               </th>
               <th class="sortable" onclick="sortBy('CADD_PHRED')">CADD <i class="fa-solid fa-sort sort-i"></i>
               </th>
-              <th class="sortable" onclick="sortBy('regulatory_score')">Regulatory Score <i class="fa-solid fa-sort sort-i"></i>
+              <th class="sortable pin-r2" onclick="sortBy('regulatory_score')">Regulatory Score <i class="fa-solid fa-sort sort-i"></i>
               </th>
-              <th>Visualization</th>
+              <th class="pin-r">Visualization</th>
             </tr>
           </thead>
           <tbody id="tbody" data-page-node-id="EU8j9ZeiqqMMfHo5LYOUmB"></tbody>
@@ -1145,7 +1145,14 @@
             // 一个点了没反应的按钮比一个灰掉的按钮更让人困惑。
             : `<button class="btn btn-sm btn-muted" type="button" disabled
                   title="该变异暂无覆盖度图"><i class="fa-solid fa-chart-simple"></i> Plot</button>`;
-          const cells = COLS.map(c => `<td class="${c.cls || ''}">${cellHtml(r, c, idx)}</td>`).join('');
+          // 最后两列固定在右侧（luo 2026-10-03：「表格可以把最后两列固定」）——
+          // Regulatory Score（COLS 的末列）与 Visualization（下面硬编码的 col-plot）。
+          // 横向滚动时它们不跟着走，Plot 按钮永远够得到。样式见 site.css 的
+          // .pin-r / .pin-r2；右偏移由 pinRightCols() 按实际列宽算。
+          const cells = COLS.map((c, i) => {
+            const pin = i === COLS.length - 1 ? ' pin-r2' : '';
+            return `<td class="${(c.cls || '') + pin}">${cellHtml(r, c, idx)}</td>`;
+          }).join('');
           // 行上**不挂** onclick（2026-09-24 luo：表格不需要点击行在右侧显示信息）。
           // 右侧详情栏（.detail-panel）已整体移除（2026-09-24 第二轮 luo：右侧详情栏不需要），
           // 所以表格里现在没有任何「打开右侧面板」的入口，行内可点的只有两处，
@@ -1154,7 +1161,7 @@
           //   ② 有图的行 → Regulatory Score 的柱子（同一个 openPlot）。
           return `<tr class="data-row">
             ${cells}
-            <td class="col-plot">${plotCell}</td>
+            <td class="col-plot pin-r">${plotCell}</td>
           </tr>`;
         }).join('');
       }
@@ -1353,17 +1360,55 @@
         render();
       }
 
+      const tbl = document.querySelector('table.data-table');
+
+      // ---- 最后两列固定在右侧（.pin-r / .pin-r2）----
+      // 「固定」= position: sticky + right: 偏移。末列退 0，倒数第二列退
+      // 「末列的宽度」—— 而末列宽度是可以被拖拽改的，所以不能写死，
+      // 每次列宽变化（含拖拽过程中）都重算一次，写进 CSS 变量 --pin-r2。
+      //
+      // ⚠️ 只能量 th 不能量 <col>：initColResize 把宽度写在每个 th 的 inline
+      //    style 上，th 的 getBoundingClientRect().width 就是实际列宽。
+      //    getBoundingClientRect 不受 .table-wrap 横向滚动影响，量的是布局宽。
+      function pinRightCols() {
+        const row = tbl.tHead && tbl.tHead.rows[0];
+        if (!row || row.cells.length < 2) return;
+        const wLast = row.cells[row.cells.length - 1].getBoundingClientRect().width;
+        tbl.style.setProperty('--pin-r2', Math.round(wLast) + 'px');
+      }
+
       // 表头列宽可拖拽（拖动改宽度，双击手柄恢复默认，记在 localStorage）
       // 必须放在 render() 之后：这张表是 table-layout: auto，列宽由内容算出来，
       // tbody 填好之前量到的宽度不是最终值。
       // minColWidths 见上面 idealColWidths() 的注释 —— 它保证默认列宽是按全量
       // 107,852 行定的，翻页不会因为第 1 页碰巧值短而溢出。
-      const tbl = document.querySelector('table.data-table');
       initColResize(tbl, {
         storageKey: 'gtop.cols.search.v2',
         minWidth: 44,
-        minColWidths: idealColWidths(tbl)
+        minColWidths: idealColWidths(tbl),
+        onWidths: pinRightCols
       });
+
+      // initColResize 内部已经回调过一次；这里再兜一次，顺便让窗口缩放也重算
+      // （缩放会改「量列宽」那次的结果，进而改末列宽度）。
+      pinRightCols();
+      window.addEventListener('resize', pinRightCols);
+
+      // 固定列左侧的分隔阴影（见 site.css 的 .pin-on）。
+      // 判定是「固定列有没有浮在别的列上面」，不能写成 scrollLeft > 0：
+      // 这张表一直比容器宽，所以 **scrollLeft = 0 时末两列也是浮着的**
+      // （它们的自然位置在容器右边界之外），那时同样需要阴影。
+      // 只有滚到最右端时，末两列正好落回原位，再加阴影才像表格中间裂了条缝。
+      const wrap = tbl.closest('.table-wrap');
+      if (wrap) {
+        const syncPinEdge = () => wrap.classList.toggle(
+          'pin-on',
+          wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 1
+        );
+        wrap.addEventListener('scroll', syncPinEdge, { passive: true });
+        window.addEventListener('resize', syncPinEdge);
+        syncPinEdge();
+      }
     })();
   </script>
 </body>

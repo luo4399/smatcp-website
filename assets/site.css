@@ -906,6 +906,96 @@ table.data-table tbody tr:hover td {
   background: #fafbfe;
 }
 
+/* ---- 最后两列固定在右侧（luo 2026-10-03：「表格可以把最后两列固定」）----
+   这张表 22 列、总宽 2600px 上下，容器只有 1376px —— 横向滚动时最右端的
+   Regulatory Score 和 Visualization（Plot 按钮）会滚出视野。把这两列
+   `position: sticky` 到容器右边缘，Plot 按钮就永远够得到。
+
+   右偏移：末列 `right: 0`；倒数第二列 `right: 末列宽度`。末列宽度可以被拖拽改，
+   所以走 CSS 变量 `--pin-r2`，由 index.html 的 `pinRightCols()` 在每次列宽
+   变化时写入（见 assets/col-resize.js 的 `onWidths` 回调）。
+
+   ⚠️ 四个必须注意的点：
+   ① 背景必须自己给 —— sticky 单元格会盖住滚过去的其它列，不给底色就透字。
+      tbody 白底、行悬停用行高亮色；thead 用表头底色（否则表头那格透出下面的字）。
+   ② z-index 要分层：thead 的固定列(3) 压在 tbody 的固定列(2) 之上，
+      两者都要压过普通单元格。
+   ③ 左右分界线**不能用 border**：这张表是 `border-collapse: collapse`，
+      折叠边框由 table 统一绘制、不跟着 sticky 单元格走，会留在原位置变成
+      一条穿帮的竖线。所以用 `box-shadow` 在固定组的最左侧画分隔。
+   ④ 分隔阴影只在「固定列真的浮在别的列上面」时才显示（`.table-wrap.pin-on`）——
+      这张表一直比容器宽，所以 scrollLeft = 0 时末两列**也是浮着的**（自然位置在
+      容器右边界之外），那时同样要有阴影；只有滚到最右端、末两列落回原位时才撤掉。
+      判定写在 index.html 的 syncPinEdge() 里，**不能图省事写成 scrollLeft > 0**。 */
+table.data-table thead th.pin-r,
+table.data-table thead th.pin-r2,
+table.data-table tbody td.pin-r,
+table.data-table tbody td.pin-r2 {
+  position: sticky;
+  z-index: 2;
+  background: #fff;
+}
+
+table.data-table thead th.pin-r,
+table.data-table thead th.pin-r2 {
+  z-index: 3;
+  background: var(--head-bg);
+}
+
+table.data-table thead th.pin-r,
+table.data-table tbody td.pin-r {
+  right: 0;
+}
+
+table.data-table thead th.pin-r2,
+table.data-table tbody td.pin-r2 {
+  right: var(--pin-r2, 0px);
+}
+
+.table-wrap.pin-on table.data-table thead th.pin-r2,
+.table-wrap.pin-on table.data-table tbody td.pin-r2 {
+  box-shadow: -8px 0 9px -8px rgba(12, 39, 82, 0.28);
+}
+
+/* 行悬停时固定列也要跟着变色，否则固定列与其余单元格之间会露出一条白缝 */
+table.data-table tbody tr:hover td.pin-r,
+table.data-table tbody tr:hover td.pin-r2 {
+  background: #fafbfe;
+}
+
+/* 窄屏关掉固定。
+   末两列合计 255px，在 390px 视口下会吃掉 75% 的宽度 —— 实测 .table-wrap 只有
+   342px，固定列占 255px，可滚动的内容只剩 87px，比不固定还难用。
+   768px 起（容器约 720px，还剩 465px 给内容）才开。
+   ⚠️ 阈值是按「末两列合计约 255px」定的；如果以后把 Regulatory Score 或
+   Visualization 拖得很宽，这个阈值要跟着抬。 */
+@media (max-width: 767px) {
+
+  table.data-table thead th.pin-r,
+  table.data-table thead th.pin-r2 {
+    /* ⚠️ 这里**不能写 `position: static`**。
+       表头里的拖拽手柄是 `.col-resizer { position: absolute; right: -3px }`，
+       它靠 `th.th-resizable { position: relative }` 当包含块。th 一旦变成
+       static，手柄就改以「初始包含块」为参照，跑到**文档右边界外面**去 ——
+       页面凭空多出 3px 横向滚动（实测 766/767px 各溢出 3px，768px 起
+       position: sticky 时反而是 0，所以只在断点以下暴露）。
+       用 relative（th.th-resizable 本来就是它），再把 right 归零 ——
+       relative 会真的按 right 偏移，不归零 .pin-r2 会被左移 105px。 */
+    position: relative;
+    right: auto;
+  }
+
+  table.data-table tbody td.pin-r,
+  table.data-table tbody td.pin-r2 {
+    position: static;
+  }
+
+  .table-wrap.pin-on table.data-table thead th.pin-r2,
+  .table-wrap.pin-on table.data-table tbody td.pin-r2 {
+    box-shadow: none;
+  }
+}
+
 td.col-pos,
 td.col-vaf,
 td.col-cadd,
@@ -3030,6 +3120,17 @@ th.th-resizable {
 .col-resizer:hover::after,
 body.col-resizing .col-resizer:hover::after {
   background: var(--blue);
+}
+
+/* 最后一列的拖拽手柄不要探出表格右边界。
+   手柄是 `right: -3px; width: 7px`，在末列上会往表格右边多出 4px ——
+   于是表格的 scrollWidth 比实际宽度大 4px，横向滚到最右端时表格右侧会留
+   一条 4px 的缝（表头那行尤其明显：表头底色与容器白底之间缺一块）。
+   2026-10-03 加「最后两列固定在右侧」时发现：这条缝让固定列看着没贴边。
+   只改末列，其余列的手柄仍在列边界上、拖拽手感不变。
+   注：只作用首页搜索表；Data Portal 的 .data-list 未改动（它宽度本来就是 100%）。 */
+table.data-table th:last-child .col-resizer {
+  right: 0;
 }
 
 /* 拖拽过程中：整页保持 col-resize 光标，并禁掉文字选中 */

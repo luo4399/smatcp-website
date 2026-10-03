@@ -276,6 +276,56 @@ bash scripts/build_publish.sh
 
 ## 页面功能
 
+### 首页英雄区标题
+
+第一行 `Somatic Mosaicism across` 是白色平色。第二行
+`Normal Tissues of Chinese Population` 里**两个短语走渐变文字**，连接词 `of` 是白色：
+
+```html
+Somatic Mosaicism across
+<span class="line-2"><span class="grad">Normal Tissues</span> of <span class="grad">Chinese Population</span></span>
+```
+
+（2026-10-03 luo：「Normal Tissues 和 Chinese Population 是有颜色且渐变色的」）
+
+**`.grad` 的写法**（`assets/site.css`）：
+
+```css
+.hero-title .line-2 .grad {
+  color: var(--sky);          /* 兜底色：@supports 不成立时用它 */
+}
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .hero-title .line-2 .grad {
+    background-image: linear-gradient(92deg, #c7ecff 0%, #83bbff 45%, #6f83f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+```
+
+> ⚠️ **不要写 `color: transparent` 当「兜底」** —— 那是反的。不支持
+> `background-clip: text` 的环境会变成**看不见字**。正确做法是先给一条平色，
+> 再用 `@supports` 把渐变叠上去；不支持就自动退回平色。
+>
+> ⚠️ **`-webkit-` 前缀和 `-webkit-text-fill-color` 都要写**：只写 `color`
+> 在部分 Chromium 上会被 `-webkit-text-fill-color` 的默认值盖掉，字变回实色。
+>
+> ⚠️ 色标**从站点自身的蓝系里取**（`--sky` `#7eaeff` / `--glow` `#5aa2ec`），
+> 末端 `#6f83f7` 刻意留亮 —— 再暗就压不住 `#033069` 的深蓝底，对比度会掉到 3:1 以下。
+> 第一版色标跨度太窄（`#b9e2ff → #7fb2ff → #7b8dfb`），2x 截图里几乎看不出渐变。
+
+**`of` 为什么不是渐变**（2026-10-03 luo：「of 不需要渐变色」）：`of` 从一开始就是
+**平色**、不是渐变 —— 用 `Range.selectNodeContents()` 取到该词的 rect，再以
+`deviceScaleFactor: 8` 单独截图，像素完全均匀。真正的问题是它原来的颜色
+`--sky`(`#7eaeff`) **正好落在渐变的中间色段上**，三个词连读就被当成一条渐变。
+改成 `.hero-title .line-2 { color: inherit }`（= `#fff`，跟第一行同色）之后，
+整句读起来就是「白标题 + 两个渐变短语」。
+
+> 教训：**「看起来像渐变」和「真的是渐变」要分开查** —— 先量像素（是否均匀），
+> 再判色相（是否落在邻接渐变的色段里）。前者用 `Range` + 高倍截图，
+> 后者对比渐变两端的色标即可。
+
 ### 导航栏
 Home / Expression / QTL（Small Variant, Structure Variant, Tandem Repeat）/
 Analysis & Tools（Genome Browser）/ Somatic Mosaicism / Download / Tissue / Consortium

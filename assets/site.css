@@ -418,26 +418,38 @@ select {
 
 .hero-title .line-2 {
   display: block;
-  color: var(--sky);
+  /* 2026-10-03 luo：「of 不需要渐变色」。这一行现在只剩连接词「of」是裸文本
+     （两个关键短语已各自包了 .grad，见下），所以这里的颜色就是「of」的颜色。
+     用 inherit（= .hero-title 的 #fff），跟第一行同色 —— 整句读起来是
+     「白标题 + 两个渐变短语」。
+     原来是 --sky(#7eaeff)：它正好落在渐变的中间色段上，肉眼会把「of」读成
+     渐变的一部分，所以 luo 会提这一句。 */
+  color: inherit;
 }
 
 /* 第二行里的两个短语走渐变文字（2026-10-03 luo：「Normal Tissues 和
-   Chinese Population 是有颜色且渐变色的」）。「of」保持上面的 --sky 平色。
-   做法是 background-clip: text —— 文字自身透明，露出背后的渐变。
-   ⚠️ 三件事都要写全：
+   Chinese Population 是有颜色且渐变色的」）。做法是 background-clip: text ——
+   文字自身透明，露出背后的渐变。
+   ⚠️ 两件事都要写：
      ① `-webkit-background-clip` 前缀（Safari / 老 Chromium 只认带前缀的）；
      ② `-webkit-text-fill-color: transparent` —— 只写 `color` 在部分 Chromium 上
-        会被 `-webkit-text-fill-color` 的默认值盖掉，字会变回实色；
-     ③ `color: transparent` 兜底，给不支持 background-clip: text 的环境留个
-        至少不变成黑字的退路。
-   色标从站点自身的蓝系里取（--sky #7eaeff / --glow #5aa2ec），末端压到
-   #7b8dfb 是刻意的：末端太暗会压不住 #033069 的深蓝底，对比度掉到 3:1 以下。 */
+        会被 `-webkit-text-fill-color` 的默认值盖掉，字会变回实色。
+   ⚠️ 不要在这里写 `color: transparent` 当「兜底」，那是反的：不支持
+      background-clip: text 的环境会变成**看不见字**。真正的兜底是先给一条平色，
+      再用 @supports 叠上渐变 —— 不支持就自动退回平色。
+   色标从站点自身的蓝系里取（--sky #7eaeff / --glow #5aa2ec）；末端 #6f83f7 是
+   刻意留亮的：太暗压不住 #033069 的深蓝底，对比度会掉到 3:1 以下。 */
 .hero-title .line-2 .grad {
-  background-image: linear-gradient(92deg, #c7ecff 0%, #83bbff 45%, #6f83f7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: var(--sky);          /* 兜底色：下面 @supports 不成立时用它 */
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .hero-title .line-2 .grad {
+    background-image: linear-gradient(92deg, #c7ecff 0%, #83bbff 45%, #6f83f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 
 .hero-sub {

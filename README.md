@@ -111,11 +111,15 @@ CSV 的 **21 列全部保留、全部展示**，不再拼接任何来自其它�
 | 源表 | `data_source/variants_website.csv`（16 MB，21 列） |
 | 生成物 | `data/variants_data.js`（8.3 MB，自动生成，勿手改） |
 
-**21 列**（顺序即页面从左到右）：
+**21 列**（顺序 = CSV 列序 = `variants_data.js` 的行内下标顺序，
+**不等于**页面上的展示顺序 —— 展示顺序的唯一真源是 `src/index.html` 的 `COLS`）：
 `contig`(Chr) · `pos` · `ref` · `alt` · `depth` · `vaf` · `mutation_type`(Type) ·
 `TiTv` · `trinucleotide` · `gene_symbol`(Gene) · `region` · `sample` · `donor` · `tissue` ·
 `ref_origin` · `tissue_shared` · `infiltration_pp` · `infiltration` · `cosmic_signature` ·
 `CADD_PHRED` · `regulatory_score`
+
+> 2026-10-08 起页面把 `Gene / Sample / Donor / Tissue` 放在**最前四列**，
+> 与上表顺序不同 —— 见「结果表」一节。
 
 **突变分布最高的 5 个组织:**
 Adrenal_Gland（21,099）、Whole_Blood（19,272）、Skin（15,413）、Liver（9,209）、Gallbladder（4,627）
@@ -344,11 +348,38 @@ Analysis & Tools（Genome Browser）/ Somatic Mosaicism / Download / Tissue / Co
 搜索框的 placeholder 也写明了可搜的维度。
 
 **结果表 = 21 个 CSV 列 + Visualization，共 22 列**（2026-09-24 由 13 列扩到 22 列；
-2026-09-28 调过一次列顺序，见下）：
+2026-09-28、2026-10-08 各调过一次列顺序，见下）：
 
-`Chr | Position | Ref | Alt | Gene | Region | Sample | Donor | Tissue |
+`Gene | Sample | Donor | Tissue | Chr | Position | Ref | Alt | Region |
 Depth | VAF | Type | Ti/Tv | Trinucleotide | Ref Origin | Tissue Shared |
 Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Visualization`
+
+**2026-10-08 列顺序再调整**（luo：「gene，sample，donor，tissue挪到前四列」）：
+
+- `Gene` / `Sample` / `Donor` / `Tissue` 这 **4 列挪到最前面**（第 1–4 列），
+  其余 17 列的相对顺序一律没动。新顺序：
+  `gene_symbol, sample, donor, tissue, contig, pos, ref, alt, region, depth, vaf,`
+  `mutation_type, TiTv, trinucleotide, ref_origin, tissue_shared, infiltration_pp,`
+  `infiltration, cosmic_signature, CADD_PHRED, regulatory_score`
+- **为什么**：`.table-wrap` 可视宽**恒为 1374px**，22 列总宽约 2620~2674px ——
+  首屏能看到的永远是**最左边那一小截**。这 4 列是 luo 判断「这条变异是谁的、
+  来自哪个组织」的核心维度，只有放到最前才不用横向滚动
+- **同一次要改的三处**（与 09-28 完全一样，只是键升到 `.v3`）：
+  1. `<thead>` 里**写死的 22 个 `<th>`**
+  2. `COLS` 数组
+  3. `localStorage` 列宽键 `gtop.cols.search.v2` → **`gtop.cols.search.v3`**
+- **`data/variants_data.js` 不用重新生成**（取值走 `idxOf(字段名)`）；
+  `scripts/build_variants_data.py` 只是把注释里的日期补了一句
+- 重排同样是**带断言的脚本**一次做完：`.workbuddy-ai/tools/patch-col-order.py`
+  （断言：`<th>` 块 22 个 / `COLS` 条目 21 个 / 现状 == 预期旧顺序 / 新旧键集合一致 /
+  `storageKey` 命中恰好 1 次 / `<thead>` 1 个 / 长度变化 < 400 字符；落盘后再解析一遍确认）
+- 验收：`.workbuddy-ai/tools/verify-col-order.mjs`（**23 项断言**）——
+  表头文字序、每格 `<td>` 的 `col-*` 序、首行 21 格 vs `window.VDATA` 逐字段对齐、
+  排序 / 筛选仍可用、导出 CSV 表头 = 新 key 序 + BOM + 行数、
+  **旧键 `.v2`（21×999）被忽略**、末两列固定不变、`docOverflow = 0`、0 异常
+- ⚠️ **探针里别写死列下标**：`verify-index-regression.mjs` 原来用 `tr.children[1]`
+  取 Position，重排后应变成 `children[5]` —— 已改成从表头 `onclick="sortBy('pos')"`
+  动态查下标，以后再调列顺序不会假失败
 
 **2026-09-28 列顺序调整**（luo：「search 表的顺序是不是要调整下呀」→
 「Gene / Region / Sample / Donor / Tissue 这些也挺重要的在前面吧」）：
@@ -384,8 +415,8 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
   计数为 0 且**未选中**的选项不显示（口径见下方「表头筛选的计数口径」）
 - `Download` 导出的 CSV **列名与取值与源表完全一致**（`contig`/`pos`/…/`regulatory_score`），
   可直接和 `variants_website.csv` 对回去。
-  ⚠️ **列顺序跟表格走**（`DL_COLS = COLS.map(...)`），所以 2026-09-28 调列顺序后
-  导出的列顺序也跟着变了 —— 表头行还在，按**列名**对回去不受影响；
+  ⚠️ **列顺序跟表格走**（`DL_COLS = COLS.map(...)`），所以 2026-09-28 / 2026-10-08
+  两次调列顺序后导出的列顺序也跟着变了 —— 表头行还在，按**列名**对回去不受影响；
   如果有下游脚本是按列**位置**解析的，需要一起改
 - 表格 `min-width: 2180px` 只是 CSS 里的初始值；列宽脚本初始化后会把
   `width`/`min-width` 一起钉成「各列之和」（实测 **2674px**），窄屏横向滚动
@@ -394,8 +425,9 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
   `COLS` 里各字段的 `empty`、`cellHtml()` 的兜底
   （原来还有第三处 `showDetail()` 详情侧栏的兜底，详情栏已移除，见下文）
 - **表头列宽可拖拽**：拖动表头右边缘的细线即可改列宽，双击手柄恢复默认，
-  调整结果记在 `localStorage` 的 `gtop.cols.search.v2`（**存的是按列下标的数组**，
-  所以 2026-09-28 调列顺序时把键从 `gtop.cols.search` 升到了 `.v2`，旧记录自动作废）。
+  调整结果记在 `localStorage` 的 `gtop.cols.search.v3`（**存的是按列下标的数组**，
+  所以**每次调列顺序都必须升键**：2026-09-28 升到 `.v2`、2026-10-08 升到 `.v3`，
+  旧记录自动作废 —— 不升的话旧数组长度一样会被照单全收，套到错误的列上）。
   详见「列宽拖拽」一节
 - **`Regulatory Score` 列显示成迷你柱状图**（2026-09-24 改）：柱子按「值 ÷ 满格刻度」取宽，
   满格刻度是 **5**（p99）而不是数据里的最大值 11 —— 该列 p50=1、p90=2、p99=5，99% 的值

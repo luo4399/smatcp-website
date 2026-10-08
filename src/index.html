@@ -269,17 +269,7 @@
         <table class="data-table" data-page-node-id="36xZ0YqjCHVDmOSCXClnVK">
           <thead data-page-node-id="4bSnBoBJboKiF9OmTY1oGr">
             <tr data-page-node-id="DSO8fyf3opCd32IEf4NwGc">
-              <th class="sortable" onclick="sortBy('contig')">Chr <i class="fa-solid fa-sort sort-i"></i>
-              </th>
-              <th class="sortable" onclick="sortBy('pos')">Position <i class="fa-solid fa-sort sort-i"></i>
-              </th>
-              <th class="sortable" onclick="sortBy('ref')">Ref <i class="fa-solid fa-sort sort-i"></i>
-              </th>
-              <th class="sortable" onclick="sortBy('alt')">Alt <i class="fa-solid fa-sort sort-i"></i>
-              </th>
               <th class="sortable" onclick="sortBy('gene_symbol')">Gene <i class="fa-solid fa-sort sort-i"></i>
-              </th>
-              <th class="sortable" onclick="sortBy('region')">Region <i class="fa-solid fa-sort sort-i"></i>
               </th>
               <th class="sortable" onclick="sortBy('sample')">Sample <i class="fa-solid fa-sort sort-i"></i>
               </th>
@@ -294,6 +284,16 @@
                   aria-haspopup="true" aria-expanded="false" title="Filter by tissue">
                   <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="tissue"></span>
                 </button>
+              </th>
+              <th class="sortable" onclick="sortBy('contig')">Chr <i class="fa-solid fa-sort sort-i"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('pos')">Position <i class="fa-solid fa-sort sort-i"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('ref')">Ref <i class="fa-solid fa-sort sort-i"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('alt')">Alt <i class="fa-solid fa-sort sort-i"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('region')">Region <i class="fa-solid fa-sort sort-i"></i>
               </th>
               <th class="sortable" onclick="sortBy('depth')">Depth <i class="fa-solid fa-sort sort-i"></i>
               </th>
@@ -494,7 +494,14 @@
     // ---------------- 列定义（顺序 = 页面从左到右）----------------
     // kind: dict = 字典下标 | int/num = 数值 | raw = 原样字符串 | bool = 0/1
     // fmt : 显示格式（int 千分位 / vaf 百分比 / cadd 3 位 / num4 4 位）
+    // 空值统一显示成 '--'（原来是 'NA'）。两处必须一致：
+    //   这里每个字段的 empty、cellHtml() 里的兜底。
+    // （2026-09-24 第二轮：原来还有第三处 showDetail() 侧栏的兜底，详情栏已移除。）
     const COLS = [
+      { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: '--' },
+      { k: 'sample', label: 'Sample', kind: 'dict', cls: 'col-mono' },
+      { k: 'donor', label: 'Donor', kind: 'dict', cls: 'col-donor', filter: true },
+      { k: 'tissue', label: 'Tissue', kind: 'dict', filter: true },
       { k: 'contig', label: 'Chr', kind: 'dict' },
       { k: 'pos', label: 'Position', kind: 'int', fmt: 'int', cls: 'col-pos' },
       { k: 'ref', label: 'Ref', kind: 'raw' },
@@ -502,11 +509,7 @@
       // 空值统一显示成 '--'（原来是 'NA'）。两处必须一致：
       //   这里每个字段的 empty、cellHtml() 里的兜底。
       // （2026-09-24 第二轮：原来还有第三处 showDetail() 侧栏的兜底，详情栏已移除。）
-      { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: '--' },
       { k: 'region', label: 'Region', kind: 'dict', cls: 'col-region', empty: '--' },
-      { k: 'sample', label: 'Sample', kind: 'dict', cls: 'col-mono' },
-      { k: 'donor', label: 'Donor', kind: 'dict', cls: 'col-donor', filter: true },
-      { k: 'tissue', label: 'Tissue', kind: 'dict', filter: true },
       { k: 'depth', label: 'Depth', kind: 'int', fmt: 'int', cls: 'col-num' },
       { k: 'vaf', label: 'VAF', kind: 'num', fmt: 'vaf', cls: 'col-vaf' },
       { k: 'mutation_type', label: 'Type', kind: 'dict', filter: true },
@@ -1416,7 +1419,7 @@
       // minColWidths 见上面 idealColWidths() 的注释 —— 它保证默认列宽是按全量
       // 107,852 行定的，翻页不会因为第 1 页碰巧值短而溢出。
       initColResize(tbl, {
-        storageKey: 'gtop.cols.search.v2',
+        storageKey: 'gtop.cols.search.v3',
         minWidth: 44,
         minColWidths: idealColWidths(tbl),
         onWidths: pinRightCols

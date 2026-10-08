@@ -255,6 +255,7 @@ bash scripts/build_publish.sh
 > | **2026-10-03 17:0x** | **重新发布（首页英雄区 `of` 改白色 / 固定列加深底色 / 窄屏保留固定列 + 手动折叠开关）** —— 链接复用；线上实测固定列 `th rgb(211,221,238)` / `td rgb(230,236,249)`、`wrapClass = table-wrap pin-on`、五页 0 溢出 |
 > | **2026-10-08 11:1x** | **重新发布（Data Portal：Data Matrix 停用 + 删掉 Donor 筛选里的组织子列表）** —— 链接复用；线上实测 `dmPanel`/`dmBody`/`dmToggle` 全不存在、`toggleMatrix`/`renderMatrix`/`matrixPick` 全 `undefined`、Donor 组 160 项且 `.filter-caret`/`.filter-chip` 为 0、五页 0 溢出 |
 > | **2026-10-08 12:3x** | **重新发布（首页：表头筛选的计数改为跟随搜索 + 0 计数选项不显示 + 面板标题显示「当前结果数」）** —— 链接复用；线上实测搜 `chr1` 后 Adipose 计数由 108 变 12、勾 Adipose 后 Donor 面板只剩 `AK231=12`、面板标题 `108 results` |
+> | **2026-10-08 15:2x** | **重新发布（首页搜索表：`Gene / Sample / Donor / Tissue` 挪到最前四列）** —— 链接复用；线上实测 22 个表头 == 新顺序、首行四格 `FAM87B` / `BE141-2099` / `BE141` / `Adrenal Gland`、列宽键已是 `.v3`、Tissue=Adipose 后第 4 列全 Adipose、按 Donor 排序后首屏同属一个供体、0 溢出 / 0 异常（`verify-live-col-order.mjs` 13 项全绿） |
 
 **第 4 步 · 更新线上内容**
 

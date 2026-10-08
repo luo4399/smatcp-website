@@ -1272,13 +1272,38 @@ th.has-filter {
   display: block;
 }
 
+/* 标题行：左边「Filter by X」，右边「当前结果数」（2026-10-08 luo：「选了一个组织，
+   其他列的筛选项没有相应的变化」）。Type / Ti-Tv / Tissue Shared 这三列在数据里
+   每个取值都存在（30 个组织全都同时含 SNV 与 INDEL、含全部 7 种 Ti/Tv），
+   所以选任何组织它们都不会少选项 —— 只有数字变。把这个数字放到标题上，
+   打开任意一列的面板都能一眼看到筛选已生效。 */
 .th-filter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
   padding: 4px 12px 8px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted-2);
+}
+
+/* 标题左侧的列名不许折行 —— 否则「FILTER BY COSMIC SIGNATURE」会断成两行。
+   面板跟着宽一点没关系（下拉面板本来就不定宽）。 */
+.th-filter-head > span:first-child {
+  white-space: nowrap;
+}
+
+/* 标题右侧的结果数：不跟着标题变全大写，用品牌蓝让它跳出来 */
+.th-filter-head-n {
+  flex: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
 }
 
 .th-filter-opt {

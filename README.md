@@ -250,6 +250,7 @@ bash scripts/build_publish.sh
 > | **2026-09-30 16:1x** | **重新发布（Data Matrix 固定列宽 + 靠左 / 色阶改竖排 colorbar / 页面描述两端对齐 / 页头汉堡断点 980→1100px）** —— 链接复用，`verified: true`；线上 5 页 × 5 视口 0 溢出 / 0 断图 / 0 异常 / 0 失败请求，8 个敏感路径全 404，热图 486.5px + 滚动条贴表 + 33 行 + sticky 表头 + colorbar 并排 + 描述 justify 逐项跑通 |
 > | **2026-10-03 17:0x** | **重新发布（首页英雄区 `of` 改白色 / 固定列加深底色 / 窄屏保留固定列 + 手动折叠开关）** —— 链接复用；线上实测固定列 `th rgb(211,221,238)` / `td rgb(230,236,249)`、`wrapClass = table-wrap pin-on`、五页 0 溢出 |
 > | **2026-10-08 11:1x** | **重新发布（Data Portal：Data Matrix 停用 + 删掉 Donor 筛选里的组织子列表）** —— 链接复用；线上实测 `dmPanel`/`dmBody`/`dmToggle` 全不存在、`toggleMatrix`/`renderMatrix`/`matrixPick` 全 `undefined`、Donor 组 160 项且 `.filter-caret`/`.filter-chip` 为 0、五页 0 溢出 |
+> | **2026-10-08 12:3x** | **重新发布（首页：表头筛选的计数改为跟随搜索 + 0 计数选项不显示 + 面板标题显示「当前结果数」）** —— 链接复用；线上实测搜 `chr1` 后 Adipose 计数由 108 变 12、勾 Adipose 后 Donor 面板只剩 `AK231=12`、面板标题 `108 results` |
 
 **第 4 步 · 更新线上内容**
 
@@ -488,6 +489,42 @@ luo：「首页的表格的筛选是不是没有联动呀」。实测下来**一
   改成按 `FBY[key].opts` 全量取值（全选 = 不筛，与组内 OR 语义一致）。
 - `onFilterSearch()` 原来自己按搜索词设 `display`，会把「0 计数隐藏」覆盖掉（选项又冒出来）。
   改成直接调 `refreshFilterCounts()`，两个条件在同一处合。
+
+**面板标题上的「当前结果数」（2026-10-08 加）**
+
+luo 追问：「我选中的一个组织，但是其他列的筛选项没有相应的变化呀」。查下来**不是 bug** ——
+用页面自己的数据统计「每个组织在其它维度上有多少个不同取值」：
+
+| 维度 | 会让它「少选项」的组织数 |
+|---|---|
+| `Type`（mutation_type） | **0 / 30** |
+| `Ti/Tv` | **0 / 30** |
+| `Tissue Shared` | **0 / 30** |
+| `Infiltration` | 3 / 30 |
+| `Ref Origin` | 10 / 30 |
+| `COSMIC Signature` | 30 / 30 |
+| `Donor` | 30 / 30 |
+
+**30 个组织里每一个都同时含 SNV 与 INDEL、都含全部 7 种 Ti/Tv、都含 Tissue Shared 的
+FALSE 与 TRUE** —— 所以选任何组织，这三列的选项列表**永远不可能变少**，没有可隐藏的取值。
+数字确实在变（勾 `Adipose` 后 Type 由 `SNV=106,639 / INDEL=1,213` 变成 `SNV=105 / INDEL=3`），
+但「列表没变、只有数字变」很容易被读成「没反应」。
+
+于是给面板标题右侧加一个**当前结果数**：
+
+```html
+<div class="th-filter-head">
+  <span>Filter by ${label}</span>
+  <span class="th-filter-head-n" data-fhead-n>${state.results.length.toLocaleString('en-US')} results</span>
+</div>
+```
+
+- 数字 = `state.results.length`，与表格上方的 `Found N somatic mutations` **同一个值**
+- 打开任意一列的面板，都能立刻看到筛选是否生效（勾 Adipose 后每列标题都是 `108 results`）
+- `refreshFilterCounts()` 里一并刷新，**面板不关也会实时变**（勾一个供体：`107,852 → 789`）
+- CSS：`.th-filter-head` 改 `display:flex; justify-content:space-between`；
+  **列名那条 `white-space: nowrap`**，否则 `FILTER BY COSMIC SIGNATURE` 会折成两行
+  （面板因此变宽到约 271px，下拉面板本来就不定宽，可接受）
 
 **下载结果**：`Reset Filters` 左边的 `Download` 按钮**直接下载 CSV**（2026-09-24 去掉 TSV：
 原先是个 CSV / TSV 二选一的下拉菜单，只剩一个选项的菜单没有意义，改成按钮直接下载，

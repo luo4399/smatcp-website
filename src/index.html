@@ -936,7 +936,7 @@
       const pop = document.getElementById('thFilterPop');
       pop.dataset.fkey = key;
       pop.innerHTML = `
-        <div class="th-filter-head">Filter by ${escapeHtml(d.label)}</div>
+        <div class="th-filter-head"><span>Filter by ${escapeHtml(d.label)}</span><span class="th-filter-head-n" data-fhead-n>${state.results.length.toLocaleString('en-US')} results</span></div>
         ${d.search ? `<input class="th-filter-search" type="search" placeholder="Search ${escapeHtml(d.label.toLowerCase())}…"
               value="${escapeHtml(q)}" aria-label="Search ${escapeHtml(d.label)}"
               oninput="onFilterSearch('${key}', this.value)">` : ''}
@@ -1011,6 +1011,10 @@
       const key = pop.dataset.fkey;
       const counts = computeCounts()[key];
       const q = filterQuery[key];
+      // 标题右侧的「当前结果数」也要跟着变 —— 有些列（Type / Ti-Tv / Tissue Shared）
+      // 在数据里每个取值都存在，选项列表永远不会变少，这个数字是唯一的联动线索
+      const headN = pop.querySelector('[data-fhead-n]');
+      if (headN) headN.textContent = state.results.length.toLocaleString('en-US') + ' results';
       pop.querySelectorAll('.th-filter-opt').forEach(el => {
         const inp = el.querySelector('input');
         const n = counts.get(+inp.value) || 0;

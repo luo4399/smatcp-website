@@ -120,7 +120,9 @@
 
       <!-- 数据表 -->
       <div>
-        <!-- Data matrix：Tissue × Assay 的文件数热图（点格子直接筛选） -->
+        <!-- ===== DATA MATRIX 已停用（2026-10-08 luo：「data portal 的 data matrix 部分先注释掉」）=====
+             恢复：删掉本注释的起止两行，再解开 JS 里两处标了「DATA MATRIX 已停用」的注释。
+
         <div class="dm-panel" id="dmPanel">
           <button class="dm-toggle" type="button" id="dmToggle" onclick="toggleMatrix()" aria-expanded="false"
             aria-controls="dmBody">
@@ -130,6 +132,8 @@
           </button>
           <div class="dm-body" id="dmBody"></div>
         </div>
+
+        ===== DATA MATRIX 已停用 结束 ===== -->
 
         <div class="table-wrap">
           <!--
@@ -282,11 +286,12 @@
     }
 
     // ============ 索引 ============
-    // 供体 -> 它出现过的组织（"点开供体看组织"）；assay -> 它用过的平台
-    const DONOR_TISSUES = DONORS.map(() => new Set());
+    // assay -> 它用过的平台
+    // （原先还有一个 DONOR_TISSUES「供体 -> 它出现过的组织」，只给 Donor 筛选里
+    //   「点开供体看组织」那一栏用。2026-10-08 luo：「data portal 左边的 donor 的
+    //   筛选里面的组织就不需要了」—— 那一栏删掉，这个索引也一并去掉。）
     const ASSAY_PLATFORMS = ASSAYS.map(() => new Set());
     ROWS.forEach(r => {
-      DONOR_TISSUES[r[0]].add(r[3]);
       ASSAY_PLATFORMS[r[1]].add(r[2]);
     });
 
@@ -297,7 +302,7 @@
     //   Format 4 选项太少，加搜索框只是占地方（2026-09-29 luo：「第一个和第二个可以搜索」）
     const GROUPS = [
       { key: 'tissue', label: 'Tissue', idx: 3, opts: TISSUES, open: true, search: true },
-      { key: 'donor', label: 'Donor', idx: 0, opts: DONORS, search: true, tree: true },
+      { key: 'donor', label: 'Donor', idx: 0, opts: DONORS, search: true },
       { key: 'assay', label: 'Assay', idx: 1, opts: ASSAYS },
       { key: 'platform', label: 'Platform', idx: 2, opts: PLATFORMS },
       { key: 'format', label: 'Format', idx: 4, opts: FORMATS }
@@ -310,7 +315,6 @@
     // 表现就是「勾一个选项，这一组自己收起来了」。
     const openGroups = new Set(GROUPS.filter(g => g.open).map(g => g.key));
 
-    const expandedDonors = new Set();   // 展开了组织列表的供体
     const searches = {};                // 组内搜索词，重建面板后要还原
     // 组内搜索框默认收起，点标题上的放大镜展开（2026-09-29）。
     // 与 openGroups 同理：状态必须存在这里，不能只改 DOM class ——
@@ -355,27 +359,12 @@
       const box = `<input type="checkbox"${on ? ' checked' : ''}`
         + ` onchange="toggleOpt('${g.key}', ${i}, this.checked)">`;
 
-      if (!g.tree) {
-        return `<label class="filter-opt" data-t="${low}">${box}
-            <span class="filter-opt-name">${text}</span>
-            <span class="filter-opt-n">${fmtN(n)}</span></label>`;
-      }
-
-      // Donor：前面加一个三角，点开显示这个供体有数据的组织
-      const open = expandedDonors.has(i);
-      const tis = [...DONOR_TISSUES[i]].sort((a, b) => TISSUES[a].localeCompare(TISSUES[b]));
-      return `<div class="filter-node" data-t="${low}">
-          <div class="filter-opt filter-opt-tree">
-            <button class="filter-caret" type="button" onclick="toggleDonor(event, ${i})"
-              aria-expanded="${open}" aria-label="Show tissues of ${text}">
-              <i class="fa-solid fa-chevron-right"></i></button>
-            <label class="filter-opt-label">${box}<span class="filter-opt-name">${text}</span></label>
-            <span class="filter-opt-n">${fmtN(n)}</span>
-          </div>
-          ${open ? `<div class="filter-sub">${tis.map(t => `<button type="button" class="filter-chip"
-              onclick="pickDonorTissue(${i}, ${t})" title="只看 ${text} 的 ${escapeHtml(pretty(TISSUES[t]))}"
-              >${escapeHtml(pretty(TISSUES[t]))}</button>`).join('')}</div>` : ''}
-        </div>`;
+      // 2026-10-08 luo：「data portal 左边的 donor 的筛选里面的组织就不需要了」。
+      // Donor 选项原来前面有个三角，点开是这个供体有数据的组织 chip（tree 分支）；
+      // 那一栏删掉后，五个组都是同一套朴素选项。
+      return `<label class="filter-opt" data-t="${low}">${box}
+          <span class="filter-opt-name">${text}</span>
+          <span class="filter-opt-n">${fmtN(n)}</span></label>`;
     }
 
     function renderFilters() {
@@ -439,7 +428,9 @@
       GROUPS.forEach(g => { if (searches[g.key]) searchOptions(g.key, searches[g.key]); });
 
       // 矩阵的计数受筛选影响，筛选一变就得重画；收起时没必要画（33×2 格 + 33 行，白算）
-      if (dmOpen) renderMatrix();
+      // DATA MATRIX 已停用（2026-10-08）：renderMatrix 整段被注释掉了，这里一并停用。
+      // dmOpen 恒为 false（toggleMatrix 也停用了），恢复时两处一起解开。
+      // if (dmOpen) renderMatrix();
     }
 
     function toggleGroup(key) {
@@ -510,23 +501,6 @@
       });
     }
 
-    function toggleDonor(e, i) {
-      e.preventDefault();
-      e.stopPropagation();
-      expandedDonors.has(i) ? expandedDonors.delete(i) : expandedDonors.add(i);
-      renderFilters();
-      renderList();
-    }
-
-    // 点供体下面的组织 chip = 直接钻到「这个供体 × 这个组织」
-    function pickDonorTissue(d, t) {
-      sel.donor = new Set([d]);
-      sel.tissue = new Set([t]);
-      page = 1;
-      renderFilters();
-      renderList();
-    }
-
     function toggleOpt(key, i, on) {
       on ? sel[key].add(i) : sel[key].delete(i);
       page = 1;
@@ -538,7 +512,6 @@
 
     function clearFilters() {
       GROUPS.forEach(g => sel[g.key].clear());
-      expandedDonors.clear();
       page = 1;
       renderFilters();
       renderList();
@@ -546,7 +519,6 @@
 
     // 只清这一组的勾选（标题上的 ↻ 按钮）。和 clearFilters() 的区别：
     //   · 不动别的组 —— 「Tissue 选错了，重选」不该把 Donor 的选择也清掉
-    //   · 不清 expandedDonors —— 那是「展开看组织」的浏览状态，不是筛选条件
     function clearGroup(key) {
       sel[key].clear();
       page = 1;
@@ -662,6 +634,12 @@
       // 折叠时左栏只剩这条角标，筛选一变就得跟着更新
       updateRailNote();
     }
+
+    /* ===== DATA MATRIX 已停用（2026-10-08 luo：「data portal 的 data matrix 部分先
+       注释掉」）。这一整段（toggleMatrix / matrixBase / renderMatrix / matrixPick）
+       整体停用，markup 里的 .dm-panel 也一并注释掉了。
+       恢复：把本块的起止标记删掉，再解开 markup 与 renderFilters() 里同样标了
+       「DATA MATRIX 已停用」的注释。CSS 的 .dm-* 规则没动，不用管。
 
     // ============ Data matrix（Tissue × Assay 文件数热图）============
 
@@ -847,6 +825,8 @@
       const wrap = document.querySelector('.table-wrap');
       if (wrap) window.scrollTo({ top: wrap.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' });
     }
+
+    ===== DATA MATRIX 已停用 结束 ===== */
 
     function toggleNav() {
       document.getElementById('navMenu').classList.toggle('open');

@@ -13,7 +13,7 @@ tissues to build the landscape of body-wide somatic mosaicism in Chinese individ
 .
 ├── src/                            # 页面（部署时被拷到发布根）
 │   ├── index.html                  # 首页：搜索 + 结果表 + 三列筛选 + 覆盖度图弹窗
-│   ├── somatic-data.html           # 数据下载门户（筛选侧栏 + Data Matrix）
+│   ├── somatic-data.html           # 数据下载门户（筛选侧栏；Data Matrix 已停用）
 │   ├── donors.html                 # 供体信息
 │   ├── tissue.html                 # 组织浏览
 │   └── somacard.html               # SomaCard 突变注释（调 server/ 的后端 API；需登录）
@@ -821,8 +821,7 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
 | ⌄ 展开箭头 | 所有组 | 展开 / 收起选项列表 |
 
 - **分组级清除**（`clearGroup(key)`）与全局 `Clear all` 的区别：**不动别的组**。
-  「Tissue 选错了想重选」不该把 Donor 的选择也一起清掉。另外它也不清 `expandedDonors`
-  —— 那是「展开看组织」的浏览状态，不是筛选条件。
+  「Tissue 选错了想重选」不该把 Donor 的选择也一起清掉。
 - **搜索框默认收起**，点放大镜才展开。`searchOpen` 这个 Set 必须独立存状态，
   不能只改 DOM class —— `renderFilters()` 是全量重建 `innerHTML`，一重建就回默认。
   同理，有搜索词时 `searchShown` 会强制把框顶出来，否则词还在、框却没了，
@@ -861,10 +860,19 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
    并且**计数为 0 的选项直接不显示**。所以勾了 `Assay = RNA-seq` 之后，
    Platform 组里只剩 `Illumina NovaSeq X`，`DNBSEQ-T7` / `PacBio HiFi` 自动消失
    —— 这就是「按 assay 自动识别平台」的实现方式，不用写死映射表。
-2. **Donor 可以展开**：每个供体左边有个三角，点开列出这个供体有数据的组织
-   （数据来自启动时建的 `DONOR_TISSUES` 索引），点组织 chip 直接钻到
-   「这个供体 × 这个组织」（同时设置 donor 与 tissue 两组筛选）。
-3. **Data Matrix**：表格上方一个可折叠面板，是 `Tissue × Assay` 的文件数矩阵
+2. ~~**Donor 可以展开**~~ —— **已于 2026-10-08 删除**（luo：「data portal 左边的
+   donor 的筛选里面的组织就不需要了」）。原形态：每个供体左边一个三角，点开列出该供体
+   有数据的组织 chip（数据来自启动时建的 `DONOR_TISSUES` 索引），点 chip 直接钻到
+   「这个供体 × 这个组织」。删掉的东西 = `DONOR_TISSUES` 索引、`GROUPS` 里 donor 的
+   `tree: true`、`expandedDonors`、`toggleDonor()` / `pickDonorTissue()`，以及 CSS 的
+   `.filter-node` / `.filter-opt-tree` / `.filter-caret` / `.filter-opt-label` /
+   `.filter-sub` / `.filter-chip` 整块。现在 Donor 组与其它组是同一套朴素选项，
+   **组内搜索框保留**。想恢复就翻这一条。
+3. **Data Matrix —— ⚠️ 已于 2026-10-08 停用**（luo：「data portal 的 data matrix 部分
+   先注释掉」）：markup、`renderFilters()` 里的重画调用、以及 JS 整段（`toggleMatrix` /
+   `matrixBase` / `renderMatrix` / `matrixPick`）**都注释掉了**，恢复时搜
+   `DATA MATRIX 已停用`（3 处）；CSS 的 `.dm-*` 规则没动。下面写的是恢复后的形态：
+   表格上方一个可折叠面板，是 `Tissue × Assay` 的文件数矩阵
    （33 行 × 2 列，含行列合计）。每个格子里有一条**长度 ∝ √值**的横条，
    底色按**非零值的四分位**分 4 档（阈值标在提示条右侧的图例里）。
    点行名 / 行尾 `Total` 只看该组织；点格子看「组织 × assay」；
@@ -873,7 +881,7 @@ RNA-seq 1,613 样本（33 个组织类型）；`comprising a total of 7,249 file
    **不撑满面板**（2026-09-30 luo：「为什么一定要跟表格同宽呢？」），右侧留白。
    详见下面「列宽」一节。
 
-**Data Matrix 与左侧筛选的联动**（2026-09-24 加）：
+**Data Matrix 与左侧筛选的联动**（2026-09-24 加；⚠️ 该面板当前已停用，见上一条）：
 
 矩阵的计数会跟随左侧筛选，但**只跟随「Tissue / Assay 之外」的筛选**（Donor / Platform / Format）。
 口径与筛选面板的 faceted count 完全一致：某组自己的计数不受该组的筛选影响。

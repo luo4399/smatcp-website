@@ -222,7 +222,7 @@
       <div class="autocomplete" data-page-node-id="9RMSuAuBEkZ50oNPhG2FCn">
         <div class="search-box" data-page-node-id="i6NMaO02j4l2O4k5RSaMD6">
           <input type="text" id="searchInput"
-            placeholder="Gene / Tissue / Donor / Sample / chr1:10000000-40000000" autocomplete="off" spellcheck="false"
+            placeholder="Sample / Donor / Tissue / Gene / chr1:10000000-40000000" autocomplete="off" spellcheck="false"
             oninput="onInput(this.value)" onkeydown="onKey(event)" onfocus="onInput(this.value)" data-page-node-id="Xne1IOBicL4Ovezcnki2lg">
           <button class="btn btn-primary" onclick="executeSearch()" data-page-node-id="j2B0MeA8Rvgu2CdeGEKgCJ">Search</button>
         </div>
@@ -232,13 +232,13 @@
       <!-- 示例：点一下直接填进搜索框 -->
       <div class="search-examples">
         <span>Try</span>
-        <button type="button" onclick="fillSearch('CSMD1')">CSMD1</button>
-        <span class="sep">|</span>
-        <button type="button" onclick="fillSearch('Whole Blood')">Whole Blood</button>
+        <button type="button" onclick="fillSearch('AK231-0160')">AK231-0160</button>
         <span class="sep">|</span>
         <button type="button" onclick="fillSearch('AK231')">AK231</button>
         <span class="sep">|</span>
-        <button type="button" onclick="fillSearch('AK231-0160')">AK231-0160</button>
+        <button type="button" onclick="fillSearch('Whole Blood')">Whole Blood</button>
+        <span class="sep">|</span>
+        <button type="button" onclick="fillSearch('CSMD1')">CSMD1</button>
         <span class="sep">|</span>
         <button type="button" onclick="fillSearch('chr1:10000000-40000000')">chr1:10000000-40000000</button>
       </div>
@@ -269,8 +269,6 @@
         <table class="data-table" data-page-node-id="36xZ0YqjCHVDmOSCXClnVK">
           <thead data-page-node-id="4bSnBoBJboKiF9OmTY1oGr">
             <tr data-page-node-id="DSO8fyf3opCd32IEf4NwGc">
-              <th class="sortable" onclick="sortBy('gene_symbol')">Gene <i class="fa-solid fa-sort sort-i"></i>
-              </th>
               <th class="sortable" onclick="sortBy('sample')">Sample <i class="fa-solid fa-sort sort-i"></i>
               </th>
               <th class="sortable has-filter" onclick="sortBy('donor')">Donor <i class="fa-solid fa-sort sort-i"></i>
@@ -284,6 +282,8 @@
                   aria-haspopup="true" aria-expanded="false" title="Filter by tissue">
                   <i class="fa-solid fa-filter"></i><span class="th-filter-count" data-fcount="tissue"></span>
                 </button>
+              </th>
+              <th class="sortable" onclick="sortBy('gene_symbol')">Gene <i class="fa-solid fa-sort sort-i"></i>
               </th>
               <th class="sortable" onclick="sortBy('contig')">Chr <i class="fa-solid fa-sort sort-i"></i>
               </th>
@@ -498,17 +498,14 @@
     //   这里每个字段的 empty、cellHtml() 里的兜底。
     // （2026-09-24 第二轮：原来还有第三处 showDetail() 侧栏的兜底，详情栏已移除。）
     const COLS = [
-      { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: '--' },
       { k: 'sample', label: 'Sample', kind: 'dict', cls: 'col-mono' },
       { k: 'donor', label: 'Donor', kind: 'dict', cls: 'col-donor', filter: true },
       { k: 'tissue', label: 'Tissue', kind: 'dict', filter: true },
+      { k: 'gene_symbol', label: 'Gene', kind: 'dict', cls: 'col-gene', empty: '--' },
       { k: 'contig', label: 'Chr', kind: 'dict' },
       { k: 'pos', label: 'Position', kind: 'int', fmt: 'int', cls: 'col-pos' },
       { k: 'ref', label: 'Ref', kind: 'raw' },
       { k: 'alt', label: 'Alt', kind: 'raw' },
-      // 空值统一显示成 '--'（原来是 'NA'）。两处必须一致：
-      //   这里每个字段的 empty、cellHtml() 里的兜底。
-      // （2026-09-24 第二轮：原来还有第三处 showDetail() 侧栏的兜底，详情栏已移除。）
       { k: 'region', label: 'Region', kind: 'dict', cls: 'col-region', empty: '--' },
       { k: 'depth', label: 'Depth', kind: 'int', fmt: 'int', cls: 'col-num' },
       { k: 'vaf', label: 'VAF', kind: 'num', fmt: 'vaf', cls: 'col-vaf' },
@@ -1419,7 +1416,7 @@
       // minColWidths 见上面 idealColWidths() 的注释 —— 它保证默认列宽是按全量
       // 107,852 行定的，翻页不会因为第 1 页碰巧值短而溢出。
       initColResize(tbl, {
-        storageKey: 'gtop.cols.search.v3',
+        storageKey: 'gtop.cols.search.v4',
         minWidth: 44,
         minColWidths: idealColWidths(tbl),
         onWidths: pinRightCols

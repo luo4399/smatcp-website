@@ -118,7 +118,7 @@ CSV 的 **21 列全部保留、全部展示**，不再拼接任何来自其它�
 `ref_origin` · `tissue_shared` · `infiltration_pp` · `infiltration` · `cosmic_signature` ·
 `CADD_PHRED` · `regulatory_score`
 
-> 2026-10-08 起页面把 `Gene / Sample / Donor / Tissue` 放在**最前四列**，
+> 2026-10-08 起页面把 `Sample / Donor / Tissue / Gene` 放在**最前四列**，
 > 与上表顺序不同 —— 见「结果表」一节。
 
 **突变分布最高的 5 个组织:**
@@ -256,6 +256,7 @@ bash scripts/build_publish.sh
 > | **2026-10-08 11:1x** | **重新发布（Data Portal：Data Matrix 停用 + 删掉 Donor 筛选里的组织子列表）** —— 链接复用；线上实测 `dmPanel`/`dmBody`/`dmToggle` 全不存在、`toggleMatrix`/`renderMatrix`/`matrixPick` 全 `undefined`、Donor 组 160 项且 `.filter-caret`/`.filter-chip` 为 0、五页 0 溢出 |
 > | **2026-10-08 12:3x** | **重新发布（首页：表头筛选的计数改为跟随搜索 + 0 计数选项不显示 + 面板标题显示「当前结果数」）** —— 链接复用；线上实测搜 `chr1` 后 Adipose 计数由 108 变 12、勾 Adipose 后 Donor 面板只剩 `AK231=12`、面板标题 `108 results` |
 > | **2026-10-08 15:2x** | **重新发布（首页搜索表：`Gene / Sample / Donor / Tissue` 挪到最前四列）** —— 链接复用；线上实测 22 个表头 == 新顺序、首行四格 `FAM87B` / `BE141-2099` / `BE141` / `Adrenal Gland`、列宽键已是 `.v3`、Tissue=Adipose 后第 4 列全 Adipose、按 Donor 排序后首屏同属一个供体、0 溢出 / 0 异常（`verify-live-col-order.mjs` 13 项全绿） |
+> | **2026-10-08 15:3x** | **重新发布（前四列改为 `Sample / Donor / Tissue / Gene`，搜索框 placeholder 与示例 chips 同步；列宽键升 `.v4`）** —— 链接复用；线上实测 22 个表头 == 新顺序、首行四格 `BE141-2099` / `BE141` / `Adrenal Gland` / `FAM87B`、placeholder = `Sample / Donor / Tissue / Gene / chr1:10000000-40000000`、示例 = `AK231-0160 · AK231 · Whole Blood · CSMD1 · chr1:…`、列宽键已是 `.v4`、Tissue=Adipose 后第 3 列全 Adipose、0 溢出 / 0 异常（`verify-live-col-order.mjs` 13 项 + `verify-search-order.mjs` 10 项全绿） |
 
 **第 4 步 · 更新线上内容**
 
@@ -344,43 +345,67 @@ Analysis & Tools（Genome Browser）/ Somatic Mosaicism / Download / Tissue / Co
 表格分页（10/25/50/100 条每页）、全列排序、详情侧边面板。
 
 搜索框下方有一行**可点示例**（点一下直接填进搜索框并查询）：
-`CSMD1` · `Whole Blood` · `AK231` · `AK231-0160` · `chr1:10000000-40000000`
-（依次是 基因 / 组织 / 供体 / 样本 / 染色体区间）。
-搜索框的 placeholder 也写明了可搜的维度。
+`AK231-0160` · `AK231` · `Whole Blood` · `CSMD1` · `chr1:10000000-40000000`
+（依次是 样本 / 供体 / 组织 / 基因 / 染色体区间）。
+搜索框的 placeholder 也按同一顺序写明可搜的维度：
+`Sample / Donor / Tissue / Gene / chr1:10000000-40000000`。
+
+> **2026-10-08**：luo 先要求「搜索框和示例也按照这个顺序调整吧」（当时前四列是
+> `Gene / Sample / Donor / Tissue`），随后又改成
+> 「**sample / donor / tissue / gene 这个顺序**」并选了「表格也一起改」。
+> 最终两者与结果表最前四列**完全一致**：`Sample | Donor | Tissue | Gene`（区间永远排最后）。
+> 改动由 `.workbuddy-ai/tools/patch-search-order.py`（第一轮）与
+> `patch-col-order-2.py`（第二轮，把表格一起带上）完成，都带命中次数断言 + 落盘后重新解析。
+>
+> ⚠️ **自动补全（`buildSuggestions()`）的优先级没有跟着改，这是有意的**：
+> 它按 `Donor → Sample → Tissue → Gene → Chromosome` 的顺序 push，且总量上限 12 条。
+> 小字典（供体 68 / 样本 354 / 组织 30）排在前面才能保证「打一个字就同时看到
+> 各类命中」；把 `Gene`（2.2 万个值）提到最前，打一个 `A` 会被 12 个基因占满，
+> 供体 `AK231` 之类的反而看不见了。所以那里保持原样。
 
 **结果表 = 21 个 CSV 列 + Visualization，共 22 列**（2026-09-24 由 13 列扩到 22 列；
 2026-09-28、2026-10-08 各调过一次列顺序，见下）：
 
-`Gene | Sample | Donor | Tissue | Chr | Position | Ref | Alt | Region |
+`Sample | Donor | Tissue | Gene | Chr | Position | Ref | Alt | Region |
 Depth | VAF | Type | Ti/Tv | Trinucleotide | Ref Origin | Tissue Shared |
 Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Visualization`
 
-**2026-10-08 列顺序再调整**（luo：「gene，sample，donor，tissue挪到前四列」）：
+**2026-10-08 列顺序调整（同一天两轮）** —— 第一轮 luo：「gene，sample，donor，tissue挪到前四列」；
+第二轮 luo：「sample / donor / tissue / gene这个顺序」，并在追问里选了「表格也一起改」。
 
-- `Gene` / `Sample` / `Donor` / `Tissue` 这 **4 列挪到最前面**（第 1–4 列），
-  其余 17 列的相对顺序一律没动。新顺序：
-  `gene_symbol, sample, donor, tissue, contig, pos, ref, alt, region, depth, vaf,`
+- **最终前四列 = `Sample` / `Donor` / `Tissue` / `Gene`**（Gene 从第 1 位退到第 4 位）；
+  第 5–21 列两轮都没动。最终顺序：
+  `sample, donor, tissue, gene_symbol, contig, pos, ref, alt, region, depth, vaf,`
   `mutation_type, TiTv, trinucleotide, ref_origin, tissue_shared, infiltration_pp,`
   `infiltration, cosmic_signature, CADD_PHRED, regulatory_score`
+- **搜索框 placeholder 与示例 chips 同步成同一顺序**（区间永远排最后），见上一节
 - **为什么**：`.table-wrap` 可视宽**恒为 1374px**，22 列总宽约 2620~2674px ——
   首屏能看到的永远是**最左边那一小截**。这 4 列是 luo 判断「这条变异是谁的、
   来自哪个组织」的核心维度，只有放到最前才不用横向滚动
-- **同一次要改的三处**（与 09-28 完全一样，只是键升到 `.v3`）：
+- **每次都要同步改三处**（与 09-28 完全一样）：
   1. `<thead>` 里**写死的 22 个 `<th>`**
   2. `COLS` 数组
-  3. `localStorage` 列宽键 `gtop.cols.search.v2` → **`gtop.cols.search.v3`**
+  3. `localStorage` 列宽键 —— **每调一次都要升版**：
+     `gtop.cols.search` → `.v2`（09-28）→ `.v3`（10-08 第一轮）→ **`.v4`（10-08 第二轮）**
 - **`data/variants_data.js` 不用重新生成**（取值走 `idxOf(字段名)`）；
   `scripts/build_variants_data.py` 只是把注释里的日期补了一句
-- 重排同样是**带断言的脚本**一次做完：`.workbuddy-ai/tools/patch-col-order.py`
-  （断言：`<th>` 块 22 个 / `COLS` 条目 21 个 / 现状 == 预期旧顺序 / 新旧键集合一致 /
-  `storageKey` 命中恰好 1 次 / `<thead>` 1 个 / 长度变化 < 400 字符；落盘后再解析一遍确认）
+- 重排都是**带断言的脚本**一次做完（两轮分别是 `.workbuddy-ai/tools/patch-col-order.py`、
+  `patch-col-order-2.py`）：断言 `<th>` 块 22 个 / `COLS` 条目 21 个 /
+  现状 == 预期**旧**顺序 / 新旧键集合一致 / `storageKey` 命中恰好 1 次 /
+  `<thead>` 1 个 / 长度变化 < 500 字符；**落盘后再解析一遍**确认。
+  第二轮还顺手删掉了一段被复制成两份的「空值统一显示成 `--`」注释
 - 验收：`.workbuddy-ai/tools/verify-col-order.mjs`（**23 项断言**）——
   表头文字序、每格 `<td>` 的 `col-*` 序、首行 21 格 vs `window.VDATA` 逐字段对齐、
   排序 / 筛选仍可用、导出 CSV 表头 = 新 key 序 + BOM + 行数、
-  **旧键 `.v2`（21×999）被忽略**、末两列固定不变、`docOverflow = 0`、0 异常
+  **旧键被忽略**（往上一版键塞 21×999，断言没有任何 `th` 是 999px）、
+  末两列固定不变、`docOverflow = 0`、0 异常。
+  搜索框顺序另有 `.workbuddy-ai/tools/verify-search-order.mjs`（10 项：placeholder 文字、
+  示例 chips 顺序与 onclick 一致性、点一下真的填进输入框、能搜出结果）
 - ⚠️ **探针里别写死列下标**：`verify-index-regression.mjs` 原来用 `tr.children[1]`
-  取 Position，重排后应变成 `children[5]` —— 已改成从表头 `onclick="sortBy('pos')"`
-  动态查下标，以后再调列顺序不会假失败
+  取 Position，重排后 Position 变成第 6 列 → 两条断言**假失败**（页面其实完全正常）。
+  已改成从表头 `onclick="sortBy('pos')"` 动态查下标，以后再调列顺序不会假失败。
+  同理 `verify-col-order.mjs` / `verify-live-col-order.mjs` 里按格取值的
+  `children[1]`（Donor）/ `children[2]`（Tissue）**每次调列序都要跟着改**
 
 **2026-09-28 列顺序调整**（luo：「search 表的顺序是不是要调整下呀」→
 「Gene / Region / Sample / Donor / Tissue 这些也挺重要的在前面吧」）：
@@ -426,8 +451,8 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
   `COLS` 里各字段的 `empty`、`cellHtml()` 的兜底
   （原来还有第三处 `showDetail()` 详情侧栏的兜底，详情栏已移除，见下文）
 - **表头列宽可拖拽**：拖动表头右边缘的细线即可改列宽，双击手柄恢复默认，
-  调整结果记在 `localStorage` 的 `gtop.cols.search.v3`（**存的是按列下标的数组**，
-  所以**每次调列顺序都必须升键**：2026-09-28 升到 `.v2`、2026-10-08 升到 `.v3`，
+  调整结果记在 `localStorage` 的 `gtop.cols.search.v4`（**存的是按列下标的数组**，
+  所以**每次调列顺序都必须升键**：09-28 升 `.v2`、10-08 两轮升 `.v3` → `.v4`，
   旧记录自动作废 —— 不升的话旧数组长度一样会被照单全收，套到错误的列上）。
   详见「列宽拖拽」一节
 - **`Regulatory Score` 列显示成迷你柱状图**（2026-09-24 改）：柱子按「值 ÷ 满格刻度」取宽，

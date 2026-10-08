@@ -248,6 +248,8 @@ bash scripts/build_publish.sh
 > | 2026-09-28 10:2x | 重新发布（首页搜索表列顺序调整）—— 链接复用，实测五页全绿、首页 12 列可见到 `Type`、0 个单元格被截断 |
 > | **2026-09-29 21:0x** | **重新发布（Data Portal 筛选面板：分组清除 / 前两组可搜索 / 左栏可折叠）** —— 链接复用，`verified: true`；线上实测五页 0 溢出 / 0 断图 / 0 异常 / 0 失败请求，8 个敏感路径全 404，三个新功能逐项跑通，覆盖度图弹窗 PDF 200 |
 > | **2026-09-30 16:1x** | **重新发布（Data Matrix 固定列宽 + 靠左 / 色阶改竖排 colorbar / 页面描述两端对齐 / 页头汉堡断点 980→1100px）** —— 链接复用，`verified: true`；线上 5 页 × 5 视口 0 溢出 / 0 断图 / 0 异常 / 0 失败请求，8 个敏感路径全 404，热图 486.5px + 滚动条贴表 + 33 行 + sticky 表头 + colorbar 并排 + 描述 justify 逐项跑通 |
+> | **2026-10-03 17:0x** | **重新发布（首页英雄区 `of` 改白色 / 固定列加深底色 / 窄屏保留固定列 + 手动折叠开关）** —— 链接复用；线上实测固定列 `th rgb(211,221,238)` / `td rgb(230,236,249)`、`wrapClass = table-wrap pin-on`、五页 0 溢出 |
+> | **2026-10-08 11:1x** | **重新发布（Data Portal：Data Matrix 停用 + 删掉 Donor 筛选里的组织子列表）** —— 链接复用；线上实测 `dmPanel`/`dmBody`/`dmToggle` 全不存在、`toggleMatrix`/`renderMatrix`/`matrixPick` 全 `undefined`、Donor 组 160 项且 `.filter-caret`/`.filter-chip` 为 0、五页 0 溢出 |
 
 **第 4 步 · 更新线上内容**
 
@@ -376,8 +378,9 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
 - 除 `Visualization` 外**全部可点表头排序**；字典列按文字排（不是按字典下标）
 - **表头筛选 8 组**（漏斗图标）：`Type` `Ti/Tv` `Tissue` `Donor` `Ref Origin`
   `Tissue Shared` `Infiltration` `COSMIC Signature`。
-  语义与其他页一致：**组内 OR、组间 AND、一个都不勾 = 不筛**，
-  选项旁的计数是 faceted count（统计满足「其它生效筛选」的行数），计数为 0 的选项不显示
+  语义与其他页一致：**组内 OR、组间 AND、一个都不勾 = 不筛**。
+  选项旁的计数是 faceted count（统计满足「**当前搜索** + 其它生效筛选」的行数），
+  计数为 0 且**未选中**的选项不显示（口径见下方「表头筛选的计数口径」）
 - `Download` 导出的 CSV **列名与取值与源表完全一致**（`contig`/`pos`/…/`regulatory_score`），
   可直接和 `variants_website.csv` 对回去。
   ⚠️ **列顺序跟表格走**（`DL_COLS = COLS.map(...)`），所以 2026-09-28 调列顺序后
@@ -438,8 +441,8 @@ Infiltration PP | Infiltration | COSMIC Signature | CADD | Regulatory Score | Vi
 - **不再有 `Age` / `Sex` 两列** —— 它们来自 `select_sample.xlsx`，不属于这张 CSV，已移除
 
 **表头筛选**：结果表的 `Type` / `Tissue` / `Donor` 三列表头各有一个漏斗按钮，点开是勾选面板。
-选项旁的数字是 **faceted count** —— 统计满足「其它生效筛选」的行数，所以勾了 Tissue 之后，
-Donor 列表里每个供体还剩多少条一目了然：
+选项旁的数字是 **faceted count** —— 统计满足「当前搜索 + 其它生效筛选」的行数，
+所以勾了 Tissue 之后，Donor 列表里每个供体还剩多少条一目了然：
 
 - 筛选是在搜索条件**之上**再收窄，即 `搜索命中 ∩ 各列筛选`（例：Whole Blood + INDEL = 378 条）
 - 组内 OR、组间 AND；一个都不勾 = 不筛（与 Data Portal 页语义一致），全选也等于不筛
@@ -449,6 +452,42 @@ Donor 列表里每个供体还剩多少条一目了然：
   位置由 JS 按按钮的视口坐标算；下方空间不够时自动翻到按钮上方，并随滚动/改窗口大小重新定位
 - 关闭方式：再点按钮、点面板外、按 `Esc`
 - `Reset Filters` 会连同三列筛选一起清空
+
+**表头筛选的计数口径（2026-10-08 修）**
+
+luo：「首页的表格的筛选是不是没有联动呀」。实测下来**一半联动、一半不联动**：
+跨组联动本来是对的（勾 `Tissue = Adipose` 得 108 条，Donor 面板里 AK231 同步从 789 变 108），
+**不联动的是「搜索框 ↔ 筛选计数」**：
+
+| 步骤 | 结果数 | Donor 面板里 AK231 的计数 |
+|---|---|---|
+| 干净 | 107,852 | 789 |
+| 只勾 Adipose | 108 | 108 |
+| 再叠加搜索 `chr1` | 12 | **12**（修前恒为 108，与结果对不上）|
+
+两处改动：
+
+1. **计数跟随搜索。** `computeCounts()` 的基数由全量 `ROWS` 换成 `state.searchRows`
+   （`runQuery()` 在「搜索之后、套用筛选之前」记下的那一份）。否则搜完 `chr1`，
+   面板里还写着全库的数字。另外 `executeSearch()` 末尾补了 `refreshFilterCounts()`，
+   **已经打开的面板**也会跟着刷新，不必关掉重开。
+2. **0 计数的选项不显示。** 与 Data Portal 同一条判据：
+
+   ```js
+   // 0 计数且未选中才隐藏；已选中的必须留着，否则用户没法取消勾选
+   const optVisible = (n, on, text, q) => (n > 0 || on) && (!q || text.includes(q));
+   ```
+
+   改前勾一个 Adipose，Donor 面板 68 项里 67 项是 0 却全列着，要滚一长条 0 —— 观感上
+   就像「没联动」。现在只剩 `AK231 = 108` 一项。
+
+⚠️ **连带的两个地方必须一起改，漏了会引入新 bug：**
+
+- `setAllFilter()`（`Select all`）**不能按 DOM 里的 checkbox 算** —— 0 计数的选项已被隐藏，
+  按 DOM 算会漏掉它们，`state.filters[key]` 变成「只勾了有数的那些」，反而把结果收窄。
+  改成按 `FBY[key].opts` 全量取值（全选 = 不筛，与组内 OR 语义一致）。
+- `onFilterSearch()` 原来自己按搜索词设 `display`，会把「0 计数隐藏」覆盖掉（选项又冒出来）。
+  改成直接调 `refreshFilterCounts()`，两个条件在同一处合。
 
 **下载结果**：`Reset Filters` 左边的 `Download` 按钮**直接下载 CSV**（2026-09-24 去掉 TSV：
 原先是个 CSV / TSV 二选一的下拉菜单，只剩一个选项的菜单没有意义，改成按钮直接下载，
